@@ -11,7 +11,7 @@ import SignIn from "./pages/SignIn";
 import Home from "./pages/Home";
 import SignUp from "./pages/SignUp";
 import SuccessPage from "./pages/SuccessPage";
-import { AcceptInvitationLoader, ComplaintLoader, EmployeesLoader, EnterpriseInboxLoader, EnterpriseLoader, EnterpriseSentComplaintLoader, EnterpriseSentLoader, FindReceiverLoader, HireLoader, HiringLoader, PendingHiresLoader, ProfileLoader, RegisterEnterpriseLoader, RootLoader, SignUpLoader, UserInboxLoader, UserSendComplaintLoader, UserSentLoader } from "./lib/loaders";
+import { AcceptInvitationLoader, ComplaintLoader, ComplaintsSolvedListPageLoader, EmployeesLoader, EnterpriseInboxLoader, EnterpriseLoader, EnterpriseSentComplaintLoader, EnterpriseSentLoader, FeedbackPageLoader, FindReceiverLoader, HireLoader, HiringLoader, PendingHiresLoader, ProfileLoader, RegisterEnterpriseLoader, ReviewComplaintLoader, ReviewEnterpriseComplaintLoader, RootLoader, SignUpLoader, UserInboxLoader, UserSendComplaintLoader, UserSentLoader } from "./lib/loaders";
 import { RegisterEnterpriseAction, SignInAction, SignUpAction } from "./lib/actions";
 import ProfileLayout from "./ProfileLayout";
 import RegisterEnterprise from "./pages/RegisterEnterprise";
@@ -23,13 +23,18 @@ import Sent from "./pages/Sent";
 import ComplaintPage from "./pages/ComplaintPage";
 import EnterpriseLayout from "./EnterpriseLayout";
 import Enterprise from "./pages/Enterprise";
-
 import Hiring from "./pages/Hiring";
 import Hire from "./pages/Hire";
-import AcceptInvitation from "./pages/AcceptInvitation";
 import PendingHires from "./pages/PendingHires";
 import Employees from "./pages/Employees";
 import FindReceiver from "./pages/FindReceiver";
+import EmployeesLayout from "./EmployeesLayout";
+import Office from "./pages/Office";
+import ReviewPage from "./pages/ReviewPage";
+import AcceptInvitation from "./pages/AcceptInvitation";
+import ComplaintsSolvedListPage from "./pages/ComplaintsSolvedListPage";
+import FeedbackPage from "./pages/FeedbackPage";
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -60,6 +65,10 @@ const router = createBrowserRouter([
         path: "/invitation/:type/:id",
         element: <AcceptInvitation />,
         loader: AcceptInvitationLoader
+      },
+      {
+        path: "/error/:message",
+        element: <ErrorPage />,
       }
     ],
   },
@@ -104,6 +113,11 @@ const router = createBrowserRouter([
         path: "/profile/sent",
         element: <Sent />,
         loader: UserSentLoader,
+      },
+      {
+        path: "/profile/reviews",
+        element: <ReviewPage />,
+        loader: ReviewComplaintLoader,
       }
     ],
   },
@@ -154,6 +168,16 @@ const router = createBrowserRouter([
         loader: EmployeesLoader,
       },
       {
+        path: "/enterprises/:id/feedback",
+        element: <ComplaintsSolvedListPage />,
+        loader: ComplaintsSolvedListPageLoader,
+      },
+      {
+        path: "/enterprises/:id/feedback/:complaintID",
+        element: <FeedbackPage />,
+        loader: FeedbackPageLoader,
+      },
+      {
         path: "/enterprises/:id/hiring/:userID",
         element: <Hire />,
         loader: HireLoader,
@@ -162,8 +186,51 @@ const router = createBrowserRouter([
         path: "/enterprises/:id/pending",
         element: <PendingHires />,
         loader: PendingHiresLoader,
-      }
+      },
+      {
+        path: "/enterprises/:id/reviews",
+        element: <ReviewPage />,
+        loader: ReviewEnterpriseComplaintLoader,
+      },
     ],
+  },
+  {
+    path: "/office/:id",
+    element: <EmployeesLayout />,
+    errorElement: <ErrorPage />,
+    loader: ProfileLoader,
+    children: [
+      { index: true, element: <Office /> },
+      {
+        path: "/office/:id/complaint",
+        element: <FindReceiver />,
+        loader: FindReceiverLoader,
+      },
+      {
+        path: "/office/:id/complaint/describe",
+        element: <DescribeComplaint />
+      },
+      {
+        path: "/office/:id/complaint/complain",
+        element: <Complain />,
+        loader: EnterpriseSentComplaintLoader
+      },
+      {
+        path: "/office/:id/inbox",
+        element: <Inbox />,
+        loader: EnterpriseInboxLoader,
+      },
+      {
+        path: "/office/:id/sent",
+        element: <Sent />,
+        loader: EnterpriseSentLoader,
+      },
+      {
+        path: "/office/:id/:complaintID",
+        element: <ComplaintPage />,
+        loader: ComplaintLoader,
+      },
+    ]
   }
 ]);
 

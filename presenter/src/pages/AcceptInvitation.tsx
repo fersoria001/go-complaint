@@ -1,51 +1,34 @@
 import Realistic from "react-canvas-confetti/dist/presets/realistic";
 import { useLoaderData, useNavigate, useParams } from "react-router-dom";
-import { HiringInvitation, StringID } from "../lib/types";
+import { ErrorType, HiringInvitation, StringID } from "../lib/types";
 import { useEffect, useState } from "react";
 import { AcceptHiringInvitationMutation, Mutation } from "../lib/mutations";
-function AcceptInvitation() {
-    const { id, type } = useParams();
-    const data = useLoaderData();
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [accept, setAccept] = useState<boolean>(false);
-    const navigate = useNavigate();
-    let msg = "You have been invited to be part of Enterprise!";
-    switch (type) {
-        case "hiring": {
-            const invitation = data as HiringInvitation
-            if (invitation.seen) {
-                throw new Error("Invitation already seen!");
-            }
-            msg = `You have been invited to be part of ${invitation.enterprise_id}!, ${invitation.position_proposal}!`;
-            break;
-        }
-    }
-    useEffect(() => {
 
-        if (!accept) return;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        let mutationFn: (data: StringID) => string = (_id: StringID) => "";
-        switch (type) {
-            case "hiring": {
-                mutationFn = AcceptHiringInvitationMutation;
-                break;
-            }
-            default: {
-                setErrors({ type: "Invalid invitation type!" });
-                break;
-            }
-        }
+function AcceptInvitation() {
+    const { id } = useParams();
+    const data = useLoaderData() as HiringInvitation | null;
+    const [errors, setErrors] = useState<ErrorType>({});
+    useEffect(() => {
+    }, [errors]);
+    const navigate = useNavigate();
+    if (!data) {
+        navigate("/error/invitation%20not%20found");
+        return null;
+    } else if (data.seen) {
+        navigate("/error/invitation%20already%20solved");
+        return null;
+    }
+    const msg = `You have been invited to be part of ${data.enterprise_id}!, ${data.position_proposal}!`;
+    const handleSubmit = () => {
+        setErrors({});
         if (!id) { setErrors({ id: "Invalid invitation ID!" }); return; }
-        if (mutationFn({ id: "" }) === "") {
-            setErrors({ type: "Invalid invitation type!" }); return;
-        }
         console.log("Accepting invitation...", id!);
-        Mutation<StringID>(mutationFn, { id: id! }).then(() => {
+        Mutation<StringID>(AcceptHiringInvitationMutation, { id: id! }).then(() => {
             navigate("/success/hiring%20invitation%20accepted");
         }).catch((err) => {
             setErrors({ mutation: err });
         })
-    }, [id, type, accept, navigate])
+    }
     return (
         <div className="relative">
             <div className="">
@@ -61,7 +44,7 @@ function AcceptInvitation() {
                 </p>
                 {errors && Object.keys(errors).length > 0 && <div className="text-red-500 text-center mb-6"> {Object.values(errors).join(" ")} </div>}
                 <button
-                    onClick={() => setAccept(true)}
+                    onClick={handleSubmit}
                     className="self-center inline-flex items-center justify-center px-5 py-3 text-base font-medium text-center text-white
                  bg-cyan-500 rounded-lg hover:bg-cyan-700 focus:ring-4 focus:ring-cyan-300">
                     Accept

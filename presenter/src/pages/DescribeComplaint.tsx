@@ -5,7 +5,7 @@ import Reason from "../components/complaint-writer/Reason";
 import Stepper from "../components/complaint-writer/Stepper";
 import { DescriptionValidationSchema } from "../lib/types";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ComplaintContext } from "../react-context/user-create-complaint/ComplaintContext";
+import { ComplaintContext } from "../react-context/ComplaintContext";
 
 function DescribeComplaint() {
     const [errors, setErrors] = useState<{ [key: string]: string }>({});

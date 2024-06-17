@@ -1,69 +1,59 @@
 package common
 
-import "go-complaint/erros"
+import (
+	"go-complaint/domain"
+
+	"github.com/google/uuid"
+)
 
 // First opinion
-//Value objects must not be passed as pointers because
-//they are immutable and side effect free
+// Value objects must not be passed as pointers because
+// they are immutable and side effect free
 type Address struct {
-	country string
-	county  string
-	city    string
+	id       uuid.UUID
+	country  Country
+	county   CountryState
+	city     City
+	director domain.Director
 }
 
-func NewEmptyAddress() Address {
-	return Address{}
+func NewAddress(
+	id uuid.UUID,
+	country Country,
+	county CountryState,
+	city City,
+) Address {
+	a := Address{
+		id:      id,
+		country: country,
+		county:  county,
+		city:    city,
+	}
+	return a
+}
+func NewAddressWithDirector(director domain.Director) *Address {
+	a := &Address{
+		director: director,
+	}
+	return a
 }
 
-func NewAddress(country string, county string, city string) (Address, error) {
-	var address Address = *new(Address)
-	err := address.setCountry(country)
-	if err != nil {
-		return Address{}, err
-	}
-	err = address.setCounty(county)
-	if err != nil {
-		return Address{}, err
-	}
-	err = address.setCity(city)
-	if err != nil {
-		return Address{}, err
-	}
-	return address, nil
+func (a *Address) Changed() {
+	a.director.Changed(a)
 }
 
-func (a *Address) setCountry(country string) error {
-	if country == "" {
-		return &erros.NullValueError{}
-	}
-	a.country = country
-	return nil
+func (a Address) ID() uuid.UUID {
+	return a.id
 }
 
-func (a *Address) setCounty(county string) error {
-	if county == "" {
-		return &erros.NullValueError{}
-	}
-	a.county = county
-	return nil
-}
-
-func (a *Address) setCity(city string) error {
-	if city == "" {
-		return &erros.NullValueError{}
-	}
-	a.city = city
-	return nil
-}
-
-func (a Address) Country() string {
+func (a Address) Country() Country {
 	return a.country
 }
 
-func (a Address) County() string {
+func (a Address) CountryState() CountryState {
 	return a.county
 }
 
-func (a Address) City() string {
+func (a Address) City() City {
 	return a.city
 }

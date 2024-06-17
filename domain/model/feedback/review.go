@@ -3,33 +3,25 @@ package feedback
 import (
 	"go-complaint/domain/model/common"
 	"go-complaint/erros"
+
+	"github.com/google/uuid"
 )
 
 type Review struct {
-	reviewerID   string
-	reviewerIMG  string
-	reviewerName string
-	reviewedAt   common.Date
-	comment      string
+	replyReviewID uuid.UUID
+	reviewerID    string
+	reviewedAt    common.Date
+	comment       string
 }
 
 func NewReview(
+	replyReviewID uuid.UUID,
 	reviewerID string,
-	reviewerIMG string,
-	reviewerName string,
 	reviewedAt common.Date,
 	comment string,
 ) (*Review, error) {
 	var review *Review = new(Review)
 	err := review.setReviewerID(reviewerID)
-	if err != nil {
-		return nil, err
-	}
-	err = review.setReviewerIMG(reviewerIMG)
-	if err != nil {
-		return nil, err
-	}
-	err = review.setReviewerName(reviewerName)
 	if err != nil {
 		return nil, err
 	}
@@ -41,30 +33,31 @@ func NewReview(
 	if err != nil {
 		return nil, err
 	}
+	err = review.setReplyReviewID(replyReviewID)
+	if err != nil {
+		return nil, err
+	}
+
 	return review, nil
 }
 
-func (r *Review) setReviewerID(reviewerID string) error {
-	if reviewerID == "" {
+func (r Review) ReviewerID() string {
+	return r.reviewerID
+}
+
+func (r *Review) setReviewerID(reviewer string) error {
+	if reviewer == "" {
 		return &erros.NullValueError{}
 	}
-	r.reviewerID = reviewerID
+	r.reviewerID = reviewer
 	return nil
 }
 
-func (r *Review) setReviewerIMG(reviewerIMG string) error {
-	if reviewerIMG == "" {
+func (r *Review) setReplyReviewID(replyReviewID uuid.UUID) error {
+	if replyReviewID == uuid.Nil {
 		return &erros.NullValueError{}
 	}
-	r.reviewerIMG = reviewerIMG
-	return nil
-}
-
-func (r *Review) setReviewerName(reviewerName string) error {
-	if reviewerName == "" {
-		return &erros.NullValueError{}
-	}
-	r.reviewerName = reviewerName
+	r.replyReviewID = replyReviewID
 	return nil
 }
 
@@ -85,22 +78,14 @@ func (r *Review) setComment(comment string) error {
 	return nil
 }
 
-func (r *Review) ReviewerID() string {
-	return r.reviewerID
-}
-
-func (r *Review) ReviewerIMG() string {
-	return r.reviewerIMG
-}
-
-func (r *Review) ReviewerName() string {
-	return r.reviewerName
-}
-
-func (r *Review) ReviewedAt() common.Date {
+func (r Review) ReviewedAt() common.Date {
 	return r.reviewedAt
 }
 
-func (r *Review) Comment() string {
+func (r Review) Comment() string {
 	return r.comment
+}
+
+func (r Review) ReplyReviewID() uuid.UUID {
+	return r.replyReviewID
 }

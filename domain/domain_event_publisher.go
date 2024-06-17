@@ -44,7 +44,8 @@ func (dep *DomainEventPublisher) Publish(ctx context.Context, event DomainEvent)
 		dep.publishing = false
 	}()
 	for _, subscriber := range dep.subscribers {
-		if subscriber.SubscribedToEventType() == eventType || subscriber.SubscribedToEventType() == interfaceType {
+		if subscriber.SubscribedToEventType() == eventType ||
+			subscriber.SubscribedToEventType() == interfaceType {
 			err = subscriber.HandleEvent(event)
 			if err != nil {
 				errs = errors.Join(errs, err)

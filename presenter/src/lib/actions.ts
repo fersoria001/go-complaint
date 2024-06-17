@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   CreateEnterprise,
+  CreateUser,
   RegisterEnterpriseSchema,
   SignInSchema,
   SignUpSchema,
-  User,
 } from "./types";
 import {
   Mutation,
@@ -29,7 +29,7 @@ export const SignUpAction = async ({ request }: any) => {
     });
     return errors;
   }
-  const newUser: User = {
+  const newUser: CreateUser = {
     email: parsed.data.email,
     password: parsed.data.password,
     firstName: parsed.data.firstName,
@@ -42,7 +42,7 @@ export const SignUpAction = async ({ request }: any) => {
     county: parsed.data.county,
     city: parsed.data.city,
   };
-  await Mutation<User>(CreateUserMutation, newUser);
+  await Mutation<CreateUser>(CreateUserMutation, newUser);
   return redirect("/success/register");
 };
 
@@ -115,3 +115,20 @@ export const RegisterEnterpriseAction = async ({ request }: any) => {
   await Mutation<CreateEnterprise>(CreateEnterpriseMutation, newEnterprise);
   return redirect("/success/register enterprise");
 };
+
+export const timeAgo = (date: string): string => {
+  const obj = new Date(parseInt(date))
+  const now = new Date()
+  const diff = now.getTime() - obj.getTime()
+  const seconds = Math.floor(diff / 1000)
+  let result = 0
+  if (seconds < 3600) {
+      result = Math.floor(seconds / 60)
+      return `${result}m ago`
+  }
+  result = Math.floor(seconds / 3600)
+  if (result > 24) {
+      return `${Math.floor(result / 24)}d ago`
+  }
+  return `${result}h ago`
+}

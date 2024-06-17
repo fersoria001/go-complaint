@@ -14,7 +14,8 @@ type EmployeePromoted struct {
 	occurredOn   time.Time
 }
 
-func NewEmployeePromoted(enterpriseID, managerID, employeeID string, position Position) *EmployeePromoted {
+func NewEmployeePromoted(enterpriseID, managerID,
+	employeeID string, position Position) *EmployeePromoted {
 	return &EmployeePromoted{
 		enterpriseID: enterpriseID,
 		managerID:    managerID,
@@ -22,6 +23,22 @@ func NewEmployeePromoted(enterpriseID, managerID, employeeID string, position Po
 		position:     position,
 		occurredOn:   time.Now(),
 	}
+}
+
+func (ep *EmployeePromoted) EnterpriseID() string {
+	return ep.enterpriseID
+}
+
+func (ep *EmployeePromoted) ManagerID() string {
+	return ep.managerID
+}
+
+func (ep *EmployeePromoted) EmployeeID() string {
+	return ep.employeeID
+}
+
+func (ep *EmployeePromoted) Position() Position {
+	return ep.position
 }
 
 func (ep *EmployeePromoted) OccurredOn() time.Time {
@@ -63,10 +80,11 @@ func (ep *EmployeePromoted) UnmarshalJSON(data []byte) error {
 	ep.enterpriseID = j.EnterpriseID
 	ep.managerID = j.ManagerID
 	ep.employeeID = j.EmployeeID
-	ep.position, err = ParsePosition(j.Position)
-	if err != nil {
-		return err
+	position := ParsePosition(j.Position)
+	if position == NOT_EXISTS {
+		return ErrPositionNotExists
 	}
+	ep.position = position
 	occurredOn, err := common.ParseDate(j.OccurredOn)
 	if err != nil {
 		return err

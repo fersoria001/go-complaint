@@ -3,6 +3,7 @@ package complaint
 import (
 	"go-complaint/domain/model/common"
 	"go-complaint/erros"
+	"net/mail"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,21 +14,50 @@ import (
 // It represents the reply of the complaint
 // Its complaintID is the id of the complaint that own this reply
 type Reply struct {
-	id          uuid.UUID
-	complaintID uuid.UUID
-	senderID    string
-	senderIMG   string
-	senderName  string
-	body        string
-	createdAt   common.Date
-	read        bool
-	readAt      common.Date
-	updatedAt   common.Date
+	id           uuid.UUID
+	complaintID  uuid.UUID
+	senderID     string
+	senderIMG    string
+	senderName   string
+	body         string
+	createdAt    common.Date
+	read         bool
+	readAt       common.Date
+	updatedAt    common.Date
+	isEnterprise bool
+	enterpriseID string
 }
 
 func (r *Reply) MarkAsRead() {
 	r.read = true
 	r.readAt = common.NewDate(time.Now())
+}
+
+func CreateReply(
+	id uuid.UUID,
+	complaintID uuid.UUID,
+	authorID string,
+	body string,
+	enterpriseID string,
+) *Reply {
+	isEnterprise := false
+	if enterpriseID != "" {
+		isEnterprise = true
+	}
+	newCommonDate := common.NewDate(time.Now())
+	r := &Reply{
+		id:           id,
+		complaintID:  complaintID,
+		senderID:     authorID,
+		body:         body,
+		read:         false,
+		readAt:       newCommonDate,
+		createdAt:    newCommonDate,
+		updatedAt:    newCommonDate,
+		isEnterprise: isEnterprise,
+		enterpriseID: enterpriseID,
+	}
+	return r
 }
 
 func NewReply(id uuid.UUID,
@@ -39,7 +69,10 @@ func NewReply(id uuid.UUID,
 	read bool,
 	createdAt,
 	readAt,
-	updatedAt common.Date) (*Reply, error) {
+	updatedAt common.Date,
+	isEnterprise bool,
+	enterpriseID string,
+) (*Reply, error) {
 	var reply *Reply = new(Reply)
 	err := reply.setID(id)
 	if err != nil {
@@ -78,7 +111,27 @@ func NewReply(id uuid.UUID,
 	if err != nil {
 		return nil, err
 	}
+	reply.isEnterprise = isEnterprise
+	err = reply.SetEnterpriseID(enterpriseID)
+	if err != nil {
+		return nil, err
+	}
+
 	return reply, nil
+}
+
+func (r *Reply) SetEnterpriseID(enterpriseID string) error {
+	if _, err := mail.ParseAddress(enterpriseID); err == nil {
+		return &erros.ValidationError{
+			Expected: "enterpriseID cannot be an email address",
+		}
+	}
+	r.enterpriseID = enterpriseID
+	return nil
+}
+
+func (r *Reply) EnterpriseID() string {
+	return r.enterpriseID
 }
 
 func (r *Reply) setSenderID(senderID string) error {
@@ -203,4 +256,8 @@ func (r *Reply) UpdatedAt() common.Date {
 
 func (r *Reply) SenderID() string {
 	return r.senderID
+}
+
+func (r *Reply) IsEnterprise() bool {
+	return r.isEnterprise
 }

@@ -12,17 +12,17 @@ type Rating struct {
 Comment is optional and can be empty,
 Rate is required and must be between 0 and 5
 */
-func NewRating(rate int, comment string) (*Rating, error) {
-	var r Rating
+func NewRating(rate int, comment string) (Rating, error) {
+	var r *Rating = &Rating{}
 	err := r.setRate(rate)
 	if err != nil {
-		return nil, err
+		return *r, err
 	}
 	err = r.setComment(comment)
 	if err != nil {
-		return nil, err
+		return *r, err
 	}
-	return &r, nil
+	return *r, nil
 }
 
 func (r *Rating) setRate(rate int) error {

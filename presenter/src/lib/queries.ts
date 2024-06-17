@@ -9,8 +9,11 @@ import {
   Employee,
   Enterprise,
   Industry,
+  InfoForReview,
+  Office,
   PhoneCode,
   Receiver,
+  SolvedReview,
   User,
   UserDescriptor,
   UsersForHiring,
@@ -209,6 +212,7 @@ export const SentTypeList = (data: any): ComplaintTypeList => {
 export const ComplaintQuery = (id: string): string => `
   {
     Complaint(ID: "${id}") {
+      id
       authorID
       authorFullName
       authorProfileIMG
@@ -220,13 +224,26 @@ export const ComplaintQuery = (id: string): string => `
       createdAt
       updatedAt
       rating { rate comment }
+      replies {
+        id
+        complaintID
+        senderID
+        senderIMG
+        senderName
+        body
+        createdAt
+        read
+        readAt
+        updatedAt
+        isEnterprise
+        enterpriseID
+      }
     }
   }
 `;
 
-export const ComplaintType = (data: any): Complaint[] => {
-  console.log("json data", data);
-  return data.Complaint as Complaint[];
+export const ComplaintType = (data: any): Complaint => {
+  return data.Complaint as Complaint;
 };
 
 export const EnterpriseQuery = (id: string): string => `
@@ -309,6 +326,8 @@ export const EmployeeQuery = (id: string): string => `
       approvedHiring
       approvedHiringAt
       position
+      complaintsSolved
+      complaintsSolvedIDs
     }
   }
 `;
@@ -331,31 +350,97 @@ export const EmployeesQuery = (id: string): string => `
       approvedHiring
       approvedHiringAt
       position
+      complaintsSolved
+      complaintsSolvedIDs
     }
   }
 `;
 
 export const EmployeesTypeList = (data: any): Employee[] => {
-  console.log(data);
   return data.Employees as Employee[];
 };
 
+export const OfficesQuery = (): string => `
+  {
+    Offices {
+      employeeID
+      employeeFirstName
+      employeePosition
+      enterpriseLogoIMG
+      enterpriseName
+      enterpriseWebsite
+      enterprisePhone
+      enterpriseEmail
+      enterpriseIndustry
+      enterpriseAddress { country county city }
+      ownerFullName
+    }
+  }
+`;
+
+export const OfficeTypeList = (data: any): Office[] => {
+  return data.Offices as Office[];
+};
+
+export const InfoForReviewQuery = (
+  triggeredBy: string,
+  complaintID: string
+): string => `
+{
+  User(ID: "${triggeredBy}") {
+    firstName
+    lastName
+  }
+  Complaint(ID: "${complaintID}") {
+    id
+    receiverFullName
+    message { title  }
+  }
+}
+`;
+
+export const SolvedReviewQuery = (
+  complaintID: string,
+  assistantUserID: string
+): string => `
+{
+  User(ID: "${assistantUserID}") {
+    firstName
+    lastName
+  }
+  Complaint(ID: "${complaintID}") {
+    id
+    message { title  }
+    rating { rate comment }
+  }
+}
+`;
+
+export const SolvedReviewType = (data: any): SolvedReview => {
+  return data as SolvedReview;
+};
+export const InfoForReviewType = (data: any): InfoForReview => {
+  return data as InfoForReview;
+};
 export async function Query<T>(
   queryFn: (...args: any[]) => string,
   castToFn: (data: any) => T,
   args: any[] = []
 ): Promise<T> {
   console.log(queryFn(...args));
-  return fetch(import.meta.env.VITE_GRAPHQL_ENDPOINT, {
+  const query = await fetch(import.meta.env.VITE_GRAPHQL_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     credentials: "include",
     body: JSON.stringify({ query: deleteLinebreaks(queryFn(...args)) }),
-  })
-    .then((res) => res.json())
-    .then((data) => castToFn(data.data));
+  });
+  const data = await query.json();
+  if (!data) {
+    console.error(data);
+  }
+  return castToFn(data.data);
 }
 
 const deleteLinebreaks = (str: string): string => {

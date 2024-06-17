@@ -4,6 +4,7 @@ import {
   EndHiringProcess,
   InviteToProject,
   MarkAsReviewable,
+  RateComplaint,
   SendComplaint,
   StringID,
 } from "./types";
@@ -109,14 +110,13 @@ export const EndHiringProcessMutation = (ehp: EndHiringProcess): string => {
     EndHiringProcess(
       pendingEventID: "${ehp.pendingEventID}",
       enterpriseName: "${ehp.enterpriseID}",
-      employeeID: "${ehp.employeeID}"
       accepted: ${ehp.accepted}
     )
   }
   `;
 };
 
-export const MarkAsReviewableMutation = (mar : MarkAsReviewable): string => {
+export const MarkAsReviewableMutation = (mar: MarkAsReviewable): string => {
   return `mutation {
     MarkAsReviewable(
       complaintID: "${mar.complaintID}",
@@ -125,6 +125,17 @@ export const MarkAsReviewableMutation = (mar : MarkAsReviewable): string => {
     )
   }
   `;
+};
+
+export const RateComplaintMutation = (rate: RateComplaint): string => {
+  return `mutation {
+    RateComplaint(
+      notificationID: "${rate.notificationID}",
+      complaintID: "${rate.complaintID}",
+      rate: ${rate.rate},
+      comment: "${rate.comment}",
+      )
+    }`;
 };
 
 export const Mutation = async <T>(

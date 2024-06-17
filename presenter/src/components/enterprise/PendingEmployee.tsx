@@ -1,52 +1,41 @@
 import { useEffect, useState } from "react";
-import { Employee, EndHiringProcess } from "../../lib/types";
+import { EndHiringProcess, ErrorType, User } from "../../lib/types";
 import ContactMailIcon from "../icons/ContactMailIcon";
 import MaleFaceIcon from "../icons/MaleFaceIcon";
 import WorkIcon from "../icons/WorkIcon";
 import { EndHiringProcessMutation, Mutation } from "../../lib/mutations";
 import LoadingSpinner from "../icons/LoadingSpinner";
 import DoneIcon from "../icons/DoneIcon";
-import ErrorIcon from "../icons/ErrorIcon";
 import ThinButton from "../buttons/ThinButton";
-
+import ErrorOnHoverIcon from "../error/ErrorOnHoverIcon";
+import { useParams } from "react-router-dom";
 interface Props {
     eventID: string;
-    employee: Employee;
+    employee: User;
+    position: string;
+    pendingDate: string;
 }
-function PendingEmployee({ eventID, employee }: Props) {
-    const [accepted, setAccepted] = useState<boolean | null>(null);
+function PendingEmployee({ eventID, employee, position, pendingDate }: Props) {
     const [loading, setLoading] = useState<boolean>(false);
     const [success, setSuccess] = useState<boolean | null>(null);
+    const [error, setError] = useState<ErrorType | null>(null);
+    const { id } = useParams();
+    const handleSubmit = (accept: boolean) => {
+        setLoading(true)
+        Mutation<EndHiringProcess>(EndHiringProcessMutation,
+            { pendingEventID: eventID, enterpriseID: id!, accepted: accept }
+        ).then(() => {
+            setSuccess(true)
+            setLoading(false)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }).catch((error: any) => {
+            setSuccess(false)
+            setError({ message: error.message, code: error.code })
+            setLoading(false)
+        })
+    }
     useEffect(() => {
-        if (accepted == null) {
-            return
-        }
-        const enterpriseID = employee.ID.split("-")[0];
-
-        if (accepted) {
-            setLoading(true)
-            Mutation<EndHiringProcess>(EndHiringProcessMutation,
-                { pendingEventID: eventID, enterpriseID, employeeID: employee.ID, accepted: true }
-            ).then(() => {
-                setSuccess(true)
-                setLoading(false)
-            }).catch(() => {
-                setSuccess(false)
-                setLoading(false)
-            })
-        } else {
-            setLoading(true)
-            Mutation<EndHiringProcess>(EndHiringProcessMutation,
-                { pendingEventID: eventID, enterpriseID, employeeID: employee.ID, accepted: false }
-            ).then(() => {
-                setSuccess(true)
-                setLoading(false)
-            }).catch(() => {
-                setSuccess(false)
-                setLoading(false)
-            })
-        }
-    }, [accepted, employee, eventID])
+    }, [error])
     return (
         <div className="flex flex-col md:flex-row justify-around items-center
         bg-white border border-gray-200 rounded-lg shadow  hover:bg-gray-100">
@@ -67,7 +56,7 @@ function PendingEmployee({ eventID, employee }: Props) {
                         </div>
                         <div className="flex mb-3">
                             <WorkIcon fill="#374151" />
-                            <p className="pl-2 font-normal text-gray-700 underline underline-offset-8">Position: {employee.position}</p>
+                            <p className="pl-2 font-normal text-gray-700 underline underline-offset-8">Position: {position}</p>
                         </div>
 
                     </div>
@@ -79,20 +68,18 @@ function PendingEmployee({ eventID, employee }: Props) {
                     </div>
                     <div className="flex align-center justify-between w-full">
                         <p className="mb-3  mr-2 font-normal text-gray-700">
-                            Waiting since: {new Date(parseInt(employee.hiringDate)).toLocaleDateString()}
+                            Waiting since: {pendingDate}
                         </p>
                         <div className="flex gap-1" >
                             {loading && <LoadingSpinner />}
-                            {success != null &&
-                                success ? <DoneIcon fill="#06b6d4" /> :
-                                success != null && !success ? <ErrorIcon fill="#ef4444" />
-                                    :
-                                    <></>
+                            {
+                                success != null && success ? <DoneIcon fill="#06b6d4" /> :
+                                    error ? <ErrorOnHoverIcon error={error} /> : null
                             }
-                            <span onClick={() => setAccepted(true)}>
+                            <span onClick={() => handleSubmit(true)}>
                                 <ThinButton text="Approve" />
                             </span>
-                            <span onClick={() => setAccepted(false)}>
+                            <span onClick={() => handleSubmit(false)}>
                                 <ThinButton text="Reject" />
                             </span>
                         </div>

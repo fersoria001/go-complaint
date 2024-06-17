@@ -1,45 +1,36 @@
 package enterprise
 
-import "go-complaint/erros"
+import "strings"
 
 type Position int
 
 //There's more roles to be added
 const (
-	NOT_ASSIGNED Position = iota
+	NOT_EXISTS Position = iota
 	ASSISTANT
 	MANAGER
 )
 
 func (p Position) String() string {
 	switch p {
-	case NOT_ASSIGNED:
-		return "Not assigned"
+	case NOT_EXISTS:
+		return "NOT_EXISTS"
 	case ASSISTANT:
-		return "Assistant"
+		return "ASSISTANT"
 	case MANAGER:
-		return "Manager"
+		return "MANAGER"
 	default:
-		return "Unknown"
+		return "NOT_EXISTS"
 	}
 }
-
-// this should return an error
-func ParsePosition(s string) (Position, error) {
-	switch s {
-	case "Not assigned":
-		return NOT_ASSIGNED, nil
-	case "NOT_ASSIGNED":
-		return NOT_ASSIGNED, nil
+func ParsePosition(s string) Position {
+	upper := strings.ToUpper(s)
+	switch upper {
 	case "ASSISTANT":
-		return ASSISTANT, nil
-	case "Assistant":
-		return ASSISTANT, nil
+		return ASSISTANT
 	case "MANAGER":
-		return MANAGER, nil
-	case "Manager":
-		return MANAGER, nil
+		return MANAGER
 	default:
-		return -1, &erros.OutOfRangeError{}
+		return NOT_EXISTS
 	}
 }

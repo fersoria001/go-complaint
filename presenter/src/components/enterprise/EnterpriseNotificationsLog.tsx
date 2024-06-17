@@ -1,11 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Link } from "react-router-dom";
-import { EnterpriseNotifications } from "../../lib/types";
+import { EnterpriseNotifications, EnterpriseNotificationType } from "../../lib/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import NotificationIcon from "../icons/NotificationIcon";
+import useOutsideDenier from "../../lib/hooks/useOutsideDenier";
 interface Props {
     enterpriseName: string;
     notifications: EnterpriseNotifications;
 }
 
 function EnterpriseNotificationsLog({ enterpriseName, notifications }: Props) {
+    const [unread, setUnread] = useState(0);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+    useOutsideDenier(ref, () => setShowNotifications(false));
     const timeAgo = (date: string): string => {
         const obj = new Date(parseInt(date))
         const now = new Date()
@@ -17,32 +25,85 @@ function EnterpriseNotificationsLog({ enterpriseName, notifications }: Props) {
             return `${result}m ago`
         }
         result = Math.floor(seconds / 3600)
+        if (result > 24) {
+            return `${Math.floor(result / 24)}d ago`
+        }
         return `${result}h ago`
     }
-    const pending = (notifications: EnterpriseNotifications) => {
-        const notSeen = notifications.employee_waiting_for_approval.filter(notification => !notification.seen)
-        return { count: notSeen.length, occurred_on: timeAgo(notSeen[0].occurred_on) }
-    }
-    const { count, occurred_on } = pending(notifications)
-return (
-    <div className="absolute top-14 p-2 border border-solid border-cyan-500 rounded-md shadow right-0 bg-white">
-        <ul className="divide-y divide-gray-200 max-w-md space-y-1  text-gray-500 list-none">
-            {
-                count > 0 &&
-                <li key={"pendingsHiringInvitations"} className={`
-                            flex justify-between
-                            first:pt-0 last:mb-0
-                            rounded-xl p-2
-                            mb-2 hover:bg-gray-100 hover:cursor-pointer`}>
-                    <Link to={`/enterprises/${enterpriseName}/pending`} >
-                        <p>You have pending job invitations waiting for approval</p>
-                        <p>{occurred_on}</p>
-                    </Link>
-                </li>
+
+    const processedNotifications = useMemo(() => {
+        const commonNotificationsMap: any[] = [];
+        notifications.waiting_for_review.forEach(notification => commonNotificationsMap.push({ type: "waiting_for_review", notification }));
+        notifications.employee_waiting_for_approval.forEach(notification => commonNotificationsMap.push({
+            type: "employee_waiting_for_approval",
+            notification
+        }));
+        commonNotificationsMap.sort((a, b) => {
+            return parseInt(b.notification.occurred_on) - parseInt(a.notification.occurred_on)
+        });
+        return commonNotificationsMap;
+    }, [notifications]);
+    useEffect(() => {
+        let unreads = 0;
+        processedNotifications.forEach(notification => {
+            if (!notification.notification.seen) unreads++;
+        });
+        setUnread(unreads);
+    }, [processedNotifications]);
+
+    const renderNotification = (notification: any, type: EnterpriseNotificationType) => (
+        <li
+            onClick={() => { setShowNotifications(false) }}
+            key={notification.id || notification.event_id} // Use a unique identifier for the key
+            className={notification.seen ?
+                `flex justify-between first:pt-0 last:mb-0 bg-gray-200 rounded-xl p-2 mb-2 hover:cursor-pointer`
+                : `flex justify-between first:pt-0 last:mb-0 rounded-xl p-2 mb-2 hover:bg-gray-100 hover:cursor-pointer`}>
+            <Link to={
+                type === "employee_waiting_for_approval" ?
+                    `/enterprises/${enterpriseName}/pending` :
+                    `/enterprises/${enterpriseName}/reviews`
+            }>
+                {type === "waiting_for_review" ? (
+                    <p>You've been asked to review your complaint attention.</p>
+                ) : (
+                    <p>You have been invited to be part of {notification.enterprise_id}!</p>
+                )}
+                <p>{timeAgo(notification.occurred_on)}</p>
+            </Link>
+        </li>
+    );
+
+    return (
+        <>
+            <span
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative  cursor-pointer rounded-full active:bg-gray-100">
+                <span className="">
+                    <NotificationIcon fill="#374151" />
+                </span>
+                {unread > 0 && <span className="absolute border border-white p-2
+                flex items-center justify-center text-xs text-white font-bold
+                 bottom-0 right-0 z-100 bg-red-700 rounded-full h-4 w-4">
+                    <p className="text-white">{unread}</p>
+                </span>}
+            </span >
+
+            {showNotifications &&
+                <div ref={ref} className="absolute top-14 p-2 border border-solid border-cyan-500 rounded-md shadow right-0 bg-white">
+                    <ul className="divide-y divide-gray-200 max-w-md space-y-1 text-gray-500 list-none">
+                        {
+                            processedNotifications.length > 0 ?
+                                processedNotifications.map(({ type, notification }) => renderNotification(notification, type))
+                                :
+                                <li className="p-2">
+                                    <p>No notifications yet</p>
+                                </li>
+                        }
+                    </ul>
+                </div>
             }
-        </ul>
-    </div>
-);
+        </>
+    );
 }
 
 

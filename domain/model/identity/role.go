@@ -43,13 +43,19 @@ func ParseRole(role string) (RolesEnum, error) {
 }
 
 type Role struct {
-	id string
+	role RolesEnum
 }
 
-func NewRole(id RolesEnum) *Role {
-	return &Role{id: id.String()}
+func NewRole(id string) (Role, error) {
+	role, err := ParseRole(id)
+	if err != nil {
+		return Role{}, err
+	}
+	return Role{
+		role: role,
+	}, nil
 }
 
-func (r Role) ID() string {
-	return r.id
+func (r Role) GetRole() RolesEnum {
+	return r.role
 }

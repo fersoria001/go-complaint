@@ -4,18 +4,14 @@ import Footer from "./components/footer/Footer";
 import { Logout } from "./lib/actions";
 import { Enterprise, EnterpriseNotifications } from "./lib/types";
 import useOutsideDenier from "./lib/hooks/useOutsideDenier";
-import NotificationUnreadIcon from "./components/icons/NotificationUnreadIcon";
-import NotificationIcon from "./components/icons/NotificationIcon";
 import EnterpriseNotificationsLog from "./components/enterprise/EnterpriseNotificationsLog";
-import { ComplaintContextProvider } from "./react-context/user-create-complaint/ComplaintContextProvider";
+import { ComplaintContextProvider } from "./react-context/ComplaintContextProvider";
+
 
 function EnterpriseLayout() {
     const wrapperRef = useRef(null);
     const [sideBarOpen, setSideBarOpen] = useState(false)
     const [navBarOpen, setNavBarOpen] = useState(false)
-    const [showNotifications, setShowNotifications] = useState(false)
-    const notificationRef = useRef(null);
-    useOutsideDenier(notificationRef, setShowNotifications)
     useOutsideDenier(wrapperRef, setNavBarOpen);
     const { enterprise, notifications } = useLoaderData() as {
         enterprise: Enterprise | null;
@@ -50,27 +46,7 @@ function EnterpriseLayout() {
                             </Link>
                         </div>
                         <div className="flex items-center">
-                            <div>
-                                {
-                                    enterprise &&
-                                        notifications!.count > 0 ?
-                                        <span
-                                            className="cursor-pointer active:bg-gray-100 rounded-full"
-                                            onClick={() => setShowNotifications(!showNotifications)}>
-                                            <NotificationUnreadIcon fill="#374151" />
-                                        </span> :
-                                        <span
-                                            className="cursor-pointer active:bg-gray-100 rounded-full"
-                                        >
-                                            <NotificationIcon fill="#374151" />
-                                        </span>
-                                }
-                            </div>
-                            <div ref={notificationRef}>
-                                {showNotifications && notifications &&
-                                    <EnterpriseNotificationsLog enterpriseName={enterprise.name} notifications={notifications} />
-                                }
-                            </div>
+                            <EnterpriseNotificationsLog enterpriseName={enterprise.name} notifications={notifications} />
                             <div className="flex items-center ms-3">
                                 <div>
                                     <button
@@ -103,6 +79,7 @@ function EnterpriseLayout() {
                                             {enterprise.email}
                                         </p>
                                     </div>
+                                    
                                     <ul className="py-1" role="none">
                                         <li>
                                             <Link
@@ -139,6 +116,7 @@ function EnterpriseLayout() {
                 }
                 aria-label="Sidebar">
                 <div className="h-full px-3 pb-4 overflow-y-auto bg-white ">
+                <p className="text-gray-900 text-center underline underline-offset-8 pb-5 "> {enterprise.name} </p>
                     <ul className="space-y-2 font-medium">
                         <li>
                             <Link to={`/enterprises/${enterprise.name}`} className="flex items-center p-2 text-gray-900 rounded-lg
@@ -171,6 +149,26 @@ function EnterpriseLayout() {
                                     <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z" />
                                 </svg>
                                 <span className="ms-3">Employees</span>
+                            </Link>
+                            <Link to={`/enterprises/${enterprise.name}/employees`} className="flex items-center p-2 text-gray-900 rounded-lg
+                             hover:bg-gray-100 group">
+                                <svg className="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
+                                    aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 22 21">
+                                    <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z" />
+                                    <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z" />
+                                </svg>
+                                <span className="ms-3">Provide Feedback</span>
+                            </Link>
+                        </li>
+                        <li>
+                            <Link to={`/enterprises/${enterprise.name}/pending`} className="flex items-center p-2 text-gray-900 rounded-lg
+                             hover:bg-gray-100 group">
+                                <svg className="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900"
+                                    aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 22 21">
+                                    <path d="M16.975 11H10V4.025a1 1 0 0 0-1.066-.998 8.5 8.5 0 1 0 9.039 9.039.999.999 0 0 0-1-1.066h.002Z" />
+                                    <path d="M12.5 0c-.157 0-.311.01-.565.027A1 1 0 0 0 11 1.02V10h8.975a1 1 0 0 0 1-.935c.013-.188.028-.374.028-.565A8.51 8.51 0 0 0 12.5 0Z" />
+                                </svg>
+                                <span className="ms-3">Pending hires</span>
                             </Link>
                         </li>
                         <li>

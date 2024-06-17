@@ -18,16 +18,15 @@ type EventStore struct {
 func EventStoreInstance() (*EventStore, error) {
 	var err error = nil
 	once.Do(func() {
+		repository := repositories.NewEventRepository(datasource.PublicSchema())
 		eventStore = &EventStore{
-			repository: repositories.NewEventRepository(datasource.EventSchema()),
+			repository: &repository,
 		}
 	})
 	return eventStore, err
 }
 
-// this can be used with a key-value store like redis
-// for faster read and write operations
-func (es *EventStore) Save(ctx context.Context, event dto.StoredEvent) error {
+func (es *EventStore) Save(ctx context.Context, event *dto.StoredEvent) error {
 	err := es.repository.Save(ctx, event)
 	if err != nil {
 		return err

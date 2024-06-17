@@ -14,3 +14,15 @@ CREATE TABLE IF NOT EXISTS event.events_log (
     type_name character varying(255) COLLATE pg_catalog."default" NOT NULL
 ) TABLESPACE pg_default;
 ALTER TABLE IF EXISTS event.events_log OWNER to postgres;
+
+        CREATE TABLE IF NOT EXISTS PUBLIC.NOTIFICATION (
+            NOTIFICATION_ID UUID PRIMARY KEY,
+            OWNER_ID UUID NOT NULL,
+            THUMBNAIL VARCHAR(255) NOT NULL,
+            TITLE VARCHAR(255) NOT NULL,
+            CONTENT VARCHAR(255) NOT NULL,
+            LINK VARCHAR(255) NOT NULL,
+            OCCURRED_ON VARCHAR(255) NOT NULL,
+            SEEN BOOLEAN NOT NULL
+        );
+        

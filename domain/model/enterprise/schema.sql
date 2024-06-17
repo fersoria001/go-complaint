@@ -1,42 +1,34 @@
 DROP SCHEMA IF EXISTS enterprise CASCADE;
 CREATE SCHEMA enterprise AUTHORIZATION postgres
-CREATE TABLE enterprises(
-    id VARCHAR(120) PRIMARY KEY,
-    owner_id VARCHAR(255) NOT NULL,
+CREATE TABLE enterprise(
+    enterprise_id VARCHAR(120) PRIMARY KEY,
+    owner_user_id VARCHAR(255) NOT NULL,
     logo_img VARCHAR(255) NOT NULL,
     banner_img VARCHAR(255) NOT NULL,
     website VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     phone VARCHAR(21) NOT NULL,
-    country VARCHAR(255) NOT NULL,
-    county VARCHAR(255) NOT NULL,
-    city VARCHAR(255) NOT NULL,
-    industry VARCHAR(255) NOT NULL,
-    register_at VARCHAR(255) NOT NULL,
+    address_id UUID NOT NULL,
+    industry_id INTEGER NOT NULL,
+    created_at VARCHAR(255) NOT NULL,
+    updated_at VARCHAR(255) NOT NULL,
     foundation_date VARCHAR(255) NOT NULL
 )
-CREATE TABLE employees(
-    id VARCHAR(255) PRIMARY KEY,
-	profile_img VARCHAR(255) NOT NULL,
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
-    age INTEGER NOT  NULL,
-    email VARCHAR(255) NOT NULL,
-    phone VARCHAR(21) NOT NULL,
+CREATE TABLE employee(
+    employee_id UUID PRIMARY KEY NOT NULL,
+    enterprise_id VARCHAR(120) NOT NULL,
+	user_id VARCHAR(255) NOT NULL,
     hiring_date VARCHAR(255) NOT NULL,
     approved_hiring BOOLEAN NOT NULL,
     approved_hiring_at VARCHAR(255) NOT NULL,
-    position VARCHAR(255) NOT NULL
+    job_position VARCHAR(255) NOT NULL
 )
-CREATE TABLE industries(
-    id INTEGER PRIMARY KEY,
+CREATE TABLE industry(
+    industry_id INTEGER PRIMARY KEY,
     name VARCHAR(255) NOT NULL
 );
-
 BEGIN;
-
--- Insert each industry name from your list
-INSERT INTO enterprise.industries (id, name) VALUES
+INSERT INTO industry (industry_id, name) VALUES
 (1, 'Software Development'),
 (2, 'Food Service'),
 (3, 'Retail'),

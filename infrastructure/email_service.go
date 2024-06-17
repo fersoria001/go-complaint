@@ -1,45 +1,112 @@
 package infrastructure
 
 import (
-	"fmt"
-	"go-complaint/domain"
-	"go-complaint/infrastructure/persistence/models"
-	"reflect"
+	"bytes"
+	"context"
+	"encoding/json"
+	"go-complaint/domain/model/email"
+	"log"
+	"net/http"
+	"sync"
+	"time"
 )
 
-// Package infrastructure
-// EmailService struct Implementation of DomainEventSubscriber
+var emailServiceInstance *EmailService
+var emailQueueOnce sync.Once
+
+func EmailServiceInstance() *EmailService {
+	emailQueueOnce.Do(func() {
+		emailServiceInstance = NewEmailService()
+	})
+	return emailServiceInstance
+}
+
+// email queue instance
 type EmailService struct {
-	//if subscribed to more than one I should use a Mediator pattern
-	subscribedTo reflect.Type
+	emailQueueInstance chan *email.Email
+	sentLog            map[string]interface{}
+	queued             int
 }
 
-func NewEmailService(subscribeTo reflect.Type) *EmailService {
-	eis := &EmailService{}
-	//this always have to be a value
-	eis.subscribedTo = subscribeTo
-	return eis
+func NewEmailService() *EmailService {
+	return &EmailService{
+		emailQueueInstance: make(chan *email.Email),
+		sentLog:            make(map[string]interface{}),
+		queued:             0,
+	}
+}
+func (es *EmailService) Queued() int {
+	return es.queued
+}
+func (es *EmailService) QueueEmail(email *email.Email) {
+	es.emailQueueInstance <- email
+	es.queued++
 }
 
-func (es *EmailService) HandleEvent(e domain.DomainEvent) error {
-	fmt.Println("Handling event: ")
-	//here you can dispatch the correct type of body to deserialize
-	return nil
+func (es *EmailService) SentLog() map[string]interface{} {
+	return es.sentLog
 }
 
-func (eis *EmailService) SubscribedToEventType() reflect.Type {
-	return eis.subscribedTo
+func (es *EmailService) SendAll(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+		select {
+		case <-ctx.Done():
+			return
+		case email := <-es.emailQueueInstance:
+			msgID, err := es.Send(ctx, *email)
+			log.Println("Email sent with message ID: ", msgID, "Error: ", err)
+			es.queued--
+			es.sentLog[msgID] = struct {
+				Error      error
+				OccurredOn time.Time
+			}{
+				Error:      err,
+				OccurredOn: time.Now(),
+			}
+		}
+	}
+
 }
 
-// here you can dispatch the correct type of body to deserialize
-func (es *EmailService) SendUserEmail(user models.Event) error {
-	fmt.Println("Sending email to: ")
-	return nil
+func (es *EmailService) Send(ctx context.Context, email email.Email) (string, error) {
+	j, err := json.Marshal(email)
+	if err != nil {
+		return "", err
+	}
+	b := bytes.NewBuffer(j)
+	sendCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	request, err := http.NewRequestWithContext(
+		sendCtx,
+		"POST",
+		"https://api.mailersend.com/v1/email",
+		b,
+	)
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", "Bearer mlsn.0557f4217143328c73149ad91c7455121924f188c63af0fe093b42feb3fa1de1")
+	log.Println("Headers set")
+	body, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("Email sent with status code: %d", body.StatusCode)
+	msgID := body.Header.Get("X-Message-Id")
+	var responseBody []byte
+	_, err = body.Body.Read(responseBody)
+	if err != nil {
+		return "", err
+	}
+	if string(responseBody) != "" {
+		return msgID, &EmailError{
+			StatusCode:   body.StatusCode,
+			ResponseBody: string(responseBody),
+		}
+	}
+	return msgID, nil
 }
-
-/*
-In the case of the HiringInvitationSent
-You've got to get all events and equals with the HiringInvitationSent
-to build the email template ?link=eventID.String()
-
-*/

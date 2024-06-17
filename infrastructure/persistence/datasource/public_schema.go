@@ -5,18 +5,14 @@ import (
 	"sync"
 )
 
-var publicSchema *Schema
-var once5 sync.Once
+var publicSchema Schema
+var schemaOnce sync.Once
 
-func PublicSchema() *Schema {
+func PublicSchema() Schema {
 	var err error = nil
-	once5.Do(func() {
+	schemaOnce.Do(func() {
 		ctx := context.Background()
 		publicSchema, err = NewPGSqlSchema(ctx)
-		if err != nil {
-			panic(err)
-		}
-		err = publicSchema.Connect(ctx)
 		if err != nil {
 			panic(err)
 		}

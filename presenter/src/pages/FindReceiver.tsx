@@ -2,7 +2,7 @@ import Stepper from "../components/complaint-writer/Stepper";
 import Search from "../components/complaint-writer/Search";
 import PrimaryButton from "../components/buttons/PrimaryButton";
 import { useContext, useEffect, useState } from "react";
-import { ComplaintContext } from "../react-context/user-create-complaint/ComplaintContext";
+import { ComplaintContext } from "../react-context/ComplaintContext";
 import { ReceiverValidationSchema } from "../lib/types";
 import { useLocation, useNavigate } from "react-router-dom";
 

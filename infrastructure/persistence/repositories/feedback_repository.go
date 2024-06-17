@@ -2,200 +2,208 @@ package repositories
 
 import (
 	"context"
-	"fmt"
-	"go-complaint/domain/model/common"
+	"errors"
 	"go-complaint/domain/model/feedback"
-	"go-complaint/erros"
 	"go-complaint/infrastructure/persistence/datasource"
-	"go-complaint/infrastructure/persistence/models"
+	"go-complaint/infrastructure/persistence/finders/find_all_feedback_answer"
+	"go-complaint/infrastructure/persistence/finders/find_all_feedback_reply_review"
+	"log"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type FeedbackRepository struct {
-	schema *datasource.Schema
+	schema datasource.Schema
 }
 
-func NewFeedbackRepository(feedbackSchema *datasource.Schema) *FeedbackRepository {
-	return &FeedbackRepository{schema: feedbackSchema}
+func NewFeedbackRepository(feedbackSchema datasource.Schema) FeedbackRepository {
+	return FeedbackRepository{schema: feedbackSchema}
 }
 
-func (feedbackRepository *FeedbackRepository) Save(
+func (fr FeedbackRepository) Update(
 	ctx context.Context,
-	entity interface{},
+	feedback *feedback.Feedback,
 ) error {
-	aggregate, ok := entity.(*feedback.Feedback)
-	if !ok {
-		return &erros.InvalidTypeError{}
+	conn, err := fr.schema.Acquire(ctx)
+	if err != nil {
+		return err
 	}
-	if aggregate.ReplyReview().Cardinality() == 0 {
-		return &erros.NoElementError{}
+	feedbackReplyReviewRepository := NewFeedbackReplyReviewRepository(fr.schema)
+	feedbackAnswerRepository := NewFeedbackAnswerRepository(fr.schema)
+	err = feedbackReplyReviewRepository.DeleteAll(ctx, feedback.ComplaintID())
+	if err != nil {
+		return err
 	}
-	emptyModel := models.Feedback{}
-	insertcommand := fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES (%s)",
-		emptyModel.Table(),
-		models.StringColumns(emptyModel.Columns()),
-		emptyModel.Args(),
+	err = feedbackReplyReviewRepository.SaveAll(
+		ctx,
+		feedback.ComplaintID(),
+		feedback.ReplyReview(),
 	)
-	conn, err := feedbackRepository.schema.Pool.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	err = feedbackAnswerRepository.DeleteAll(ctx, feedback.ComplaintID())
+	if err != nil {
+		return err
+	}
+	err = feedbackAnswerRepository.Save(ctx, feedback.FeedbackAnswers())
 	if err != nil {
 		return err
 	}
 	defer conn.Release()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	for item := range aggregate.ReplyReview().Iter() {
-		feedbackModel := models.NewFeedback(
-			aggregate.ComplaintID(),
-			aggregate.ReviewerID(),
-			aggregate.ReviewedID(),
-			item,
-		)
-		_, err = tx.Exec(
-			ctx,
-			insertcommand,
-			feedbackModel.Values()...,
-		)
-		if err != nil {
-			tx.Rollback(ctx)
-			return err
-		}
-	}
-	err = tx.Commit(ctx)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-func (feedbackRepository *FeedbackRepository) Get(
+func (fr FeedbackRepository) Save(
 	ctx context.Context,
-	id string,
-) (interface{}, error) {
-	conn, err := feedbackRepository.schema.Pool.Acquire(ctx)
+	feedback *feedback.Feedback,
+) error {
+	conn, err := fr.schema.Acquire(ctx)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	feedbackReplyReviewRepository := NewFeedbackReplyReviewRepository(fr.schema)
+	feedbackAnswerRepository := NewFeedbackAnswerRepository(fr.schema)
+	err = feedbackReplyReviewRepository.SaveAll(
+		ctx,
+		feedback.ComplaintID(),
+		feedback.ReplyReview(),
+	)
+	if err != nil {
+		return err
+	}
+	err = feedbackAnswerRepository.Save(ctx, feedback.FeedbackAnswers())
+	if err != nil {
+		return err
+	}
+	insertCommand := string(`
+		INSERT INTO feedback 
+			(
+			ID,
+			complaint_id,
+			reviewed_id
+			)
+		VALUES ($1,$2, $3)`)
+	var (
+		id          = feedback.ID()
+		complaintID = feedback.ComplaintID()
+		reviewedID  = feedback.ReviewedID()
+	)
+	_, err = conn.Exec(
+		ctx,
+		insertCommand,
+		&id,
+		&complaintID,
+		&reviewedID,
+	)
+	if err != nil {
+		return err
 	}
 	defer conn.Release()
-	aggregateModel := models.Feedback{}
-	parsedID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-	selectQuery := fmt.Sprintf(
-		"SELECT %s FROM %s WHERE feedback_id = $1",
-		models.StringColumns(aggregateModel.Columns()),
-		aggregateModel.Table(),
-	)
-	rows, err := conn.Query(ctx, selectQuery, parsedID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	repliesReviewsMapset := mapset.NewSet[*feedback.ReplyReview]()
-	var rootID uuid.UUID
-	var reviewerID string
-	var reviewedID string
-	for rows.Next() {
-		var feedbackModel models.Feedback
-		err = rows.Scan(feedbackModel.Values()...)
-		if err != nil {
-			return nil, err
-		}
-		rootID = feedbackModel.FeedbackID
-		reviewerID = feedbackModel.ReviewerID
-		reviewedID = feedbackModel.ReviewedID
-		createdAt, err := common.NewDateFromString(feedbackModel.ReplyCreatedAt)
-		if err != nil {
-			return nil, err
-		}
-		readAt, err := common.NewDateFromString(feedbackModel.ReplyReadAt)
-		if err != nil {
-			return nil, err
-		}
-		updatedAt, err := common.NewDateFromString(feedbackModel.ReplyUpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		reviewedAt, err := common.NewDateFromString(feedbackModel.ReviewedAt)
-		if err != nil {
-			return nil, err
-		}
-
-		newReply, err := feedback.NewReply(
-			feedbackModel.ReplySenderID,
-			feedbackModel.ReplySenderIMG,
-			feedbackModel.ReplySenderName,
-			feedbackModel.ReplyBody,
-			createdAt,
-			feedbackModel.ReplyRead,
-			readAt,
-			updatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		newReview, err := feedback.NewReview(
-			feedbackModel.ReviewerID,
-			feedbackModel.ReviewerIMG,
-			feedbackModel.ReviewerName,
-			reviewedAt,
-			feedbackModel.ReviewComment,
-		)
-		if err != nil {
-			return nil, err
-		}
-		newReplyReview, err := feedback.NewReplyReview(
-			feedbackModel.ID,
-			feedbackModel.FeedbackID,
-			newReply,
-			newReview,
-		)
-		if err != nil {
-			return nil, err
-		}
-		repliesReviewsMapset.Add(newReplyReview)
-	}
-
-	if rootID == uuid.Nil || reviewerID == "" {
-		return nil, &erros.NullValueError{}
-	}
-	feedbackAggregate, err := feedback.NewFeedback(
-		rootID,
-		reviewerID,
-		reviewedID,
-		repliesReviewsMapset,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return feedbackAggregate, err
+	return nil
 }
 
-func (feedbackRepository *FeedbackRepository) Remove(ctx context.Context, id string) error {
-	conn, err := feedbackRepository.schema.Pool.Acquire(ctx)
+func (fr FeedbackRepository) Get(
+	ctx context.Context,
+	feedbackID uuid.UUID,
+) (*feedback.Feedback, error) {
+	conn, err := fr.schema.Acquire(ctx)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	selectQuery := string(`
+		SELECT 
+			id,
+			complaint_id,
+			reviewed_id
+		FROM feedback
+		WHERE id = $1`)
+	row := conn.QueryRow(ctx, selectQuery, feedbackID)
+	feedback, err := fr.load(ctx, row)
+	if err != nil {
+		log.Println("err at load")
+		return nil, err
 	}
 	defer conn.Release()
-	aggregateModel := models.Feedback{}
-	parsedID, err := uuid.Parse(id)
+	return feedback, nil
+}
+
+func (fr FeedbackRepository) FindAll(
+	ctx context.Context,
+	source StatementSource,
+) (mapset.Set[*feedback.Feedback], error) {
+	conn, err := fr.schema.Acquire(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	deleteQuery := fmt.Sprintf(
-		"DELETE FROM %s WHERE feedback_id = $1",
-		aggregateModel.Table(),
+	rows, err := conn.Query(ctx, source.Query(), source.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	feedbacks, err := fr.loadAll(ctx, rows)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		rows.Close()
+		conn.Release()
+	}()
+	return feedbacks, nil
+}
+
+func (fr FeedbackRepository) loadAll(
+	ctx context.Context,
+	rows pgx.Rows,
+) (mapset.Set[*feedback.Feedback], error) {
+	feedbacks := mapset.NewSet[*feedback.Feedback]()
+	for rows.Next() {
+		feedback, err := fr.load(ctx, rows)
+		if err != nil {
+			return nil, err
+		}
+		feedbacks.Add(feedback)
+	}
+	return feedbacks, nil
+}
+
+func (fr FeedbackRepository) load(ctx context.Context, row pgx.Row) (*feedback.Feedback, error) {
+	var (
+		feedbackID  uuid.UUID
+		complaintID uuid.UUID
+		reviewedID  string
 	)
-	_, err = conn.Exec(ctx, deleteQuery, parsedID)
+	err := row.Scan(&feedbackID, &complaintID, &reviewedID)
 	if err != nil {
-		return err
+		log.Println("err at scan")
+		return nil, err
 	}
-	return nil
+	reply_reviews, err := MapperRegistryInstance().Get("ReplyReview").(FeedbackReplyReviewRepository).FindAll(
+		ctx,
+		find_all_feedback_reply_review.ByFeedbackID(feedbackID),
+	)
+	if err != nil {
+		log.Println("err at replyreview load")
+		return nil, err
+	}
+	answers, err := MapperRegistryInstance().Get("Answer").(FeedbackAnswerRepository).FindAll(
+		ctx,
+		find_all_feedback_answer.ByFeedbackID(feedbackID),
+	)
+	if err != nil {
+		log.Println("err at answer load")
+		if errors.Is(err, pgx.ErrNoRows) {
+			answers = mapset.NewSet[*feedback.Answer]()
+		} else {
+			return nil, err
+		}
+	}
+	return feedback.NewFeedback(
+		feedbackID,
+		complaintID,
+		reviewedID,
+		reply_reviews,
+		answers,
+	)
 }

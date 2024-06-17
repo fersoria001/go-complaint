@@ -2,7 +2,7 @@ import { useContext, useState, useEffect } from "react";
 import PrimaryButton from "../components/buttons/PrimaryButton";
 import Stepper from "../components/complaint-writer/Stepper";
 import useWindowDimensions from "../lib/hooks/useWindowsDimensions";
-import { ComplaintContext } from "../react-context/user-create-complaint/ComplaintContext";
+import { ComplaintContext } from "../react-context/ComplaintContext";
 import { ComplaintBodyValidationSchema, Enterprise, isUserDescriptor, SendComplaint, UserDescriptor } from "../lib/types";
 import Modal from "../components/complaint-writer/Modal";
 import { useLoaderData, useNavigate } from "react-router-dom";

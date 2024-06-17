@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Form, useLoaderData, useNavigation, useSubmit } from "react-router-dom";
 import { Receiver } from "../../lib/types";
 import LoadingSpinner from "../icons/LoadingSpinner";
-import { ComplaintContext } from "../../react-context/user-create-complaint/ComplaintContext";
+import { ComplaintContext } from "../../react-context/ComplaintContext";
 interface Props {
     callbackFn: () => void;
 }

@@ -5,10 +5,20 @@ import (
 	"go-complaint/domain"
 	"go-complaint/dto"
 	"reflect"
+	"sync"
 )
 
 // Package application
-// Find a way to use it as an aspect @beforeeach //todo()//
+var eventProcesorInstance *EventProcessor
+var eventProcessorOnce sync.Once
+
+func EventProcessorInstance() *EventProcessor {
+	eventProcessorOnce.Do(func() {
+		eventProcesorInstance = NewEventProcessor()
+	})
+	return eventProcesorInstance
+}
+
 type EventProcessor struct {
 	subscribedTo reflect.Type
 }
@@ -20,11 +30,15 @@ func NewEventProcessor() *EventProcessor {
 		subscribedTo: interfaceType,
 	}
 }
-func (ep *EventProcessor) Subscriber() domain.DomainEventSubscriber {
-	return domain.DomainEventSubscriber{
-		HandleEvent:           ep.HandleEvent,
-		SubscribedToEventType: ep.SubscribedToEventType,
-	}
+
+func (ep *EventProcessor) ResetDomainEventPublisher() {
+	domain.DomainEventPublisherInstance().Reset()
+	domain.DomainEventPublisherInstance().Subscribe(
+		domain.DomainEventSubscriber{
+			HandleEvent:           eventProcesorInstance.HandleEvent,
+			SubscribedToEventType: eventProcesorInstance.SubscribedToEventType,
+		},
+	)
 }
 
 func (ep *EventProcessor) HandleEvent(event domain.DomainEvent) error {
@@ -38,7 +52,8 @@ func (ep *EventProcessor) HandleEvent(event domain.DomainEvent) error {
 	if err != nil {
 		return err
 	}
-	err = eventStore.Save(ctx, *storedEvent)
+	err = eventStore.Save(ctx, storedEvent)
+
 	if err != nil {
 		return err
 	}

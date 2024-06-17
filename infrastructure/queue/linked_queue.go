@@ -1,11 +1,15 @@
 package queue
 
-import "go-complaint/erros"
+import (
+	"go-complaint/erros"
+	"sync"
+)
 
 type LinkedQueue[E any] struct {
 	front *Link[E]
 	rear  *Link[E]
 	size  int
+	mu    sync.Mutex
 }
 
 func NewLinkedQueue[E any]() *LinkedQueue[E] {
@@ -18,23 +22,29 @@ func NewLinkedQueue[E any]() *LinkedQueue[E] {
 }
 
 func (q *LinkedQueue[E]) Clear() {
+	q.mu.Lock()
 	for q.front.Next == nil {
 		q.rear = q.front
 		q.rear = nil
 	}
 	q.rear = q.front
 	q.size = 0
+	q.mu.Unlock()
 }
 
-func (q *LinkedQueue[E]) Enqueue(e *E) {
+func (q *LinkedQueue[E]) Enqueue(e E) {
+	q.mu.Lock()
 	q.rear.Next = NewLink[E](WithValue(e))
 	q.rear = q.rear.Next
 	q.size++
+	q.mu.Unlock()
 }
 
-func (q *LinkedQueue[E]) Dequeue() (*E, error) {
+func (q *LinkedQueue[E]) Dequeue() (E, error) {
+	q.mu.Lock()
+	var nilE E
 	if q.size == 0 {
-		return nil, &erros.QueueIsEmptyError{}
+		return nilE, &erros.QueueIsEmptyError{}
 	}
 	it := q.front.Next.Element
 	ltemp := q.front.Next
@@ -44,12 +54,14 @@ func (q *LinkedQueue[E]) Dequeue() (*E, error) {
 	}
 	ltemp = nil
 	q.size--
+	q.mu.Unlock()
 	return it, nil
 }
 
-func (q *LinkedQueue[E]) FrontValue() (*E, error) {
+func (q *LinkedQueue[E]) FrontValue() (E, error) {
+	var nilE E
 	if q.size == 0 {
-		return nil, &erros.QueueIsEmptyError{}
+		return nilE, &erros.QueueIsEmptyError{}
 	}
 	return q.front.Next.Element, nil
 }

@@ -6,8 +6,10 @@ interface ChatBubbleProps {
     direction: string;
     seen: boolean;
     seenAt: string;
+    isEnterprise: boolean;
+    enterpriseID: string;
 }
-function ChatBubble({ body, direction, profileIMG, createdAt, fullName, seen, seenAt }: ChatBubbleProps) {
+function ChatBubble({ body, direction, profileIMG, createdAt, fullName, seen, seenAt, isEnterprise, enterpriseID }: ChatBubbleProps) {
     const createdTime = new Date(parseInt(createdAt)).toLocaleTimeString().slice(0, 5);
     const seenTime = "Seen at " + new Date(parseInt(seenAt)).toLocaleTimeString().slice(0, 5);
     const actions = false
@@ -17,7 +19,7 @@ function ChatBubble({ body, direction, profileIMG, createdAt, fullName, seen, se
             <div className="flex flex-col gap-1 w-full max-w-[320px]">
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
                     <span className="text-sm font-semibold text-gray-900">
-                        {fullName}
+                        {isEnterprise ? fullName + " from " + enterpriseID : fullName}
                     </span>
                     <span className="text-sm font-normal text-gray-500">
                         {createdTime}

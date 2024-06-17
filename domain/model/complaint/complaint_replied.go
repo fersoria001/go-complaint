@@ -32,6 +32,14 @@ func (cr *ComplaintReplied) OccurredOn() time.Time {
 	return cr.occurredOn
 }
 
+func (cr *ComplaintReplied) ComplaintID() uuid.UUID {
+	return cr.complaintID
+}
+
+func (cr *ComplaintReplied) ReplyID() uuid.UUID {
+	return cr.replyID
+}
+
 func (cr *ComplaintReplied) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
 		ComplaintID string

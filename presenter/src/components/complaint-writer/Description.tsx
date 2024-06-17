@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import useWindowDimensions from "../../lib/hooks/useWindowsDimensions";
-import { ComplaintContext } from "../../react-context/user-create-complaint/ComplaintContext";
+import { ComplaintContext } from "../../react-context/ComplaintContext";
 
 function Description() {
     const { complaintData, updateState } = useContext(

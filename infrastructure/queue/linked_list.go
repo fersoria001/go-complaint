@@ -40,7 +40,7 @@ func (l *LList[E]) Clear() {
 // Insert "it" at current position
 // if tail is equal to current position,
 // then current position is the new tail
-func (l *LList[E]) Insert(it *E) {
+func (l *LList[E]) Insert(it E) {
 	l.curr.Next = NewLink[E](WithValue(it), WithNext(l.curr.Next))
 	if l.tail == l.curr {
 		l.tail = l.curr.Next
@@ -50,7 +50,7 @@ func (l *LList[E]) Insert(it *E) {
 
 // Append "it" to list
 // tail is always the last element
-func (l *LList[E]) Append(it *E) {
+func (l *LList[E]) Append(it E) {
 	l.tail.Next = NewLink[E](WithValue(it))
 	l.tail = l.tail.Next
 	l.cnt++
@@ -112,9 +112,10 @@ func (l *LList[E]) MoveToPos(pos int) error {
 	}
 	return nil
 }
-func (l *LList[E]) GetValue() (*E, error) {
+func (l *LList[E]) GetValue() (E, error) {
+	var nilE E
 	if l.curr.Next == nil {
-		return nil, &erros.NoElementError{}
+		return nilE, &erros.NoElementError{}
 	}
 	return l.curr.Next.Element, nil
 }

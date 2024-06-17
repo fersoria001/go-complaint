@@ -1,13 +1,18 @@
+import { Link } from "react-router-dom";
 import { Employee } from "../../lib/types";
+import CheerIcon from "../icons/CheerIcon";
+import CommunicationIcon from "../icons/CommunicationIcon";
 import ContactMailIcon from "../icons/ContactMailIcon";
 import MaleFaceIcon from "../icons/MaleFaceIcon";
+import PersonRemoveIcon from "../icons/PersonRemoveIcon";
 import WorkIcon from "../icons/WorkIcon";
 interface Props {
+    enterpriseID: string;
     employee: Employee;
 }
-function EmployeeCard({ employee }: Props) {
+function EmployeeCard({ enterpriseID, employee }: Props) {
     return (<div className="flex flex-col md:flex-row justify-around items-center
-        bg-white border border-gray-200 rounded-lg shadow  hover:bg-gray-100">
+        bg-white border border-gray-200 rounded-lg shadow ">
         <div className="flex flex-col align-center justify-center" >
             <img className="w-full h-48 object-scale-down rounded-t-lg" src={employee.profileIMG} alt="avatar" />
         </div>
@@ -36,11 +41,44 @@ function EmployeeCard({ employee }: Props) {
                         <p className="pl-2 font-normal text-gray-700 underline underline-offset-8">{employee.email}</p>
                     </div>
                 </div>
-                <div className="flex align-center justify-between w-full">
+                <div className="flex flex-col align-center justify-between w-full">
                     <p className="mb-3  mr-2 font-normal text-gray-700">
                         Hired since: {new Date(parseInt(employee.approvedHiringAt)).toLocaleDateString()}
                     </p>
-
+                </div>
+                <div className="inline-flex rounded-md shadow-sm py-5" role="group">
+                    <Link
+                        to={`/enterprises/${enterpriseID}/feedback?employee=${employee.ID}`}
+                        className={parseInt(employee.complaintsSolved) > 0 ? `inline-flex items-center px-4 py-2 text-sm font-medium
+             text-gray-900 bg-transparent border border-gray-900 rounded-s-lg
+              hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500
+               focus:bg-gray-900 focus:text-white`:
+                            `inline-flex items-center px-4 py-2 text-sm font-medium
+             text-gray-900 bg-transparent border border-gray-900 rounded-s-lg
+             cursor-not-allowed opacity-50`
+                        }>
+                        <CommunicationIcon fill="#374151" />
+                        Feedback
+                    </Link>
+                    <button
+                        type="button"
+                        className={`inline-flex items-center px-4 py-2 text-sm font-medium
+              text-gray-900 bg-transparent border-t border-b
+               border-gray-900 hover:bg-gray-900 hover:text-white
+                focus:z-10 focus:ring-2 focus:ring-gray-500 focus:bg-gray-900
+                 focus:text-white`}>
+                        <CheerIcon fill="#374151" />
+                        Promote
+                    </button>
+                    <button
+                        type="button"
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium
+              text-gray-900 bg-transparent border border-gray-900 rounded-e-lg
+               hover:bg-gray-900 hover:text-white focus:z-10 focus:ring-2 focus:ring-gray-500
+                focus:bg-gray-900 focus:text-white">
+                        <PersonRemoveIcon fill="#374151" />
+                        Fire
+                    </button>
                 </div>
             </div>
         </div>
@@ -49,3 +87,4 @@ function EmployeeCard({ employee }: Props) {
 }
 
 export default EmployeeCard;
+

@@ -1,8 +1,10 @@
 package feedback
 
 import (
+	"go-complaint/domain/model/complaint"
 	"go-complaint/erros"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
 )
 
@@ -15,15 +17,17 @@ import (
 type ReplyReview struct {
 	id         uuid.UUID
 	feedbackID uuid.UUID
-	reply      *Reply
+	replies    mapset.Set[complaint.Reply]
 	review     *Review
+	color      string
 }
 
 func NewReplyReview(
 	id,
 	feedbackID uuid.UUID,
-	reply *Reply,
+	replies mapset.Set[complaint.Reply],
 	review *Review,
+	color string,
 ) (*ReplyReview, error) {
 	var rr *ReplyReview = new(ReplyReview)
 	err := rr.setID(id)
@@ -34,7 +38,7 @@ func NewReplyReview(
 	if err != nil {
 		return nil, err
 	}
-	err = rr.setReply(reply)
+	err = rr.setReplies(replies)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +46,23 @@ func NewReplyReview(
 	if err != nil {
 		return nil, err
 	}
+	err = rr.setColor(color)
+	if err != nil {
+		return nil, err
+	}
 	return rr, nil
+}
+
+func (rr *ReplyReview) Color() string {
+	return rr.color
+}
+
+func (rr *ReplyReview) setColor(color string) error {
+	if color == "" {
+		return &erros.NullValueError{}
+	}
+	rr.color = color
+	return nil
 }
 
 func (rr *ReplyReview) setID(id uuid.UUID) error {
@@ -61,11 +81,11 @@ func (rr *ReplyReview) setFeedbackID(feedbackID uuid.UUID) error {
 	return nil
 }
 
-func (rr *ReplyReview) setReply(reply *Reply) error {
-	if reply == nil {
+func (rr *ReplyReview) setReplies(replies mapset.Set[complaint.Reply]) error {
+	if replies == nil {
 		return &erros.NullValueError{}
 	}
-	rr.reply = reply
+	rr.replies = replies
 	return nil
 }
 
@@ -85,10 +105,18 @@ func (rr *ReplyReview) FeedbackID() uuid.UUID {
 	return rr.feedbackID
 }
 
-func (rr *ReplyReview) Reply() *Reply {
-	return rr.reply
+func (rr *ReplyReview) Replies() mapset.Set[complaint.Reply] {
+	return rr.replies
 }
 
-func (rr *ReplyReview) Review() *Review {
-	return rr.review
+func (rr *ReplyReview) AddReply(reply complaint.Reply) {
+	rr.replies.Add(reply)
+}
+
+func (rr *ReplyReview) RemoveReply(reply complaint.Reply) {
+	rr.replies.Remove(reply)
+}
+
+func (rr *ReplyReview) Review() Review {
+	return *rr.review
 }

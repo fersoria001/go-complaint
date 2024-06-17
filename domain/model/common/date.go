@@ -1,6 +1,7 @@
 package common
 
 import (
+	"go-complaint/domain"
 	"strconv"
 	"time"
 )
@@ -8,6 +9,18 @@ import (
 type Date struct {
 	stringRepresentation string
 	date                 time.Time
+	director             domain.Director
+}
+
+func NewDateWithDirector(director domain.Director) *Date {
+	d := &Date{
+		director: director,
+	}
+	return d
+}
+
+func (d *Date) Changed() {
+	d.director.Changed(d)
 }
 
 func NewDateFromString(date string) (Date, error) {

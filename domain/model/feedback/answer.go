@@ -14,16 +14,18 @@ import (
 // a feedback can have multiple answers from different users that
 // are related to the complaint trough the feedback, thus it's part of the feedback aggregate.
 type Answer struct {
-	id         uuid.UUID
-	feedbackID uuid.UUID
-	senderID   string
-	senderIMG  string
-	senderName string
-	body       string
-	createdAt  common.Date
-	read       bool
-	readAt     common.Date
-	updatedAt  common.Date
+	id           uuid.UUID
+	feedbackID   uuid.UUID
+	senderID     string
+	senderIMG    string
+	senderName   string
+	body         string
+	createdAt    common.Date
+	read         bool
+	readAt       common.Date
+	updatedAt    common.Date
+	isEnterprise bool
+	enterpriseID string
 }
 
 func (a *Answer) MarkAsRead() error {
@@ -45,6 +47,8 @@ func NewAnswer(
 	createdAt common.Date,
 	read bool, readAt common.Date,
 	updatedAt common.Date,
+	isEnterprise bool,
+	enterpriseID string,
 ) (*Answer, error) {
 	var answer *Answer = new(Answer)
 	err := answer.setID(id)
@@ -84,6 +88,8 @@ func NewAnswer(
 	if err != nil {
 		return nil, err
 	}
+	answer.isEnterprise = isEnterprise
+	answer.enterpriseID = enterpriseID
 	return answer, nil
 }
 
@@ -164,42 +170,50 @@ func (a *Answer) setRead(read bool) {
 	a.read = read
 }
 
-func (a *Answer) ID() uuid.UUID {
+func (a Answer) IsEnterprise() bool {
+	return a.isEnterprise
+}
+
+func (a Answer) EnterpriseID() string {
+	return a.enterpriseID
+}
+
+func (a Answer) ID() uuid.UUID {
 	return a.id
 }
 
-func (a *Answer) FeedbackID() uuid.UUID {
+func (a Answer) FeedbackID() uuid.UUID {
 	return a.feedbackID
 }
 
-func (a *Answer) SenderID() string {
+func (a Answer) SenderID() string {
 	return a.senderID
 }
 
-func (a *Answer) SenderIMG() string {
+func (a Answer) SenderIMG() string {
 	return a.senderIMG
 }
 
-func (a *Answer) SenderName() string {
+func (a Answer) SenderName() string {
 	return a.senderName
 }
 
-func (a *Answer) Body() string {
+func (a Answer) Body() string {
 	return a.body
 }
 
-func (a *Answer) CreatedAt() common.Date {
+func (a Answer) CreatedAt() common.Date {
 	return a.createdAt
 }
 
-func (a *Answer) Read() bool {
+func (a Answer) Read() bool {
 	return a.read
 }
 
-func (a *Answer) ReadAt() common.Date {
+func (a Answer) ReadAt() common.Date {
 	return a.readAt
 }
 
-func (a *Answer) UpdatedAt() common.Date {
+func (a Answer) UpdatedAt() common.Date {
 	return a.updatedAt
 }

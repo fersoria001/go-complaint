@@ -7,6 +7,7 @@ type Office struct {
 	EnterpriseLogoIMG  string
 	EnterpriseName     string
 	EnterpriseWebsite  string
+	EnterprisePhone    string
 	EnterpriseEmail    string
 	EnterpriseIndustry string
 	EnterpriseAddress  Address

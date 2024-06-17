@@ -1,40 +1,30 @@
 package dto
 
-import (
-	"go-complaint/domain/model/common"
-	"go-complaint/domain/model/enterprise"
-)
-
 type UserNotifications struct {
 	Count            int                `json:"count"`
 	HiringInvitation []HiringInvitation `json:"hiring_invitation"`
+	WaitingForReview []WaitingForReview `json:"waiting_for_review"`
 }
 
-type HiringInvitation struct {
-	EventID          string `json:"event_id"`
-	EnterpriseID     string `json:"enterprise_id"`
-	ProposedPosition string `json:"proposed_position"`
-	FirstName        string `json:"first_name"`
-	LastName         string `json:"last_name"`
-	Email            string `json:"email"`
-	Phone            string `json:"phone"`
-	Age              int    `json:"age"`
-	OccurredOn       string `json:"occurred_on"`
-	Seen             bool   `json:"seen"`
+type WaitingForReview struct {
+	EventID     string `json:"event_id"`
+	ComplaintID string `json:"complaint_id"`
+	ReceiverID  string `json:"receiver_id"`
+	TriggeredBy string `json:"triggered_by"`
+	AuthorID    string `json:"author_id"`
+	OccurredOn  string `json:"occurred_on"`
+	Seen        bool   `json:"seen"`
 }
 
-func NewHiringInvitation(eventID string, seen bool, domainEvent enterprise.HiringInvitationSent) HiringInvitation {
-	stringDate := common.NewDate(domainEvent.OccurredOn()).StringRepresentation()
-	return HiringInvitation{
-		EventID:          eventID,
-		EnterpriseID:     domainEvent.EnterpriseID(),
-		ProposedPosition: domainEvent.ProposalPosition().String(),
-		FirstName:        domainEvent.FirstName(),
-		LastName:         domainEvent.LastName(),
-		Email:            domainEvent.Email(),
-		Phone:            domainEvent.Phone(),
-		Age:              domainEvent.Age(),
-		OccurredOn:       stringDate,
-		Seen:             seen,
-	}
-}
+// func NewWaitingForReview(eventID string, seen bool) WaitingForReview {
+// 	stringDate := common.NewDate(domainEvent.OccurredOn()).StringRepresentation()
+// 	return WaitingForReview{
+// 		EventID:     eventID,
+// 		ComplaintID: domainEvent.ComplaintID().String(),
+// 		ReceiverID:  domainEvent.ReceiverID(),
+// 		TriggeredBy: domainEvent.TriggeredBy(),
+// 		AuthorID:    domainEvent.AuthorID(),
+// 		OccurredOn:  stringDate,
+// 		Seen:        seen,
+// 	}
+// }

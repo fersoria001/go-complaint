@@ -1,8 +1,8 @@
-import { isRouteErrorResponse, useRouteError } from "react-router-dom";
+import { isRouteErrorResponse, useParams, useRouteError } from "react-router-dom";
 
 export function ErrorPage() {
   const error = useRouteError();
-
+  const { message } = useParams();
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
       // ...
@@ -32,7 +32,15 @@ export function ErrorPage() {
         </p>
       </div>
     );
-  } else {
-    return <></>;
+  } else if (message) {
+    return (
+      <div id="error-page">
+        <h1>Oops! Unexpected Error</h1>
+        <p>Something went wrong.</p>
+        <p>
+          <i>{message}</i>
+        </p>
+      </div>
+    );
   }
 }

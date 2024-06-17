@@ -6,9 +6,11 @@ import (
 	"go-complaint/domain/model/common"
 	"go-complaint/erros"
 	"net/mail"
+	"slices"
 	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
 )
 
@@ -36,6 +38,7 @@ type Complaint struct {
 	rating     Rating
 	createdAt  common.Date
 	updatedAt  common.Date
+	replies    mapset.Set[*Reply]
 }
 
 /*
@@ -45,109 +48,96 @@ if its an email then its an user and it must match the author
 if its an employee ID then it must match the enterprise
 -employees can close sent or received complaints from their enterprise-
 */
-func (complaint *Complaint) Close(
+func (c *Complaint) SendToHistory(
 	ctx context.Context,
 	closeRequesterID string,
 ) error {
-	if complaint.Status() >= CLOSED {
-		return &erros.ComplaintClosedError{}
-	}
-	if complaint.Status() < IN_DISCUSSION {
+	if c.status != CLOSED {
 		return &erros.ValidationError{
-			Expected: "a complaint must be in discussion to be closed by user or in review to be closed by enterprise employee",
+			Expected: "a complaint must be closed to be sent to history",
 		}
 	}
-	_, err := mail.ParseAddress(closeRequesterID)
-	if err != nil {
-		enterpriseName, ok := complaint.IsValidEmployeeID(closeRequesterID)
-		if !ok {
-			return &erros.ValidationError{
-				Expected: "a valid email or employee ID",
-			}
-		}
-		if enterpriseName != complaint.authorID && enterpriseName != complaint.receiverID {
-			return &erros.ValidationError{
-				Expected: "a valid employee ID for this enterprise ",
-			}
-		}
-		if complaint.status != IN_REVIEW {
-			return &erros.ValidationError{
-				Expected: "a complaint in review status to be closed by an employee",
-			}
-		}
-		err := complaint.setStatus(CLOSED)
-		if err != nil {
-			return err
-		}
-		return domain.DomainEventPublisherInstance().Publish(
-			ctx,
-			NewEnterpriseComplaintClosed(
-				complaint.id,
-				enterpriseName,
-			),
-		)
-	}
-	if closeRequesterID != complaint.authorID {
-		return &erros.ValidationError{
-			Expected: "the requester ID must match the author ID",
-		}
-	}
-	if complaint.status != IN_DISCUSSION {
-		return &erros.ValidationError{
-			Expected: "a complaint in discussion status to be closed by user",
-		}
-	}
-	err = complaint.setStatus(CLOSED)
+	err := c.setStatus(IN_HISTORY)
 	if err != nil {
 		return err
 	}
-	return domain.DomainEventPublisherInstance().Publish(
+	domain.DomainEventPublisherInstance().Publish(
 		ctx,
-		NewUserComplaintClosed(
-			complaint.id,
+		NewComplaintSentToHistory(
+			c.id,
 			closeRequesterID,
 		),
 	)
+	return nil
 }
 
-func (complaint *Complaint) Rate(ctx context.Context, authorID string, rate int, comment string) error {
-	if complaint.Status() < IN_REVIEW ||
-		complaint.Status() > CLOSED {
+func (complaintt *Complaint) Rate(
+	ctx context.Context,
+	triggeredBy string,
+	rate int,
+	comment string,
+) error {
+	if complaintt.Status() < IN_REVIEW ||
+		complaintt.Status() > CLOSED {
 		return &erros.ValidationError{
 			Expected: "a complaint must be in review or closed to be rated",
 		}
 	}
-	if authorID != complaint.authorID {
-		return &erros.ValidationError{
-			Expected: "the requester ID must match the author ID",
-		}
-	}
 	var (
 		err    error
-		rating *Rating
+		rating Rating
 	)
 	rating, err = NewRating(rate, comment)
 	if err != nil {
 		return err
 	}
-	complaint.rating = *rating
+	complaintt.rating = rating
+	err = complaintt.setStatus(CLOSED)
+	if err != nil {
+		return err
+	}
+	domain.DomainEventPublisherInstance().Publish(
+		ctx,
+		NewComplaintClosed(
+			complaintt.id,
+			complaintt.authorID,
+			triggeredBy,
+		),
+	)
+	if _, err = mail.ParseAddress(complaintt.authorID); err == nil {
+		err = complaintt.setStatus(IN_HISTORY)
+		if err != nil {
+			return err
+		}
+		domain.DomainEventPublisherInstance().Publish(
+			ctx,
+			NewComplaintSentToHistory(
+				complaintt.id,
+				complaintt.authorID,
+			),
+		)
+	}
+	domain.DomainEventPublisherInstance().Publish(
+		ctx,
+		NewComplaintRated(
+			complaintt.ID(),
+			complaintt.AuthorID(),
+			complaintt.ReceiverID(),
+			time.Now(),
+		),
+	)
 	return nil
 }
 
 /*
-It can be a received or sent complaint
-validated trough the employee ID
+If the complaint is already in review status return an error
+Set the complaint status to IN_REVIEW
+Publish a new event of type WaitingForReview
 */
 func (complaint *Complaint) MarkAsReviewable(
 	ctx context.Context,
-	assistantID string,
+	userID string,
 ) error {
-	enterpriseName, ok := complaint.IsValidEmployeeID(assistantID)
-	if !ok {
-		return &erros.ValidationError{
-			Expected: "a valid employee ID for this enterprise",
-		}
-	}
 	if complaint.status >= IN_REVIEW {
 		return &erros.ComplaintClosedError{}
 	}
@@ -157,10 +147,11 @@ func (complaint *Complaint) MarkAsReviewable(
 	}
 	return domain.DomainEventPublisherInstance().Publish(
 		ctx,
-		NewWaitingForReview(
+		NewComplaintSentForReview(
 			complaint.id,
-			enterpriseName,
-			assistantID,
+			complaint.receiverID,
+			complaint.authorID,
+			userID,
 		),
 	)
 }
@@ -187,40 +178,28 @@ func (c *Complaint) IsValidEmployeeID(employeeID string) (string, bool) {
 	return segments[0], true
 }
 
-func (c *Complaint) ReplyComplaint(
+func (c *Complaint) Reply(
 	ctx context.Context,
-	count int,
-	senderID,
-	senderIMG,
-	senderName,
-	body string) (*Reply, error) {
+	newReplyID uuid.UUID,
+	authorID,
+	body string,
+	enterpriseID string,
+) (*Reply, error) {
 	if c.status > IN_DISCUSSION {
 		return nil, &erros.ComplaintClosedError{}
 	}
-	var (
-		publisher  = domain.DomainEventPublisherInstance()
-		thisDate   = common.NewDate(time.Now())
-		thisTime   = thisDate.Date()
-		newReplyID = uuid.New()
-		newReply   *Reply
-		err        error
-	)
+	thisTime := time.Now()
+	publisher := domain.DomainEventPublisherInstance()
 
-	newReply, err = NewReply(
+	newReply := CreateReply(
 		newReplyID,
 		c.id,
-		senderID,
-		senderIMG,
-		senderName,
+		authorID,
 		body,
-		false,
-		thisDate,
-		thisDate,
-		thisDate)
-	if err != nil {
-		return nil, err
-	}
-	switch count {
+		enterpriseID,
+	)
+
+	switch c.replies.Cardinality() {
 	case 0:
 		err := c.setStatus(STARTED)
 		if err != nil {
@@ -240,11 +219,11 @@ func (c *Complaint) ReplyComplaint(
 			return nil, err
 		}
 	}
-	err = publisher.Publish(ctx, NewComplaintReplied(c.id, newReplyID, thisTime))
+	err := publisher.Publish(ctx, NewComplaintReplied(c.id, newReplyID, thisTime))
 	if err != nil {
 		return nil, err
 	}
-
+	c.replies.Add(newReply)
 	return newReply, nil
 }
 
@@ -254,41 +233,43 @@ Pre:
   - description must not be empty and must have more than 30 characters and less than 120 characters
   - body must not be empty and must have more than 50 characters and less than 250 characters
 */
-func SendComplaint(
+func Send(
 	ctx context.Context,
+	id uuid.UUID,
 	authorID,
 	receiverID,
 	title,
 	description,
 	body string) (*Complaint, error) {
 	var (
-		publisher      = domain.DomainEventPublisherInstance()
-		message        Message
-		newComplaint   *Complaint
-		newComplaintID uuid.UUID = uuid.New()
-		nullRating     Rating    = Rating{}
-		thisDate                 = common.NewDate(time.Now())
-		status         Status    = OPEN
-		err            error
-		event          domain.DomainEvent
+		publisher    = domain.DomainEventPublisherInstance()
+		message      Message
+		newComplaint *Complaint
+		nullRating   Rating = Rating{}
+		thisDate            = common.NewDate(time.Now())
+		status       Status = OPEN
+		err          error
+		event        domain.DomainEvent
 	)
 	message, err = NewMessage(title, description, body)
 	if err != nil {
 		return nil, err
 	}
 	newComplaint, err = NewComplaint(
-		newComplaintID,
+		id,
 		authorID,
 		receiverID,
 		status,
 		message,
 		thisDate,
 		thisDate,
-		nullRating)
+		nullRating,
+		mapset.NewSet[*Reply](),
+	)
 	if err != nil {
 		return nil, err
 	}
-	event = NewComplaintSent(newComplaintID, authorID, receiverID, thisDate.Date())
+	event = NewComplaintSent(id, authorID, receiverID, thisDate.Date())
 	err = publisher.Publish(ctx, event)
 	if err != nil {
 		return nil, err
@@ -296,11 +277,17 @@ func SendComplaint(
 	return newComplaint, nil
 }
 
-func NewComplaint(ID uuid.UUID,
-	authorID string, receiverID string,
-	status Status, message Message,
-	createdAt, updatedAt common.Date,
-	rating Rating) (*Complaint, error) {
+func NewComplaint(
+	ID uuid.UUID,
+	authorID string,
+	receiverID string,
+	status Status,
+	message Message,
+	createdAt,
+	updatedAt common.Date,
+	rating Rating,
+	replies mapset.Set[*Reply],
+) (*Complaint, error) {
 	var c *Complaint = new(Complaint)
 	err := c.setID(ID)
 	if err != nil {
@@ -331,7 +318,19 @@ func NewComplaint(ID uuid.UUID,
 	if err != nil {
 		return nil, err
 	}
+	err = c.setReplies(replies)
+	if err != nil {
+		return nil, err
+	}
+	c.replies = replies
 	return c, nil
+}
+
+func (c *Complaint) AddReply(reply *Reply) {
+	ok := c.replies.Add(reply)
+	if ok {
+		c.updatedAt = common.NewDate(time.Now())
+	}
 }
 
 func (c *Complaint) setAuthorID(author string) error {
@@ -403,34 +402,77 @@ func (c *Complaint) setUpdatedAt(updatedAt common.Date) error {
 	return nil
 }
 
-func (c *Complaint) ID() uuid.UUID {
+func (c *Complaint) setReplies(replies mapset.Set[*Reply]) error {
+	if replies == nil {
+		return &erros.NullValueError{}
+	}
+	c.replies = replies
+	return nil
+}
+
+func (c Complaint) ID() uuid.UUID {
 	return c.id
 }
 
-func (c *Complaint) AuthorID() string {
+func (c Complaint) AuthorID() string {
 	return c.authorID
 }
 
-func (c *Complaint) ReceiverID() string {
+func (c Complaint) ReceiverID() string {
 	return c.receiverID
 }
 
-func (c *Complaint) Status() Status {
+func (c Complaint) Status() Status {
 	return c.status
 }
 
-func (c *Complaint) Message() Message {
+func (c Complaint) Message() Message {
 	return c.message
 }
 
-func (c *Complaint) Rating() Rating {
+func (c Complaint) Rating() Rating {
 	return c.rating
 }
 
-func (c *Complaint) CreatedAt() common.Date {
+func (c Complaint) CreatedAt() common.Date {
 	return c.createdAt
 }
 
-func (c *Complaint) UpdatedAt() common.Date {
+func (c Complaint) UpdatedAt() common.Date {
 	return c.updatedAt
+}
+
+func (c Complaint) Replies() mapset.Set[Reply] {
+	valueCopy := mapset.NewSet[Reply]()
+	for reply := range c.replies.Iter() {
+		valueCopy.Add(*reply)
+	}
+	return valueCopy
+}
+
+func (c Complaint) RepliesDifference(replies mapset.Set[*Reply]) mapset.Set[Reply] {
+	valueCopy := mapset.NewSet[Reply]()
+	difference := c.replies.Difference(replies)
+	for reply := range difference.Iter() {
+		valueCopy.Add(*reply)
+	}
+	return valueCopy
+}
+
+func (c Complaint) LastReply() Reply {
+	var lastReply Reply
+	if c.replies.Cardinality() == 0 {
+		return lastReply
+	}
+	sliceCopy := c.replies.ToSlice()
+	slices.SortStableFunc(sliceCopy, func(i, j *Reply) int {
+		if i.createdAt.Date().Before(j.createdAt.Date()) {
+			return -1
+		}
+		if i.createdAt.Date().After(j.createdAt.Date()) {
+			return 1
+		}
+		return 0
+	})
+	return *sliceCopy[len(sliceCopy)-1]
 }

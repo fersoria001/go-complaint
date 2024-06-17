@@ -4,17 +4,16 @@ import (
 	"encoding/json"
 	"go-complaint/domain/model/common"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Package enterprise
 // <<Domain event>> implements domain.DomainEvent
 type EmployeeFired struct {
-	id               string
-	firstName        string
-	lastName         string
-	age              int
-	email            string
-	phone            string
+	id               uuid.UUID
+	enterpriseID     string
+	userID           string
 	hiringDate       time.Time
 	approvedHiring   bool
 	approvedHiringAt time.Time
@@ -22,20 +21,45 @@ type EmployeeFired struct {
 	occurredOn       time.Time
 }
 
-func NewEmployeeFired(employee *Employee) *EmployeeFired {
+func NewEmployeeFired(employee Employee) *EmployeeFired {
 	return &EmployeeFired{
-		id:               employee.id,
-		firstName:        employee.firstName,
-		lastName:         employee.lastName,
-		age:              employee.age,
-		email:            employee.email,
-		phone:            employee.phone,
-		hiringDate:       employee.hiringDate.Date(),
-		approvedHiring:   employee.approvedHiring,
-		approvedHiringAt: employee.approvedHiringAt.Date(),
-		position:         employee.position,
+		id:               employee.ID(),
+		enterpriseID:     employee.EnterpriseID(),
+		userID:           employee.Email(),
+		hiringDate:       employee.HiringDate().Date(),
+		approvedHiring:   employee.ApprovedHiring(),
+		approvedHiringAt: employee.ApprovedHiringAt().Date(),
+		position:         employee.Position(),
 		occurredOn:       time.Now(),
 	}
+}
+
+func (ef *EmployeeFired) ID() uuid.UUID {
+	return ef.id
+}
+
+func (ef *EmployeeFired) EnterpriseID() string {
+	return ef.enterpriseID
+}
+
+func (ef *EmployeeFired) UserID() string {
+	return ef.userID
+}
+
+func (ef *EmployeeFired) HiringDate() time.Time {
+	return ef.hiringDate
+}
+
+func (ef *EmployeeFired) ApprovedHiring() bool {
+	return ef.approvedHiring
+}
+
+func (ef *EmployeeFired) ApprovedHiringAt() time.Time {
+	return ef.approvedHiringAt
+}
+
+func (ef *EmployeeFired) Position() Position {
+	return ef.position
 }
 
 func (ef *EmployeeFired) OccurredOn() time.Time {
@@ -45,23 +69,17 @@ func (ef *EmployeeFired) OccurredOn() time.Time {
 func (ef *EmployeeFired) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
 		ID               string `json:"id"`
-		FirstName        string `json:"first_name"`
-		LastName         string `json:"last_name"`
-		Age              int    `json:"age"`
-		Email            string `json:"email"`
-		Phone            string `json:"phone"`
+		EnterpriseID     string `json:"enterprise_id"`
+		UserID           string `json:"user_id"`
 		HiringDate       string `json:"hiring_date"`
 		ApprovedHiring   bool   `json:"approved_hiring"`
 		ApprovedHiringAt string `json:"approved_hiring_at"`
 		Position         string `json:"position"`
 		OccurredOn       string `json:"occurred_on"`
 	}{
-		ID:               ef.id,
-		FirstName:        ef.firstName,
-		LastName:         ef.lastName,
-		Age:              ef.age,
-		Email:            ef.email,
-		Phone:            ef.phone,
+		ID:               ef.id.String(),
+		EnterpriseID:     ef.enterpriseID,
+		UserID:           ef.userID,
 		HiringDate:       common.StringDate(ef.hiringDate),
 		ApprovedHiring:   ef.approvedHiring,
 		ApprovedHiringAt: common.StringDate(ef.approvedHiringAt),
@@ -77,11 +95,8 @@ func (ef *EmployeeFired) MarshalJSON() ([]byte, error) {
 func (ef *EmployeeFired) UnmarshalJSON(data []byte) error {
 	aux := struct {
 		ID               string `json:"id"`
-		FirstName        string `json:"first_name"`
-		LastName         string `json:"last_name"`
-		Age              int    `json:"age"`
-		Email            string `json:"email"`
-		Phone            string `json:"phone"`
+		EnterpriseID     string `json:"enterprise_id"`
+		UserID           string `json:"user_id"`
 		HiringDate       string `json:"hiring_date"`
 		ApprovedHiring   bool   `json:"approved_hiring"`
 		ApprovedHiringAt string `json:"approved_hiring_at"`
@@ -92,12 +107,12 @@ func (ef *EmployeeFired) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	ef.id = aux.ID
-	ef.firstName = aux.FirstName
-	ef.lastName = aux.LastName
-	ef.age = aux.Age
-	ef.email = aux.Email
-	ef.phone = aux.Phone
+	ef.id, err = uuid.Parse(aux.ID)
+	if err != nil {
+		return err
+	}
+	ef.enterpriseID = aux.EnterpriseID
+
 	ef.hiringDate, err = common.ParseDate(aux.HiringDate)
 	if err != nil {
 		return err
@@ -107,10 +122,11 @@ func (ef *EmployeeFired) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	ef.position, err = ParsePosition(aux.Position)
-	if err != nil {
-		return err
+	position := ParsePosition(aux.Position)
+	if position == NOT_EXISTS {
+		return ErrPositionNotExists
 	}
+	ef.position = position
 	ef.occurredOn, err = common.ParseDate(aux.OccurredOn)
 	if err != nil {
 		return err

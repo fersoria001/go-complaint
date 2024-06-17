@@ -1,24 +1,10 @@
 package middleware
 
 import (
-	"context"
 	"errors"
-	"go-complaint/application"
-	"go-complaint/erros"
+	"go-complaint/application/application_services"
 	"net/http"
 )
-
-type AuthContextKey struct {
-	name string
-}
-
-var AuthCtxKey = AuthContextKey{"user_email"}
-
-type TokenContextKey struct {
-	token string
-}
-
-var TokenCtxKey = TokenContextKey{"jwt_token"}
 
 func GetTokenFromRequest(r *http.Request) (string, error) {
 	header := r.Header.Get("Authorization")
@@ -67,79 +53,30 @@ func startWith(s string, prefix string) bool {
 	}
 	return true
 }
-
 func AuthenticationMiddleware() Middleware {
 
 	middleware := func(next http.HandlerFunc) http.HandlerFunc {
-		handler := func(w http.ResponseWriter, r *http.Request) {
-			tokenStr, err := GetTokenFromRequest(r)
-			if err != nil {
-				next(w, r)
-				return
-			}
 
-			claims, err := application.NewJWTService().ParseUserDescriptor(tokenStr)
-			//this can lead to errors if the token expired at serverside and client still has it
+		handler := func(w http.ResponseWriter, r *http.Request) {
+
+			jwtToken, err := GetTokenFromRequest(r)
 			if err != nil {
-				http.Error(w, "Invalid token", http.StatusUnauthorized)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
-			ctxKey := AuthCtxKey
-			ctx := context.WithValue(r.Context(), ctxKey, &claims.Email)
-			ctx = context.WithValue(ctx, TokenCtxKey, tokenStr)
-			r = r.WithContext(ctx)
+			authorized, err := application_services.AuthorizationApplicationServiceInstance().Authorize(
+				r.Context(),
+				jwtToken,
+			)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			r = r.WithContext(authorized)
 			next(w, r)
 		}
 
 		return handler
 	}
-
 	return middleware
-}
-
-func WebsocketAuthenticationMiddleware() Middleware {
-
-	middleware := func(next http.HandlerFunc) http.HandlerFunc {
-		handler := func(w http.ResponseWriter, r *http.Request) {
-			tokenStr, err := GetTokenFromWebsocketRequest(r)
-			if err != nil {
-				next(w, r)
-				return
-			}
-
-			claims, err := application.NewJWTService().ParseUserDescriptor(tokenStr)
-			//this can lead to errors if the token expired at serverside and client still has it
-			if err != nil {
-				http.Error(w, "Invalid token", http.StatusUnauthorized)
-				return
-			}
-			ctxKey := AuthCtxKey
-			ctx := context.WithValue(r.Context(), ctxKey, &claims.Email)
-			ctx = context.WithValue(ctx, TokenCtxKey, tokenStr)
-			r = r.WithContext(ctx)
-			next(w, r)
-		}
-
-		return handler
-	}
-
-	return middleware
-}
-
-func GetContextPersonID(ctx context.Context) (string, error) {
-	key := AuthCtxKey
-	raw, found := ctx.Value(key).(*string)
-	if !found {
-		return "", &erros.UnauthorizedError{}
-	}
-	return *raw, nil
-}
-
-func GetContextToken(ctx context.Context) (string, error) {
-	key := TokenCtxKey
-	raw, found := ctx.Value(key).(string)
-	if !found {
-		return "", &erros.UnauthorizedError{}
-	}
-	return raw, nil
 }

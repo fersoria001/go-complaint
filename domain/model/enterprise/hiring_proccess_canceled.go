@@ -9,111 +9,62 @@ import (
 // Package enterprise
 // <<Domain event>> implements domain.DomainEvent
 type HiringProccessCanceled struct {
-	id               string
-	firstName        string
-	lastName         string
-	age              int
-	email            string
-	phone            string
-	hiringDate       time.Time
-	approvedHiring   bool
-	approvedHiringAt time.Time
-	position         Position
-	occurredOn       time.Time
+	enterpriseID string
+	candidateID  string
+	position     Position
+	occurredOn   time.Time
 }
 
-func NewHiringProccessCanceled(employee *Employee) *HiringProccessCanceled {
+func NewHiringProccessCanceled(enterpriseID string,
+	candidateID string,
+	position Position,
+) *HiringProccessCanceled {
 	return &HiringProccessCanceled{
-		id:               employee.id,
-		firstName:        employee.firstName,
-		lastName:         employee.lastName,
-		age:              employee.age,
-		email:            employee.email,
-		phone:            employee.phone,
-		hiringDate:       employee.hiringDate.Date(),
-		approvedHiring:   employee.approvedHiring,
-		approvedHiringAt: employee.approvedHiringAt.Date(),
-		position:         employee.position,
-		occurredOn:       time.Now(),
+		enterpriseID: enterpriseID,
+		candidateID:  candidateID,
+		position:     position,
+		occurredOn:   time.Now(),
 	}
 }
 
-func (ef *HiringProccessCanceled) OccurredOn() time.Time {
-	return ef.occurredOn
+func (h HiringProccessCanceled) EnterpriseID() string {
+	return h.enterpriseID
 }
 
-func (ef *HiringProccessCanceled) MarshalJSON() ([]byte, error) {
-	j, err := json.Marshal(struct {
-		ID               string `json:"id"`
-		FirstName        string `json:"first_name"`
-		LastName         string `json:"last_name"`
-		Age              int    `json:"age"`
-		Email            string `json:"email"`
-		Phone            string `json:"phone"`
-		HiringDate       string `json:"hiring_date"`
-		ApprovedHiring   bool   `json:"approved_hiring"`
-		ApprovedHiringAt string `json:"approved_hiring_at"`
-		Position         string `json:"position"`
-		OccurredOn       string `json:"occurred_on"`
-	}{
-		ID:               ef.id,
-		FirstName:        ef.firstName,
-		LastName:         ef.lastName,
-		Age:              ef.age,
-		Email:            ef.email,
-		Phone:            ef.phone,
-		HiringDate:       common.StringDate(ef.hiringDate),
-		ApprovedHiring:   ef.approvedHiring,
-		ApprovedHiringAt: common.StringDate(ef.approvedHiringAt),
-		Position:         ef.position.String(),
-		OccurredOn:       common.StringDate(ef.occurredOn),
+func (h HiringProccessCanceled) CandidateID() string {
+	return h.candidateID
+}
+
+func (h HiringProccessCanceled) Position() Position {
+	return h.position
+}
+
+func (h HiringProccessCanceled) OccurredOn() time.Time {
+	return h.occurredOn
+}
+
+func (h *HiringProccessCanceled) MarshalJSON() ([]byte, error) {
+	ms := common.StringDate(h.occurredOn)
+	return json.Marshal(map[string]interface{}{
+		"enterprise_id": h.enterpriseID,
+		"candidate_id":  h.candidateID,
+		"position":      h.position,
+		"occurred_on":   ms,
 	})
-	if err != nil {
-		return nil, err
-	}
-	return j, nil
 }
 
-func (ef *HiringProccessCanceled) UnmarshalJSON(data []byte) error {
-	aux := struct {
-		ID               string `json:"id"`
-		FirstName        string `json:"first_name"`
-		LastName         string `json:"last_name"`
-		Age              int    `json:"age"`
-		Email            string `json:"email"`
-		Phone            string `json:"phone"`
-		HiringDate       string `json:"hiring_date"`
-		ApprovedHiring   bool   `json:"approved_hiring"`
-		ApprovedHiringAt string `json:"approved_hiring_at"`
-		Position         string `json:"position"`
-		OccurredOn       string `json:"occurred_on"`
-	}{}
-	err := json.Unmarshal(data, &aux)
+func (h *HiringProccessCanceled) UnmarshalJSON(data []byte) error {
+	var v map[string]interface{}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	occurredOn, err := common.ParseDate(v["occurred_on"].(string))
 	if err != nil {
 		return err
 	}
-	ef.id = aux.ID
-	ef.firstName = aux.FirstName
-	ef.lastName = aux.LastName
-	ef.age = aux.Age
-	ef.email = aux.Email
-	ef.phone = aux.Phone
-	ef.hiringDate, err = common.ParseDate(aux.HiringDate)
-	if err != nil {
-		return err
-	}
-	ef.approvedHiring = aux.ApprovedHiring
-	ef.approvedHiringAt, err = common.ParseDate(aux.ApprovedHiringAt)
-	if err != nil {
-		return err
-	}
-	ef.position, err = ParsePosition(aux.Position)
-	if err != nil {
-		return err
-	}
-	ef.occurredOn, err = common.ParseDate(aux.OccurredOn)
-	if err != nil {
-		return err
-	}
+	h.enterpriseID = v["enterprise_id"].(string)
+	h.candidateID = v["candidate_id"].(string)
+	h.position = v["position"].(Position)
+	h.occurredOn = occurredOn
 	return nil
 }

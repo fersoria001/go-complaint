@@ -10,10 +10,10 @@ type Address struct {
 	City    string `json:"city"`
 }
 
-func NewAddress(domainObj common.Address) *Address {
-	return &Address{
-		Country: domainObj.Country(),
-		County:  domainObj.County(),
-		City:    domainObj.City(),
+func NewAddress(domainObj common.Address) Address {
+	return Address{
+		Country: domainObj.Country().Name(),
+		County:  domainObj.CountryState().Name(),
+		City:    domainObj.City().Name(),
 	}
 }

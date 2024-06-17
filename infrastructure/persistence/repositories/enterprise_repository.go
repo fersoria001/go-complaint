@@ -2,364 +2,376 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 	"go-complaint/domain/model/common"
+	"go-complaint/domain/model/employee"
 	"go-complaint/domain/model/enterprise"
-	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/datasource"
-	"go-complaint/infrastructure/persistence/models"
-	"strings"
+	employeefindall "go-complaint/infrastructure/persistence/finders/employee_findall"
+	"log"
 
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type EnterpriseRepository struct {
-	schema *datasource.Schema
+	schema datasource.Schema
 }
 
-func NewEnterpriseRepository(schema *datasource.Schema) *EnterpriseRepository {
-	return &EnterpriseRepository{
+func NewEnterpriseRepository(schema datasource.Schema) EnterpriseRepository {
+	return EnterpriseRepository{
 		schema: schema,
 	}
 }
 
-func (r *EnterpriseRepository) Save(ctx context.Context, e *enterprise.Enterprise) error {
-	var (
-		conn             *pgxpool.Conn
-		err              error
-		enterprise       *models.Enterprise = models.NewEnterprise(e)
-		insertEnterprise string             = fmt.Sprintf(`INSERT INTO %s (%s) VALUES (%s)`,
-			enterprise.Table(), models.StringColumns(enterprise.Columns()), models.Args(enterprise.Columns()))
+func (er EnterpriseRepository) Update(
+	ctx context.Context,
+	updatedEnterprise *enterprise.Enterprise,
+) error {
+	conn, err := er.schema.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	mapper := MapperRegistryInstance().Get("Address")
+	if mapper == nil {
+		return ErrMapperNotRegistered
+	}
+	addressRepository, ok := mapper.(AddressRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	mapper = MapperRegistryInstance().Get("Employee")
+	if mapper == nil {
+		return ErrMapperNotRegistered
+	}
+	employeeRepository, ok := mapper.(EmployeeRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	err = addressRepository.Update(
+		ctx,
+		updatedEnterprise.Address(),
 	)
-	conn, err = r.schema.Pool.Acquire(ctx)
+	if err != nil {
+		log.Printf("err att update address %v", err)
+		return err
+	}
+	castedEmployees := mapset.NewSet[employee.Employee]()
+	for emp := range updatedEnterprise.Employees().Iter() {
+		cast, ok := emp.(*employee.Employee)
+		if !ok {
+			return ErrWrongTypeAssertion
+		}
+		castedEmployees.Add(*cast)
+	}
+	err = employeeRepository.DeleteAll(ctx, castedEmployees)
+	if err != nil {
+		return err
+	}
+	err = employeeRepository.SaveAll(ctx, castedEmployees)
+	if err != nil {
+		return err
+	}
+	updateCommand := string(
+		`
+		UPDATE enterprise
+		SET 
+			owner_user_id = $2,
+			logo_img = $3,
+			banner_img = $4,
+			website = $5,
+			email = $6,
+			phone = $7,
+			industry_id = $8,
+			created_at = $9,
+			updated_at = $10,
+			foundation_date = $11
+		WHERE enterprise.enterprise_id = $1
+		`,
+	)
+	var (
+		name           string = updatedEnterprise.Name()
+		owner          string = updatedEnterprise.Owner()
+		logoIMG        string = updatedEnterprise.LogoIMG()
+		bannerIMG      string = updatedEnterprise.BannerIMG()
+		website        string = updatedEnterprise.Website()
+		email          string = updatedEnterprise.Email()
+		phone          string = updatedEnterprise.Phone()
+		industryID     int    = updatedEnterprise.Industry().ID()
+		createdAt      string = updatedEnterprise.CreatedAt().StringRepresentation()
+		updatedAt      string = updatedEnterprise.UpdatedAt().StringRepresentation()
+		foundationDate string = updatedEnterprise.FoundationDate().StringRepresentation()
+	)
+	_, err = conn.Exec(
+		ctx,
+		updateCommand,
+		&name,
+		&owner,
+		&logoIMG,
+		&bannerIMG,
+		&website,
+		&email,
+		&phone,
+		&industryID,
+		&createdAt,
+		&updatedAt,
+		&foundationDate,
+	)
 	if err != nil {
 		return err
 	}
 	defer conn.Release()
-	_, err = conn.Exec(ctx, insertEnterprise, enterprise.Values()...)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-func (r *EnterpriseRepository) Get(ctx context.Context, id string) (*enterprise.Enterprise, error) {
-	var (
-		conn             *pgxpool.Conn
-		row              pgx.Row
-		err              error
-		enterpriseModel  *models.Enterprise = &models.Enterprise{}
-		industry         enterprise.Industry
-		address          common.Address
-		fDate            common.Date
-		regAt            common.Date
-		result           *enterprise.Enterprise
-		selectEnterprise = fmt.Sprintf(`SELECT %s FROM %s WHERE id = $1`, models.StringColumns(enterpriseModel.Columns()),
-			enterpriseModel.Table())
+func (er EnterpriseRepository) Save(
+	ctx context.Context,
+	enterprise *enterprise.Enterprise,
+) error {
+	conn, err := er.schema.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	mapper := MapperRegistryInstance().Get("Address")
+	if mapper == nil {
+		return ErrMapperNotRegistered
+	}
+	addressRepository, ok := mapper.(AddressRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	err = addressRepository.Save(ctx, enterprise.Address())
+	if err != nil {
+		return err
+	}
+	insertCommand := string(
+		`INSERT INTO enterprise(
+		enterprise_id,
+		owner_user_id,
+		logo_img,
+		banner_img,
+		website,
+		email,
+		phone,
+		address_id,
+		industry_id,
+		created_at,
+		updated_at,
+		foundation_date
+		) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,$12)`,
 	)
-	conn, err = r.schema.Pool.Acquire(ctx)
+	var (
+		name           string    = enterprise.Name()
+		owner          string    = enterprise.Owner()
+		logoIMG        string    = enterprise.LogoIMG()
+		bannerIMG      string    = enterprise.BannerIMG()
+		website        string    = enterprise.Website()
+		email          string    = enterprise.Email()
+		phone          string    = enterprise.Phone()
+		addressID      uuid.UUID = enterprise.Address().ID()
+		industryID     int       = enterprise.Industry().ID()
+		createdAt      string    = enterprise.CreatedAt().StringRepresentation()
+		updatedAt      string    = enterprise.UpdatedAt().StringRepresentation()
+		foundationDate string    = enterprise.FoundationDate().StringRepresentation()
+	)
+	_, err = conn.Exec(
+		ctx,
+		insertCommand,
+		&name,
+		&owner,
+		&logoIMG,
+		&bannerIMG,
+		&website,
+		&email,
+		&phone,
+		&addressID,
+		&industryID,
+		&createdAt,
+		&updatedAt,
+		&foundationDate,
+	)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Release()
+	return nil
+}
+
+func (er EnterpriseRepository) Get(
+	ctx context.Context,
+	enterpriseID string,
+) (*enterprise.Enterprise, error) {
+	conn, err := er.schema.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	selectQuery := string(
+		`SELECT
+		enterprise_id,
+		owner_user_id,
+		logo_img,
+		banner_img,
+		website,
+		email,
+		phone,
+		address_id,
+		industry_id,
+		created_at,
+		updated_at,
+		foundation_date
+		FROM enterprise
+		WHERE enterprise_id = $1`,
+	)
+	row := conn.QueryRow(ctx, selectQuery, enterpriseID)
+	enterprise, err := er.load(ctx, row)
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Release()
-	row = conn.QueryRow(ctx, selectEnterprise, id)
-	err = row.Scan(enterpriseModel.Values()...)
+	return enterprise, nil
+}
+
+func (er EnterpriseRepository) FindAll(
+	ctx context.Context,
+	source StatementSource,
+) (mapset.Set[enterprise.Enterprise], error) {
+	conn, err := er.schema.Acquire(ctx)
 	if err != nil {
 		return nil, err
 	}
-	industry, err = enterprise.NewIndustry(0, enterpriseModel.Industry)
+	rows, err := conn.Query(ctx, source.Query(), source.Args()...)
 	if err != nil {
 		return nil, err
 	}
-	address, err = common.NewAddress(enterpriseModel.Country, enterpriseModel.County, enterpriseModel.City)
+	enterprises, err := er.loadAll(ctx, rows)
 	if err != nil {
 		return nil, err
 	}
-	fDate, err = common.NewDateFromString(enterpriseModel.FoundationDate)
+	defer func() {
+		rows.Close()
+		conn.Release()
+	}()
+	return enterprises, nil
+}
+
+func (er EnterpriseRepository) loadAll(
+	ctx context.Context,
+	rows pgx.Rows,
+) (mapset.Set[enterprise.Enterprise], error) {
+	enterprises := mapset.NewSet[enterprise.Enterprise]()
+	for rows.Next() {
+		enterprise, err := er.load(ctx, rows)
+		if err != nil {
+			return nil, err
+		}
+		enterprises.Add(*enterprise)
+	}
+	return enterprises, nil
+}
+func (er EnterpriseRepository) load(
+	ctx context.Context,
+	row pgx.Row,
+) (*enterprise.Enterprise, error) {
+	mapper := MapperRegistryInstance().Get("Address")
+	if mapper == nil {
+		return nil, ErrMapperNotRegistered
+	}
+	addressRepository, ok := mapper.(AddressRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	mapper = MapperRegistryInstance().Get("Employee")
+	if mapper == nil {
+		return nil, ErrMapperNotRegistered
+	}
+	employeeRepository, ok := mapper.(EmployeeRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	mapper = MapperRegistryInstance().Get("Industry")
+	if mapper == nil {
+		return nil, ErrMapperNotRegistered
+	}
+	industryRepository, ok := mapper.(IndustryRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	var (
+		enterpriseId string
+		ownerUserID  string
+		logoImg      string
+		bannerImg    string
+		website      string
+		email        string
+		phone        string
+		addressID    uuid.UUID
+		industryID   int
+		createdAt    string
+		updatedAt    string
+		foundation   string
+	)
+	err := row.Scan(
+		&enterpriseId,
+		&ownerUserID,
+		&logoImg,
+		&bannerImg,
+		&website,
+		&email,
+		&phone,
+		&addressID,
+		&industryID,
+		&createdAt,
+		&updatedAt,
+		&foundation,
+	)
 	if err != nil {
 		return nil, err
 	}
-	regAt, err = common.NewDateFromString(enterpriseModel.RegisterAt)
+	commonCreatedAt, err := common.NewDateFromString(createdAt)
 	if err != nil {
 		return nil, err
 	}
-	result, err = enterprise.NewEnterprise(
-		enterpriseModel.OwnerID,
-		enterpriseModel.Name,
-		enterpriseModel.LogoIMG,
-		enterpriseModel.BannerIMG,
-		enterpriseModel.Website,
-		enterpriseModel.Email,
-		enterpriseModel.Phone,
+	commonUpdatedAt, err := common.NewDateFromString(updatedAt)
+	if err != nil {
+		return nil, err
+	}
+	commonFoundation, err := common.NewDateFromString(foundation)
+	if err != nil {
+		return nil, err
+	}
+	employees, err := employeeRepository.FindAll(
+		ctx,
+		employeefindall.NewByUserID(ownerUserID),
+	)
+	if err != nil {
+		return nil, err
+	}
+	castToEmployeeInterface := mapset.NewSet[enterprise.Employee]()
+	for emp := range employees.Iter() {
+		castToEmployeeInterface.Add(emp)
+	}
+	address, err := addressRepository.Get(ctx, addressID)
+	if err != nil {
+		return nil, err
+	}
+	industry, err := industryRepository.Get(ctx, industryID)
+	if err != nil {
+		return nil, err
+	}
+	return enterprise.NewEnterprise(
+		ownerUserID,
+		enterpriseId,
+		logoImg,
+		bannerImg,
+		website,
+		email,
+		phone,
 		address,
 		industry,
-		regAt,
-		fDate)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-// Designed only for tests id LIKE $1 can behave unexpectedly
-func (r *EnterpriseRepository) Remove(ctx context.Context, id string) error {
-	var (
-		conn             *pgxpool.Conn
-		err              error
-		enterpriseModel  *models.Enterprise = &models.Enterprise{}
-		employeeModel    *models.Employee   = &models.Employee{}
-		deleteEnterprise                    = fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, enterpriseModel.Table())
-		deleteEmployees                     = fmt.Sprintf(`DELETE FROM %s WHERE id LIKE $1`, employeeModel.Table())
+		commonCreatedAt,
+		commonUpdatedAt,
+		commonFoundation,
+		castToEmployeeInterface,
 	)
-	conn, err = r.schema.Pool.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec(ctx, deleteEnterprise, id)
-	if err != nil {
-		tx.Rollback(ctx)
-		return err
-	}
-	_, err = tx.Exec(ctx, deleteEmployees, id)
-	if err != nil {
-		tx.Rollback(ctx)
-		return err
-	}
-	err = tx.Commit(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *EnterpriseRepository) GetAll(ctx context.Context) (mapset.Set[*enterprise.Enterprise], error) {
-	var (
-		conn             *pgxpool.Conn
-		err              error
-		enterpriseModel  *models.Enterprise = &models.Enterprise{}
-		industry         enterprise.Industry
-		address          common.Address
-		fDate            common.Date
-		regAt            common.Date
-		result           *enterprise.Enterprise
-		selectEnterprise = fmt.Sprintf(`SELECT %s FROM %s`,
-			models.StringColumns(enterpriseModel.Columns()),
-			enterpriseModel.Table())
-	)
-	conn, err = r.schema.Pool.Acquire(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Release()
-	rows, err := conn.Query(ctx, selectEnterprise)
-	if err != nil {
-		return nil, err
-	}
-	enterprises := mapset.NewSet[*enterprise.Enterprise]()
-	for rows.Next() {
-		err = rows.Scan(enterpriseModel.Values()...)
-		if err != nil {
-
-			return nil, err
-		}
-
-		industry, err = enterprise.NewIndustry(0, enterpriseModel.Industry)
-		if err != nil {
-
-			return nil, err
-		}
-		address, err = common.NewAddress(enterpriseModel.Country, enterpriseModel.County, enterpriseModel.City)
-		if err != nil {
-
-			return nil, err
-		}
-		fDate, err = common.NewDateFromString(enterpriseModel.FoundationDate)
-		if err != nil {
-
-			return nil, err
-		}
-		regAt, err = common.NewDateFromString(enterpriseModel.RegisterAt)
-		if err != nil {
-
-			return nil, err
-		}
-		result, err = enterprise.NewEnterprise(
-			enterpriseModel.OwnerID,
-			enterpriseModel.Name,
-			enterpriseModel.LogoIMG,
-			enterpriseModel.BannerIMG,
-			enterpriseModel.Website,
-			enterpriseModel.Email,
-			enterpriseModel.Phone,
-			address,
-			industry,
-			regAt,
-			fDate)
-		if err != nil {
-
-			return nil, err
-		}
-		enterprises.Add(result)
-	}
-
-	return enterprises, nil
-}
-
-func (r *EnterpriseRepository) Update(ctx context.Context, e *enterprise.Enterprise) error {
-	var (
-		conn             *pgxpool.Conn
-		err              error
-		enterprise       *models.Enterprise = models.NewEnterprise(e)
-		updateEnterprise string             = fmt.Sprintf(`UPDATE %s SET %s WHERE id = $2`,
-			enterprise.Table(), models.StringKeyArgs(enterprise.Columns()))
-	)
-	conn, err = r.schema.Pool.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
-	_, err = conn.Exec(ctx, updateEnterprise, enterprise.Values()...)
-	if err != nil {
-
-		return err
-	}
-
-	return nil
-}
-
-//additional behaviour
-
-func (r *EnterpriseRepository) GetIndustriesSlice(ctx context.Context) ([]dto.Industry, error) {
-	var (
-		conn       *pgxpool.Conn
-		rows       pgx.Rows
-		err        error
-		industries []dto.Industry
-	)
-	conn, err = r.schema.Pool.Acquire(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Release()
-	rows, err = conn.Query(ctx, `SELECT id,name  FROM industries`)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var industry dto.Industry
-		err = rows.Scan(&industry.ID, &industry.Name)
-		if err != nil {
-			return nil, err
-		}
-		industries = append(industries, industry)
-	}
-	return industries, nil
-}
-
-func (r *EnterpriseRepository) FindByName(ctx context.Context, term string) ([]*dto.Receiver, error) {
-	conn, err := r.schema.Pool.Acquire(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Release()
-	wildCardTerm := "%" + strings.ToLower(term) + "%"
-	rows, err := conn.Query(ctx, `SELECT id, logo_IMG FROM enterprises WHERE LOWER(id) LIKE $1`, wildCardTerm)
-	if err != nil {
-		return nil, err
-	}
-	receivers := make([]*dto.Receiver, 0)
-	var id string
-	var logoIMG string
-	for rows.Next() {
-		var receiver = &dto.Receiver{}
-		err = rows.Scan(&id, &logoIMG)
-		if err != nil {
-			return nil, err
-		}
-		receiver.ID = id
-		receiver.IMG = logoIMG
-		receiver.FullName = id
-		receivers = append(receivers, receiver)
-	}
-	return receivers, nil
-}
-func (r *EnterpriseRepository) FindByOwnerID(ctx context.Context, id string) (mapset.Set[*enterprise.Enterprise], error) {
-	var (
-		conn             *pgxpool.Conn
-		err              error
-		enterpriseModel  *models.Enterprise = &models.Enterprise{}
-		industry         enterprise.Industry
-		address          common.Address
-		fDate            common.Date
-		regAt            common.Date
-		result           *enterprise.Enterprise
-		selectEnterprise = fmt.Sprintf(`SELECT %s FROM %s where owner_id = $1`,
-			models.StringColumns(enterpriseModel.Columns()),
-			enterpriseModel.Table())
-	)
-	conn, err = r.schema.Pool.Acquire(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Release()
-	rows, err := conn.Query(ctx, selectEnterprise, id)
-	if err != nil {
-		return nil, err
-	}
-	enterprises := mapset.NewSet[*enterprise.Enterprise]()
-	for rows.Next() {
-		err = rows.Scan(enterpriseModel.Values()...)
-		if err != nil {
-
-			return nil, err
-		}
-
-		industry, err = enterprise.NewIndustry(0, enterpriseModel.Industry)
-		if err != nil {
-
-			return nil, err
-		}
-		address, err = common.NewAddress(enterpriseModel.Country, enterpriseModel.County, enterpriseModel.City)
-		if err != nil {
-
-			return nil, err
-		}
-		fDate, err = common.NewDateFromString(enterpriseModel.FoundationDate)
-		if err != nil {
-
-			return nil, err
-		}
-		regAt, err = common.NewDateFromString(enterpriseModel.RegisterAt)
-		if err != nil {
-
-			return nil, err
-		}
-		result, err = enterprise.NewEnterprise(
-			enterpriseModel.OwnerID,
-			enterpriseModel.Name,
-			enterpriseModel.LogoIMG,
-			enterpriseModel.BannerIMG,
-			enterpriseModel.Website,
-			enterpriseModel.Email,
-			enterpriseModel.Phone,
-			address,
-			industry,
-			regAt,
-			fDate)
-		if err != nil {
-
-			return nil, err
-		}
-		enterprises.Add(result)
-	}
-
-	return enterprises, nil
 }

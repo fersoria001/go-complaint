@@ -9,7 +9,7 @@ import (
 
 type EnterpriseCreated struct {
 	enterpriseName string
-	industryName   string
+	industryID     int
 	ocurredOn      time.Time
 }
 
@@ -17,13 +17,17 @@ func (event EnterpriseCreated) OccurredOn() time.Time {
 	return event.ocurredOn
 }
 
-func NewEnterpriseCreated(enterpriseName, industryName string, occurredOn time.Time) (*EnterpriseCreated, error) {
+func NewEnterpriseCreated(
+	enterpriseName string,
+	industryID int,
+	occurredOn time.Time,
+) (*EnterpriseCreated, error) {
 	newEvent := &EnterpriseCreated{}
 	err := newEvent.setEnterpriseName(enterpriseName)
 	if err != nil {
 		return nil, err
 	}
-	err = newEvent.setIndustryName(industryName)
+	err = newEvent.setIndustryID(industryID)
 	if err != nil {
 		return nil, err
 	}
@@ -42,11 +46,8 @@ func (event *EnterpriseCreated) setEnterpriseName(enterpriseName string) error {
 	return nil
 }
 
-func (event *EnterpriseCreated) setIndustryName(industryName string) error {
-	if industryName == "" {
-		return &erros.NullValueError{}
-	}
-	event.industryName = industryName
+func (event *EnterpriseCreated) setIndustryID(industryID int) error {
+	event.industryID = industryID
 	return nil
 }
 
@@ -67,11 +68,11 @@ func (event *EnterpriseCreated) setOccurredOn(occurredOn time.Time) error {
 func (event *EnterpriseCreated) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
 		EnterpriseName string
-		IndustryName   string
+		IndustryID     int
 		OccurredOn     string
 	}{
 		EnterpriseName: event.enterpriseName,
-		IndustryName:   event.industryName,
+		IndustryID:     event.industryID,
 		OccurredOn:     common.StringDate(event.ocurredOn),
 	})
 	if err != nil {
@@ -86,7 +87,7 @@ func (event *EnterpriseCreated) UnmarshalJSON(data []byte) error {
 	}
 	j := struct {
 		EnterpriseName string
-		IndustryName   string
+		IndustryID     int
 		OccurredOn     string
 	}{}
 	err := json.Unmarshal(data, &j)
@@ -101,7 +102,7 @@ func (event *EnterpriseCreated) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	err = event.setIndustryName(j.IndustryName)
+	err = event.setIndustryID(j.IndustryID)
 	if err != nil {
 		return err
 	}

@@ -116,6 +116,8 @@ export type Employee = {
   approvedHiring: boolean;
   approvedHiringAt: string;
   position: string;
+  complaintsSolved: string;
+  complaintsSolvedIDs: string[];
 };
 export type InviteToProject = {
   enterpriseName: string;
@@ -128,10 +130,48 @@ export type Receiver = {
   fullName: string;
   IMG: string;
 };
-
+export type UserLog = {
+  count: number;
+  complaint_rated: ComplaintRated[];
+};
+export type ComplaintRated = {
+  event_id: string;
+  complaint_id: string;
+  rated_by: string;
+  assistant_user_id: string;
+  occurred_on: string;
+};
+export type SolvedReview = {
+  User: {
+    firstName: string;
+    lastName: string;
+  };
+  Complaint: {
+    id: string;
+    message: { title: string };
+    rating: {
+      rate: number;
+      comment: string;
+    };
+  };
+};
 export type UserNotifications = {
   count: number;
   hiring_invitation: HiringInvitation[];
+  waiting_for_review: WaitingForReview[];
+};
+export type UserNotificationType = "waiting_for_review" | "hiring_invitation";
+export type EnterpriseNotificationType =
+  | "employee_waiting_for_approval"
+  | "waiting_for_review";
+export type WaitingForReview = {
+  event_id: string;
+  complaint_id: string;
+  receiver_id: string;
+  triggered_by: string;
+  author_id: string;
+  occurred_on: string;
+  seen: boolean;
 };
 export type HiringInvitation = {
   event_id: string;
@@ -145,23 +185,43 @@ export type HiringInvitation = {
   occurred_on: string;
   seen: boolean;
 };
+export type InfoForReview = {
+  User: {
+    firstName: string;
+    lastName: string;
+  };
+  Complaint: {
+    id: string;
+    receiverFullName: string;
+    message: {
+      title: string;
+    };
+  };
+};
+export type RateComplaint = {
+  notificationID: string;
+  complaintID: string;
+  rate: number;
+  comment: string;
+};
 export type EnterpriseNotifications = {
   count: number;
   employee_waiting_for_approval: EmployeeWaitingForApproval[];
+  waiting_for_review: WaitingForReview[];
 };
 export type EmployeeWaitingForApproval = {
   id: string;
-  enterprise_name: string;
-  employee_id: string;
-  manager_id: string;
+  enterprise_id: string;
+  invited_user_id: string;
+  proposed_position: string;
   occurred_on: string;
+  invitation_id: string;
   seen: boolean;
 };
 
 export type EndHiringProcess = {
   pendingEventID: string;
   enterpriseID: string;
-  employeeID: string;
   accepted: boolean;
 };
 
@@ -179,6 +239,23 @@ export type ComplaintTypeList = {
   currentLimit: number;
   currentOffset: number;
 };
+export type DeserializedComplaint = {
+  id: string;
+  authorID: string;
+  authorFullName: string;
+  authorProfileIMG: string;
+  receiverID: string;
+  receiverFullName: string;
+  receiverProfileIMG: string;
+  status: string;
+  message: Message;
+  rating?: Rating;
+  createdAt: string;
+  updatedAt: string;
+  replies?: DeserializedReply[];
+  industry?: string;
+};
+
 export type Complaint = {
   id: string;
   authorID: string;
@@ -192,7 +269,7 @@ export type Complaint = {
   rating?: Rating;
   createdAt: string;
   updatedAt: string;
-  replies?: Reply[];
+  replies?: DeserializedReply[];
   industry?: string;
 };
 export type Message = {
@@ -215,7 +292,41 @@ export type Reply = {
   read: boolean;
   read_at: string;
   updated_at: string;
+  is_enterprise: boolean;
+  enterprise_id: string;
 };
+export type DeserializedReply = {
+  id: string;
+  complaintID: string;
+  senderID: string;
+  senderIMG: string;
+  senderName: string;
+  body: string;
+  createdAt: string;
+  read: boolean;
+  readAt: string;
+  updatedAt: string;
+  isEnterprise: boolean;
+  enterpriseID: string;
+};
+
+export type CreateAFeedback = {
+  complaintID: string;
+  reviewerID: string;
+  reviewedID: string;
+  reviewerIMG: string;
+  reviewerName: string;
+  senderID: string;
+  senderIMG: string;
+  senderName: string;
+  body: string;
+  createdAt: string;
+  read: boolean;
+  readAt: string;
+  updatedAt: string;
+  comment: string;
+};
+
 export type AuthMsg = {
   content: "auth";
   jwt_token: string;
@@ -242,13 +353,9 @@ export function newAuthMsg(bearer: string, enterpriseID?: string): AuthMsg {
 export type Sender = {
   thumbnail: string;
   fullName: string;
+  isEnterprise: boolean;
+  enterpriseID: string;
 };
-export function newSender(thumbnail: string, fullName: string): Sender {
-  return {
-    thumbnail: thumbnail,
-    fullName: fullName,
-  };
-}
 
 export type WebSocketData = {
   content: "auth" | "reply";
@@ -258,7 +365,9 @@ export type WebSocketData = {
 export function newReply(
   senderIMG: string,
   senderName: string,
-  body: string
+  body: string,
+  isEnterprise: boolean,
+  enterpriseID: string
 ): Reply {
   return {
     id: "",
@@ -271,14 +380,37 @@ export function newReply(
     read: false,
     read_at: "",
     updated_at: "",
+    is_enterprise: isEnterprise,
+    enterprise_id: enterpriseID,
   };
 }
+export type ErrorType = {
+  [key: string]: string;
+};
+
+export type Office = {
+  employeeID: string;
+  employeeFirstName: string;
+  employeePosition: string;
+  enterpriseLogoIMG: string;
+  enterpriseName: string;
+  enterpriseWebsite: string;
+  enterprisePhone: string;
+  enterpriseEmail: string;
+  enterpriseIndustry: string;
+  enterpriseAddress: Address;
+  ownerFullName: string;
+};
 //REACT CONTEXT TYPES
 export type ComplaintState = {
   complaintData?: SendComplaint;
   updateState: (newState: Partial<ComplaintState>) => void;
 };
-
+export type UserState = {
+  userSession: UserDescriptor | null;
+  userNotifications: UserNotifications | null;
+  updateState: (newState?: Partial<UserState>) => void;
+};
 //FORM VALIDATION TYPES
 const passwordRegex = new RegExp(/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).{8,}$/);
 export const SignUpSchema = z
@@ -507,4 +639,15 @@ export const ComplaintBodyValidationSchema = z.object({
       message:
         "Hold on! 250 characters is the limit, you can still chat with him later",
     }),
+});
+
+export const RateValidationSchema = z.object({
+  rate: z
+    .number()
+    .min(0, { message: "Please rate the attention" })
+    .max(5, { message: "Rate must be at most 5" }),
+  comment: z
+    .string()
+    .min(3, { message: "Please write at least one word about the attention" })
+    .max(250, { message: "Comment must be at most 250 characters long" }),
 });

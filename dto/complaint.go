@@ -15,25 +15,27 @@ along its size and offset or
 left items to paginate
 */
 type ComplaintListDTO struct {
-	Complaints    []*ComplaintDTO `json:"complaints"`
-	Count         int             `json:"count"`
-	CurrentLimit  int             `json:"current_limit"`
-	CurrentOffset int             `json:"current_offset"`
+	Complaints    []ComplaintDTO `json:"complaints"`
+	Count         int            `json:"count"`
+	CurrentLimit  int            `json:"current_limit"`
+	CurrentOffset int            `json:"current_offset"`
 }
 type ComplaintDTO struct {
-	ID                 uuid.UUID   `json:"id"`
-	AuthorID           string      `json:"author_id"`
-	AuthorFullName     string      `json:"author_full_name"`
-	AuthorProfileIMG   string      `json:"author_profile_img"`
-	ReceiverID         string      `json:"receiver_id"`
-	ReceiverFullName   string      `json:"receiver_full_name"`
-	ReceiverProfileIMG string      `json:"receiver_profile_img"`
-	Status             string      `json:"status"`
-	Message            MessageDTO  `json:"message"`
-	Rating             RatingDTO   `json:"rating"`
-	CreatedAt          string      `json:"created_at"`
-	UpdatedAt          string      `json:"updated_at"`
-	Replies            []*ReplyDTO `json:"replies"`
+	ID                 uuid.UUID  `json:"id"`
+	AuthorID           string     `json:"author_id"`
+	AuthorFullName     string     `json:"author_full_name"`
+	AuthorProfileIMG   string     `json:"author_profile_img"`
+	AuthorPronoun      string     `json:"author_pronoun"`
+	ReceiverID         string     `json:"receiver_id"`
+	ReceiverFullName   string     `json:"receiver_full_name"`
+	ReceiverProfileIMG string     `json:"receiver_profile_img"`
+	ReceiverPronoun    string     `json:"receiver_pronoun"`
+	Status             string     `json:"status"`
+	Message            MessageDTO `json:"message"`
+	Rating             RatingDTO  `json:"rating"`
+	CreatedAt          string     `json:"created_at"`
+	UpdatedAt          string     `json:"updated_at"`
+	Replies            []ReplyDTO `json:"replies"`
 }
 
 type MessageDTO struct {
@@ -46,27 +48,29 @@ type RatingDTO struct {
 	Comment string `json:"comment"`
 }
 type ReplyDTO struct {
-	ID          string `json:"id"`
-	ComplaintID string `json:"complaint_id"`
-	SenderID    string `json:"sender_id"`
-	SenderIMG   string `json:"sender_img"`
-	SenderName  string `json:"sender_name"`
-	Body        string `json:"body"`
-	CreatedAt   string `json:"created_at"`
-	Read        bool   `json:"read"`
-	ReadAt      string `json:"read_at"`
-	UpdatedAt   string `json:"updated_at"`
+	ID              string `json:"id"`
+	ComplaintID     string `json:"complaint_id"`
+	SenderID        string `json:"sender_id"`
+	SenderIMG       string `json:"sender_img"`
+	SenderName      string `json:"sender_name"`
+	Body            string `json:"body"`
+	CreatedAt       string `json:"created_at"`
+	Read            bool   `json:"read"`
+	ReadAt          string `json:"read_at"`
+	UpdatedAt       string `json:"updated_at"`
+	IsEnterprise    bool   `json:"is_enterprise"`
+	EnterpriseID    string `json:"enterprise_id"`
+	ComplaintStatus string `json:"complaint_status"`
 }
 
 func NewComplaintDTO(
-	domainComplaint *complaint.Complaint,
-	replies []*complaint.Reply,
-) *ComplaintDTO {
-	replyDTOSlice := []*ReplyDTO{}
-	for _, reply := range replies {
-		replyDTOSlice = append(replyDTOSlice, NewReplyDTO(reply))
+	domainComplaint complaint.Complaint,
+) ComplaintDTO {
+	replyDTOSlice := []ReplyDTO{}
+	for reply := range domainComplaint.Replies().Iter() {
+		replyDTOSlice = append(replyDTOSlice, NewReplyDTO(reply, domainComplaint.Status().String()))
 	}
-	return &ComplaintDTO{
+	return ComplaintDTO{
 		ID:         domainComplaint.ID(),
 		AuthorID:   domainComplaint.AuthorID(),
 		ReceiverID: domainComplaint.ReceiverID(),
@@ -87,18 +91,22 @@ func NewComplaintDTO(
 }
 
 func NewReplyDTO(
-	domainReply *complaint.Reply,
-) *ReplyDTO {
-	return &ReplyDTO{
-		ID:          domainReply.ID().String(),
-		ComplaintID: domainReply.ComplaintID().String(),
-		SenderID:    domainReply.SenderID(),
-		SenderIMG:   domainReply.SenderIMG(),
-		SenderName:  domainReply.SenderName(),
-		Body:        domainReply.Body(),
-		CreatedAt:   domainReply.CreatedAt().StringRepresentation(),
-		Read:        domainReply.Read(),
-		ReadAt:      domainReply.ReadAt().StringRepresentation(),
-		UpdatedAt:   domainReply.UpdatedAt().StringRepresentation(),
+	domainReply complaint.Reply,
+	complaintStatus string,
+) ReplyDTO {
+	return ReplyDTO{
+		ID:              domainReply.ID().String(),
+		ComplaintID:     domainReply.ComplaintID().String(),
+		SenderID:        domainReply.SenderID(),
+		SenderIMG:       domainReply.SenderIMG(),
+		SenderName:      domainReply.SenderName(),
+		Body:            domainReply.Body(),
+		CreatedAt:       domainReply.CreatedAt().StringRepresentation(),
+		Read:            domainReply.Read(),
+		ReadAt:          domainReply.ReadAt().StringRepresentation(),
+		UpdatedAt:       domainReply.UpdatedAt().StringRepresentation(),
+		IsEnterprise:    domainReply.IsEnterprise(),
+		EnterpriseID:    domainReply.EnterpriseID(),
+		ComplaintStatus: complaintStatus,
 	}
 }

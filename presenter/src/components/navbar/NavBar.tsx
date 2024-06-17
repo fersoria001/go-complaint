@@ -3,9 +3,8 @@ import { Link, useLoaderData } from "react-router-dom";
 import { UserDescriptor, UserNotifications } from "../../lib/types";
 import useOutsideDenier from "../../lib/hooks/useOutsideDenier";
 import { Logout } from "../../lib/actions";
-import NotificationUnreadIcon from "../icons/NotificationUnreadIcon";
-import NotificationIcon from "../icons/NotificationIcon";
-import Notifications from "../profile/Notifications";
+
+import UserNotificationsLog from "../profile/UserNotificationsLog";
 
 
 function NavBar() {
@@ -14,12 +13,8 @@ function NavBar() {
         notifications: UserNotifications | null;
     };
     const signedIn = user;
-    const [showNotifications, setShowNotifications] = useState(false)
-    
     const [navBarOpen, setNavBarOpen] = useState(false)
     const wrapperRef = useRef(null);
-    const notificationRef = useRef(null);
-    useOutsideDenier(notificationRef, setShowNotifications)
     useOutsideDenier(wrapperRef, setNavBarOpen);
     return (
         <nav className="absolute top-0 z-50 w-full bg-white border-b border-gray-200">
@@ -33,27 +28,9 @@ function NavBar() {
                         </Link>
                     </div>
                     <div className="flex items-center">
-                        <div>
-                            {
-                                signedIn &&
-                                    notifications!.count > 0 ?
-                                    <span
-                                        className="cursor-pointer active:bg-gray-100 rounded-full"
-                                        onClick={() => setShowNotifications(!showNotifications)}>
-                                        <NotificationUnreadIcon fill="#374151" />
-                                    </span> :
-                                    <span
-                                    className="cursor-pointer active:bg-gray-100 rounded-full"
-                                    >
-                                        <NotificationIcon fill="#374151" />
-                                    </span>
-                            }
-                        </div>
-                        <div ref={notificationRef}>
-                            {showNotifications && notifications &&
-                                <Notifications notifications={notifications} />
-                            }
-                        </div>
+                        {
+                            notifications && <UserNotificationsLog notifications={notifications} />
+                        }
                         {signedIn && (<div className="flex items-center ms-3">
                             <div>
                                 <button

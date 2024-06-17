@@ -18,15 +18,15 @@ import (
 // Feedback 1 .. 1 Reviewer
 // Feedback 1 .. * Answer
 type Feedback struct {
-	complaintID uuid.UUID
-	reviewerID  string
-	reviewedID  string
-	replyReview mapset.Set[*ReplyReview]
+	id              uuid.UUID
+	complaintID     uuid.UUID
+	reviewedID      string
+	replyReview     mapset.Set[*ReplyReview]
+	feedbackAnswers mapset.Set[*Answer]
 }
 
 func (f *Feedback) Answer(
 	ctx context.Context,
-	feedbackID uuid.UUID,
 	senderID string,
 	senderIMG string,
 	senderName string,
@@ -35,16 +35,12 @@ func (f *Feedback) Answer(
 	read bool,
 	readAt common.Date,
 	updatedAt common.Date,
+	isEnterprise bool,
+	enterpriseID string,
 ) (*Answer, error) {
-	if feedbackID != f.ComplaintID() {
-		return nil, &erros.InvalidTypeError{}
-	}
-	if senderID != f.ReviewerID() && senderID != f.ReviewedID() {
-		return nil, &erros.UnauthorizedError{}
-	}
 	newAnswer, err := NewAnswer(
 		uuid.New(),
-		feedbackID,
+		f.id,
 		senderID,
 		senderIMG,
 		senderName,
@@ -53,6 +49,8 @@ func (f *Feedback) Answer(
 		read,
 		readAt,
 		updatedAt,
+		isEnterprise,
+		enterpriseID,
 	)
 	if err != nil {
 		return nil, err
@@ -60,9 +58,8 @@ func (f *Feedback) Answer(
 	err = domain.DomainEventPublisherInstance().Publish(
 		ctx,
 		NewFeedbackReplied(
-			feedbackID,
-			f.ComplaintID(),
-			f.ReviewerID(),
+			f.id,
+			f.complaintID,
 			f.ReviewedID(),
 			newAnswer.ID(),
 		),
@@ -70,6 +67,7 @@ func (f *Feedback) Answer(
 	if err != nil {
 		return nil, err
 	}
+	f.feedbackAnswers.Add(newAnswer)
 	return newAnswer, nil
 }
 
@@ -80,9 +78,6 @@ func (f *Feedback) AddReplyReview(
 	if replyReview == nil {
 		return &erros.NullValueError{}
 	}
-	if f.ReviewerID() != replyReview.Review().ReviewerID() {
-		return &erros.UnauthorizedError{}
-	}
 	ok := f.replyReview.Add(replyReview)
 	if !ok {
 		return &erros.AlreadyExistsError{}
@@ -92,8 +87,8 @@ func (f *Feedback) AddReplyReview(
 		NewAddedFeedback(
 			replyReview.ID(),
 			replyReview.FeedbackID(),
-			replyReview.Reply().SenderID(),
-			replyReview.Reply().SenderIMG(),
+			replyReview.review.reviewerID,
+			f.reviewedID,
 		),
 	)
 	if err != nil {
@@ -103,17 +98,19 @@ func (f *Feedback) AddReplyReview(
 }
 
 func NewFeedback(
+	feedbackID,
 	complaintID uuid.UUID,
-	reviewerID string,
 	reviewedID string,
 	replyReviews mapset.Set[*ReplyReview],
+	feedbackAnswers mapset.Set[*Answer],
 ) (*Feedback, error) {
 	var feedback *Feedback = new(Feedback)
+
 	err := feedback.setComplaintID(complaintID)
 	if err != nil {
 		return nil, err
 	}
-	err = feedback.setReviewerID(reviewerID)
+	err = feedback.setID(feedbackID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +122,31 @@ func NewFeedback(
 	if err != nil {
 		return nil, err
 	}
-
+	err = feedback.setFeedbackAnswers(feedbackAnswers)
+	if err != nil {
+		return nil, err
+	}
 	return feedback, nil
+}
+
+func (f Feedback) ID() uuid.UUID {
+	return f.id
+}
+
+func (f *Feedback) setID(id uuid.UUID) error {
+	if id == uuid.Nil {
+		return &erros.NullValueError{}
+	}
+	f.id = id
+	return nil
+}
+
+func (f *Feedback) setFeedbackAnswers(fba mapset.Set[*Answer]) error {
+	if fba == nil {
+		return &erros.NullValueError{}
+	}
+	f.feedbackAnswers = fba
+	return nil
 }
 
 func (f *Feedback) setReviewedID(reviewedID string) error {
@@ -145,14 +165,6 @@ func (f *Feedback) setComplaintID(complaintID uuid.UUID) error {
 	return nil
 }
 
-func (f *Feedback) setReviewerID(reviewerID string) error {
-	if reviewerID == "" {
-		return &erros.NullValueError{}
-	}
-	f.reviewerID = reviewerID
-	return nil
-}
-
 func (f *Feedback) setReplyReviewSet(replyReview mapset.Set[*ReplyReview]) error {
 	if replyReview == nil {
 		return &erros.NullValueError{}
@@ -161,18 +173,26 @@ func (f *Feedback) setReplyReviewSet(replyReview mapset.Set[*ReplyReview]) error
 	return nil
 }
 
-func (f *Feedback) ComplaintID() uuid.UUID {
+func (f Feedback) ComplaintID() uuid.UUID {
 	return f.complaintID
 }
 
-func (f *Feedback) ReviewerID() string {
-	return f.reviewerID
-}
-
-func (f *Feedback) ReviewedID() string {
+func (f Feedback) ReviewedID() string {
 	return f.reviewedID
 }
 
-func (f *Feedback) ReplyReview() mapset.Set[*ReplyReview] {
-	return f.replyReview
+func (f Feedback) ReplyReview() mapset.Set[ReplyReview] {
+	valueCopy := mapset.NewSet[ReplyReview]()
+	for replyReview := range f.replyReview.Iter() {
+		valueCopy.Add(*replyReview)
+	}
+	return valueCopy
+}
+
+func (f Feedback) FeedbackAnswers() mapset.Set[Answer] {
+	valueCopy := mapset.NewSet[Answer]()
+	for answer := range f.feedbackAnswers.Iter() {
+		valueCopy.Add(*answer)
+	}
+	return valueCopy
 }

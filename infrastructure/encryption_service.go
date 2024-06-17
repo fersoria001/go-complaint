@@ -1,6 +1,20 @@
 package infrastructure
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"sync"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+var encryptionService *EncryptionService
+var encryptionServiceOnce sync.Once
+
+func EncryptionServiceInstance() *EncryptionService {
+	encryptionServiceOnce.Do(func() {
+		encryptionService = NewEncryptionService()
+	})
+	return encryptionService
+}
 
 type EncryptionService struct {
 }
