@@ -13,7 +13,7 @@ func NewByUserID(userID string) *ByUserID {
 				role_id,
 				enterprise_id
 			FROM
-				public."user_role"
+				user_role
 			WHERE
 				user_id = $1`,
 		),

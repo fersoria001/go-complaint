@@ -1,7 +1,6 @@
 package enterprise_resolvers
 
 import (
-	"fmt"
 	"go-complaint/application/application_services"
 	"go-complaint/application/queries"
 
@@ -10,7 +9,7 @@ import (
 
 func EnterpriseResolver(params graphql.ResolveParams) (interface{}, error) {
 	enterpriseQuery := queries.EnterpriseQuery{
-		EnterpriseName: params.Args["ID"].(string),
+		EnterpriseName: params.Args["id"].(string),
 	}
 	enterprise, err := enterpriseQuery.Enterprise(params.Context)
 	if err != nil {
@@ -21,35 +20,77 @@ func EnterpriseResolver(params graphql.ResolveParams) (interface{}, error) {
 
 func IsEnterpriseNameAvailableResolver(params graphql.ResolveParams) (interface{}, error) {
 	enterpriseQuery := queries.EnterpriseQuery{
-		EnterpriseName: params.Args["name"].(string),
+		EnterpriseName: params.Args["id"].(string),
 	}
 	return enterpriseQuery.IsEnterpriseNameAvailable(params.Context)
 }
 
-func HiringInvitationsAcceptedResolver(params graphql.ResolveParams) (interface{}, error) {
-	currentUser, err := application_services.AuthorizationApplicationServiceInstance().Credentials(params.Context)
+func HiringProccesesResolver(params graphql.ResolveParams) (interface{}, error) {
+	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		params.Context,
+		"Enterprise",
+		params.Args["id"].(string),
+		application_services.READ,
+		"MANAGER", "OWNER",
+	)
 	if err != nil {
 		return nil, err
 	}
-	requestID := params.Args["id"].(string)
-	hasPermissions := false
-	if currentUser.Email != requestID {
-		for _, v := range currentUser.GrantedAuthorities {
-			if v.EnterpriseID == requestID {
-				hasPermissions = true
-				break
-			}
-		}
-	}
-	if !hasPermissions {
-		return nil, fmt.Errorf("you don't have permissions to access this resource")
-	}
 	enterpriseQuery := queries.EnterpriseQuery{
 		EnterpriseName: params.Args["id"].(string),
+		Term:           params.Args["query"].(string),
+		Offset:         params.Args["offset"].(int),
+		Limit:          params.Args["limit"].(int),
 	}
-	pendingHires, err := enterpriseQuery.HiringInvitationsAccepted(params.Context)
+	pendingHires, err := enterpriseQuery.HiringProcceses(params.Context)
 	if err != nil {
 		return nil, err
 	}
 	return pendingHires, nil
+}
+
+func OnlineUsersResolver(params graphql.ResolveParams) (interface{}, error) {
+
+	credentials, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		params.Context,
+		"Enterprise",
+		params.Args["id"].(string),
+		application_services.READ,
+		"ASSISTANT", "MANAGER", "OWNER",
+	)
+	if err != nil {
+		return nil, err
+	}
+	enterpriseQuery := queries.EnterpriseQuery{
+		EnterpriseName: params.Args["id"].(string),
+		UserID:         credentials.Email,
+	}
+	onlineUsers, err := enterpriseQuery.OnlineUsers(params.Context)
+	if err != nil {
+		return nil, err
+	}
+
+	return onlineUsers, nil
+}
+
+func EnterpriseChatResolver(params graphql.ResolveParams) (interface{}, error) {
+	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		params.Context,
+		"Enterprise",
+		params.Args["enterpriseID"].(string),
+		application_services.READ,
+		"ASSISTANT", "MANAGER", "OWNER",
+	)
+	if err != nil {
+		return nil, err
+	}
+	enterpriseQuery := queries.EnterpriseQuery{
+		EnterpriseName: params.Args["enterpriseID"].(string),
+		ChatID:         params.Args["chatID"].(string),
+	}
+	chat, err := enterpriseQuery.EnterpriseChat(params.Context)
+	if err != nil {
+		return nil, err
+	}
+	return chat, nil
 }

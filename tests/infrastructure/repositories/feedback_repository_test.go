@@ -2,38 +2,37 @@ package repositories_test
 
 import (
 	"context"
-	"go-complaint/infrastructure/persistence/datasource"
+	"go-complaint/domain/model/feedback"
 	"go-complaint/infrastructure/persistence/repositories"
-	"go-complaint/tests"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFeedbackSave(t *testing.T) {
-	// Arrange
-	ctx := context.Background()
-	feedbackRepository := repositories.NewFeedbackRepository(
-		datasource.PublicSchema(),
-	)
-	// Act
-	err := feedbackRepository.Save(ctx, tests.Feedback1)
-	// Assert
-	assert.Nil(t, err)
+func setup() {
 }
 
-func TestFeedbackGet(t *testing.T) {
-	// Arrange
+func TestCreateComment(t *testing.T) {
+	setup()
 	ctx := context.Background()
-	feedbackRepository := repositories.NewFeedbackRepository(
-		datasource.PublicSchema(),
-	)
-	// Act
-	dbFeedback, err := feedbackRepository.Get(
-		ctx,
-		tests.Feedback1ID,
-	)
-	// Assert
-	assert.Nil(t, err)
-	assert.NotNil(t, dbFeedback)
+	repository := repositories.MapperRegistryInstance().Get("Feedback").(repositories.FeedbackRepository)
+	complaintID := uuid.New()
+	//reviewer := tests.Manager.User
+	enterpriseID := "enterpriseID"
+	//reply := *tests.ReceiverReply1
+	fid := uuid.New()
+	//rrid := uuid.New()
+	//color := "#375701"
+	//rr := feedback.NewReplyReviewEntity(rrid, fid, *reviewer, color)
+	f := feedback.NewFeedbackEntity(fid, complaintID, enterpriseID)
+	t.Run("Create feedback", func(t *testing.T) {
+		err := repository.Save(ctx, f)
+		assert.Nil(t, err)
+	})
+	t.Run(("Get empty feedback"), func(t *testing.T) {
+		_, err := repository.Get(ctx, f.ID())
+		assert.Nil(t, err)
+	})
+
 }

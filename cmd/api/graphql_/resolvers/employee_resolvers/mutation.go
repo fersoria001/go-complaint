@@ -11,7 +11,7 @@ func LeaveEnterpriseResolver(p graphql.ResolveParams) (interface{}, error) {
 	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
 		p.Context,
 		"rid",
-		p.Args["enterpriseID"].(string),
+		p.Args["enterpriseName"].(string),
 		application_services.WRITE,
 		"MANAGER", "ASSISTANT",
 	)
@@ -20,7 +20,7 @@ func LeaveEnterpriseResolver(p graphql.ResolveParams) (interface{}, error) {
 	}
 	c := commands.EmployeeCommand{
 		EmployeeID:   p.Args["employeeID"].(string),
-		EnterpriseID: p.Args["enterpriseID"].(string),
+		EnterpriseID: p.Args["enterpriseName"].(string),
 	}
 	err = c.LeaveEnterprise(p.Context)
 	if err != nil {

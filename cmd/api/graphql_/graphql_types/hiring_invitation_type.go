@@ -14,6 +14,9 @@ var HiringInvitationType = graphql.NewObject(graphql.ObjectConfig{
 		"proposedPosition": &graphql.Field{
 			Type: graphql.String,
 		},
+		"ownerID": &graphql.Field{
+			Type: graphql.String,
+		},
 		"fullName": &graphql.Field{
 			Type: graphql.String,
 		},
@@ -30,6 +33,12 @@ var HiringInvitationType = graphql.NewObject(graphql.ObjectConfig{
 			Type: graphql.String,
 		},
 		"seen": &graphql.Field{
+			Type: graphql.String,
+		},
+		"status": &graphql.Field{
+			Type: graphql.String,
+		},
+		"reason": &graphql.Field{
 			Type: graphql.String,
 		},
 	},

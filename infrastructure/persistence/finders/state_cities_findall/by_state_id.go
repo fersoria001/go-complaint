@@ -14,7 +14,7 @@ func NewByStateID(stateID int) *ByStateID {
 		country_code,
 	 	latitude,
 	  	longitude
-		FROM public."state_cities"
+		FROM state_cities
 		WHERE state_id = $1
 		`),
 		args: []interface{}{stateID},

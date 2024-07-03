@@ -29,7 +29,7 @@ func (cr CountryStateRepository) Get(
 		SELECT
 		id,
 		name
-		FROM public."country_states"
+		FROM country_states
 		WHERE id = $1
 		`)
 	row := conn.QueryRow(

@@ -15,7 +15,7 @@ implements domain.DomainEvent interface
 type FeedbackReplied struct {
 	feedbackID  uuid.UUID
 	complaintID uuid.UUID
-	reviewedID  string
+	senderID    string
 	answerID    uuid.UUID
 	occurredOn  time.Time
 }
@@ -23,13 +23,13 @@ type FeedbackReplied struct {
 func NewFeedbackReplied(
 	feedbackID uuid.UUID,
 	complaintID uuid.UUID,
-	reviewedID string,
+	senderID string,
 	answerID uuid.UUID,
 ) *FeedbackReplied {
 	return &FeedbackReplied{
 		feedbackID:  feedbackID,
 		complaintID: complaintID,
-		reviewedID:  reviewedID,
+		senderID:    senderID,
 		answerID:    answerID,
 		occurredOn:  time.Now(),
 	}
@@ -43,13 +43,13 @@ func (f *FeedbackReplied) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		FeedbackID  string `json:"feedback_id"`
 		ComplaintID string `json:"complaint_id"`
-		ReviewedID  string `json:"reviewed_id"`
+		SenderID    string `json:"reviewed_id"`
 		AnswerID    string `json:"answer_id"`
 		OccurredOn  string `json:"occurred_on"`
 	}{
 		FeedbackID:  f.feedbackID.String(),
 		ComplaintID: f.complaintID.String(),
-		ReviewedID:  f.reviewedID,
+		SenderID:    f.senderID,
 		AnswerID:    f.answerID.String(),
 		OccurredOn:  common.StringDate(f.occurredOn),
 	})
@@ -59,7 +59,7 @@ func (f *FeedbackReplied) UnmarshalJSON(data []byte) error {
 	aux := struct {
 		FeedbackID  string `json:"feedback_id"`
 		ComplaintID string `json:"complaint_id"`
-		ReviewedID  string `json:"reviewed_id"`
+		SenderID    string `json:"reviewed_id"`
 		AnswerID    string `json:"answer_id"`
 		OccurredOn  string `json:"occurred_on"`
 	}{}
@@ -76,7 +76,7 @@ func (f *FeedbackReplied) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	f.reviewedID = aux.ReviewedID
+	f.senderID = aux.SenderID
 	f.answerID, err = uuid.Parse(aux.AnswerID)
 	if err != nil {
 		return err

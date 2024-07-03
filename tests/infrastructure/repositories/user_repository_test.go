@@ -6,12 +6,14 @@ import (
 	"go-complaint/infrastructure/persistence/datasource"
 	"go-complaint/infrastructure/persistence/repositories"
 	"go-complaint/tests"
+
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserSave(t *testing.T) {
+	setup()
 	// Arrange
 	ctx := context.Background()
 	schema := datasource.PublicSchema()

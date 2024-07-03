@@ -1,78 +1,60 @@
-import { useLoaderData, useNavigate } from "react-router-dom";
-import { Enterprise, InviteToProject, User } from "../lib/types";
-import { useEffect, useRef, useState } from "react";
-import useOutsideDenier from "../lib/hooks/useOutsideDenier";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import {  InviteToProjectSchema } from "../lib/types";
+import { useEffect, useState } from "react";
+
 import PrimaryButton from "../components/buttons/PrimaryButton";
 import Confirm from "../components/hiring/Confirm";
-import { InviteToProjectMutation, Mutation } from "../lib/mutations";
+
+import { Route } from "../routes/$enterpriseID/hire";
+
+import { InviteToProjectMutation } from "../lib/mutations";
+import { useRouter } from "@tanstack/react-router";
+import { useForm } from "../lib/hooks/useForm";
 
 function Hire() {
-    const { enterprise, user } = useLoaderData() as { enterprise: Enterprise | null, user: User | null };
+    const router = useRouter();
+    const { enterprise, user } = Route.useLoaderData();
     const [selectedPosition, setSelectedPosition] = useState<string>("");
     const [showModal, setShowModal] = useState<boolean>(false);
-    const [accepted, setAccepted] = useState<boolean>(false);
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [validatedObject, setValidatedObject] = useState<InviteToProject | null>(null);
-    const listRef = useRef<HTMLUListElement>(null);
-    const navigate = useNavigate();
-
+    const [formData, setFormData] = useState<FormData | null>(null);
+    const { success, errors } = useForm(formData, InviteToProjectSchema, InviteToProjectMutation);
     const handleInvite = () => {
-        setErrors({});
-        if (!selectedPosition) {
-            setErrors({ position: "You must select a position" });
-            return;
-        }
-        if (selectedPosition !== "Assistant" && selectedPosition !== "Manager") {
-            setErrors({ position: "Invalid position" });
-            return;
-        }
-        const invite: InviteToProject = {
-            enterpriseName: enterprise!.name,
-            position: selectedPosition,
-            userEmail: user!.email,
-            userFullName: `${user!.firstName} ${user!.lastName}`,
-        };
-        setValidatedObject(invite);
         setShowModal(true);
     };
 
+    const modalCallback = (formData: FormData) => {
+        setFormData(formData);
+    };
+
     useEffect(() => {
-        if (!accepted) return;
-        if (!validatedObject) {
-            setErrors({ position: "You must select a position" });
-            return;
-        }
-        Mutation<InviteToProject>(InviteToProjectMutation, validatedObject)
-            .then(() => {
-                return navigate("/success/invite%20to%20enterprise");
-            })
-            .catch((error) => {
-                console.error(error);
+        if (success) {
+            router.navigate({
+                to: `/${enterprise.name}/success`,
+                search: { content: { message: "User invited successfully", link: `/${enterprise.name}`, to: enterprise.name } }
             });
-    }, [accepted, validatedObject, navigate]);
+        }
+    }, [enterprise.name, router, success]);
 
-    useOutsideDenier(listRef, () => setSelectedPosition(""));
 
-    if (!enterprise || !user) {
-        return <div>loading...</div>;
-    }
+
 
     return (
-        <div className="flex flex-col justify-around items-center bg-white border border-gray-200 rounded-lg shadow">
+        <div className="flex flex-col justify-around items-center p-5 bg-white border border-gray-200 rounded-lg shadow">
             <h1 className="mb-3 text-lg text-gray-500 md:text-xl">
                 You are about to invite {user.firstName} {user.lastName} {" "}
                 to your current enterprise {enterprise.name}
             </h1>
-            <div className="mr-auto p-4">
+            <div className="mr-auto px-4">
                 <p className="text-gray-500 dark:text-gray-400">
                     There are a few things you should know before inviting a user to your enterprise
                 </p>
                 <p className="text-gray-500 dark:text-gray-400">
                     The current available positions are, choose one from the list:
                 </p>
-                <ul ref={listRef} className="max-w-md space-y-1 p-4 text-gray-500 list-disc list-inside">
+                <ul className="max-w-md space-y-1 p-4 text-gray-500 list-disc list-inside">
                     <li
-                        onClick={() => { console.log("Assistant clicked"); setSelectedPosition("Assistant"); }}
+                        onClick={() => { setSelectedPosition("Assistant"); }}
                         className={
                             selectedPosition === "Assistant" ?
                                 "rounded-xl bg-cyan-500 text-gray-800 shadow p-2" :
@@ -84,7 +66,7 @@ function Hire() {
                         and has permissions to view and answer the enterprise's complaints.
                     </li>
                     <li
-                        onClick={() => { console.log("Manager clicked"); setSelectedPosition("Manager"); }}
+                        onClick={() => { setSelectedPosition("Manager"); }}
                         className={
                             selectedPosition === "Manager" ?
                                 "rounded-xl bg-cyan-500 text-gray-800 shadow p-2" :
@@ -106,16 +88,19 @@ function Hire() {
                     And only the owner can modify the enterprise's information.
                 </p>
                 {errors.position && <p className="self-center text-red-500 italic text-xs">{errors.position}</p>}
-                <span ref={listRef} onClick={handleInvite} className="self-center mt-4">
+                <span onClick={handleInvite} className="self-center">
                     <PrimaryButton text="Invite" />
                 </span>
 
-                {showModal && validatedObject && (
+                {showModal && (
                     <Confirm
                         id="confirm-complaint-modal"
                         show={showModal}
-                        validatedObject={validatedObject}
-                        callbackFn={() => { setAccepted(true); }}
+                        userFullName={`${user.firstName} ${user.lastName}`}
+                        enterpriseName={enterprise.name}
+                        position={selectedPosition}
+                        proposedTo={user.email}
+                        callbackFn={modalCallback}
                         closeFn={() => { setShowModal(false); }}
                     />
                 )}

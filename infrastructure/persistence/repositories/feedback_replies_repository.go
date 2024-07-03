@@ -20,6 +20,22 @@ func NewFeedbackRepliesRepository(
 	return FeedbackRepliesRepository{schema: feedbackSchema}
 }
 
+func (fr FeedbackRepliesRepository) DeleteAll(
+	ctx context.Context,
+	source StatementSource,
+) error {
+	conn, err := fr.schema.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = conn.Exec(ctx, source.Query(), source.Args()...)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	return nil
+}
+
 func (fr FeedbackRepliesRepository) Save(
 	ctx context.Context,
 	replyReviewID uuid.UUID,

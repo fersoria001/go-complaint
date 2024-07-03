@@ -11,7 +11,7 @@ func NewByCountryID(countryID int) *ByCountryID {
 		SELECT
 		id,
 		name
-		FROM public."country_states"
+		FROM country_states
 		WHERE country_id = $1
 		`),
 		args: []interface{}{countryID},

@@ -120,6 +120,10 @@ func (e Employee) GetUser() *identity.User {
 	return e.User
 }
 
+func (e Employee) Email() string {
+	return e.User.Email()
+}
+
 func (e Employee) EnterpriseID() string {
 	return e.enterpriseID
 }

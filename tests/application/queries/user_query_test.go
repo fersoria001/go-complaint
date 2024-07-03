@@ -8,7 +8,6 @@ import (
 	"go-complaint/domain/model/identity"
 	"go-complaint/erros"
 	"go-complaint/tests"
-	"log"
 	"reflect"
 	"testing"
 
@@ -119,5 +118,5 @@ func TestUserHiringInvitations(t *testing.T) {
 	invitations, err := userQuery.HiringInvitations(ctx)
 	assert.Nil(t, err)
 	assert.NotNil(t, invitations)
-	log.Println(tests.UserRegisterAndVerifyCommands["2"].Email, invitations)
+
 }

@@ -9,23 +9,23 @@ func ByStatusStatusAndReceiverIDOrAuthorIDWithLimitAndOffset(complaintStatus, ow
 	return &StatusStatusAndReceiverIDOrAuthorIDWithLimitAndOffset{
 		query: `
 	SELECT
-	"complaint".id,
-	"complaint".author_id,
-	"complaint".receiver_id,
-	"complaint".complaint_status,
-	"complaint".title,
-	"complaint".complaint_description,
-	"complaint".body,
-	"complaint".rating_rate,
-	"complaint".rating_comment,
-	"complaint".created_at,
-	"complaint".updated_at
+	id,
+	author_id,
+	receiver_id,
+	complaint_status,
+	title,
+	complaint_description,
+	body,
+	rating_rate,
+	rating_comment,
+	created_at,
+	updated_at
 	FROM 
-	public."complaint"
+	complaint
 	WHERE 
-	"complaint".complaint_status = $1 AND "complaint".receiver_id = $2
+	complaint_status = $1 AND receiver_id = $2
 	OR
-	"complaint".complaint_status = $1 AND "complaint".author_id = $2
+	complaint_status = $1 AND author_id = $2
 	LIMIT $3
 	OFFSET $4
 	`,

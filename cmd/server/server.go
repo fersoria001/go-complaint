@@ -3,8 +3,6 @@ package server
 import (
 	"log"
 	"net/http"
-
-	"github.com/gorilla/csrf"
 )
 
 type GoComplaintServer struct {
@@ -37,7 +35,7 @@ func (s *GoComplaintServer) URL() string {
 
 func (s *GoComplaintServer) Run() {
 	log.Printf("Server is running on %s", s.configuration.URL())
-	http.ListenAndServe("localhost:8080", csrf.Protect([]byte("32-byte-long-auth-key"))(s.mux))
+	http.ListenAndServe(s.configuration.Address(), s.mux)
 }
 
 type OptionsServerFunc func(c *GoComplaintServer) error

@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/feedback"
 	"go-complaint/infrastructure/persistence/datasource"
 
@@ -21,35 +20,78 @@ func NewFeedbackReviewRepository(
 	return FeedbackReviewRepository{schema: feedbackSchema}
 }
 
+func (fr FeedbackReviewRepository) DeleteAll(
+	ctx context.Context,
+	feedbackID uuid.UUID,
+) error {
+	conn, err := fr.schema.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	deleteCommand := string(`DELETE FROM feedback_reviews WHERE feedback_id = $1`)
+	_, err = conn.Exec(ctx, deleteCommand, feedbackID)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	return nil
+}
+
+func (fr FeedbackReviewRepository) Update(
+	ctx context.Context,
+	review feedback.Review,
+) error {
+	con, err := fr.schema.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	updateCommand := string(`
+		UPDATE feedback_reviews
+		SET review_comment = $1
+		WHERE id = $2`)
+	var (
+		reviewID = review.ReplyReviewID()
+		comment  = review.Comment()
+	)
+	_, err = con.Exec(
+		ctx,
+		updateCommand,
+		&comment,
+		&reviewID,
+	)
+	if err != nil {
+		return err
+	}
+	defer con.Release()
+	return nil
+}
+
 func (fr FeedbackReviewRepository) Save(
 	ctx context.Context,
 	review feedback.Review,
 ) error {
 	conn, err := fr.schema.Acquire(ctx)
 	if err != nil {
-		return nil
+		return err
 	}
 	insertCommand := string(`
 		INSERT INTO feedback_reviews
 		(
 			id,
-			reviewer_id,
-			reviewed_at,
+			feedback_id,
 			review_comment
 		)
-		VALUES ($1, $2, $3, $4)`)
+		VALUES ($1, $2,$3)`)
 	var (
 		reviewID   = review.ReplyReviewID()
-		email      = review.ReviewerID()
-		reviewedAt = review.ReviewedAt().StringRepresentation()
+		feedbackID = review.FeedbackID()
 		comment    = review.Comment()
 	)
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
 		&reviewID,
-		&email,
-		&reviewedAt,
+		&feedbackID,
 		&comment,
 	)
 	if err != nil {
@@ -115,31 +157,21 @@ func (fr FeedbackReviewRepository) loadAll(
 }
 
 func (fr FeedbackReviewRepository) load(
-	_ context.Context,
+	ctx context.Context,
 	row pgx.Row,
 ) (*feedback.Review, error) {
-	mapper := MapperRegistryInstance().Get("Employee")
-	if mapper == nil {
-		return nil, ErrMapperNotRegistered
-	}
 	var (
 		ID            uuid.UUID
-		reviewerID    string
-		reviewedAt    string
 		reviewComment string
+		feedbackID    uuid.UUID
 	)
-	err := row.Scan(&ID, &reviewerID, &reviewedAt, &reviewComment)
-	if err != nil {
-		return nil, err
-	}
-	reviewedAtDate, err := common.NewDateFromString(reviewedAt)
+	err := row.Scan(&ID, &feedbackID, &reviewComment)
 	if err != nil {
 		return nil, err
 	}
 	return feedback.NewReview(
+		feedbackID,
 		ID,
-		reviewerID,
-		reviewedAtDate,
 		reviewComment,
-	)
+	), nil
 }

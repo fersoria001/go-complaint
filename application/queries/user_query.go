@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"go-complaint/application"
+	"slices"
+
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
 	"go-complaint/domain"
@@ -12,10 +14,10 @@ import (
 	"go-complaint/dto"
 	"go-complaint/erros"
 	"go-complaint/infrastructure"
+	"go-complaint/infrastructure/cache"
 	"go-complaint/infrastructure/persistence/finders/find_all_events"
 	"go-complaint/infrastructure/persistence/repositories"
 	"reflect"
-	"time"
 )
 
 type UserQuery struct {
@@ -88,10 +90,24 @@ func (userQuery UserQuery) SignIn(
 		return dto.JWTToken{}, err
 	}
 	confirmation := application.NewLoginConfirmation(userQuery.Email, token, false)
-	infrastructure.InMemoryCacheInstance().Set(token.Token(), confirmation)
+	cache.InMemoryCacheInstance().Set(token.Token(), confirmation)
 	return dto.JWTToken{
 		Token: token.Token(),
 	}, nil
+}
+
+func (userQuery UserQuery) UserDescriptor(
+	ctx context.Context,
+) (dto.UserDescriptor, error) {
+	if userQuery.Email == "" {
+		return dto.UserDescriptor{}, &erros.ValueNotFoundError{}
+	}
+	clientData := application_services.AuthorizationApplicationServiceInstance().ClientData(ctx)
+	user, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, userQuery.Email)
+	if err != nil {
+		return dto.UserDescriptor{}, err
+	}
+	return dto.NewUserDescriptor(clientData, *user, false), nil
 }
 
 func (userQuery UserQuery) Login(
@@ -100,7 +116,7 @@ func (userQuery UserQuery) Login(
 	if userQuery.Token == "" {
 		return dto.JWTToken{}, &erros.ValueNotFoundError{}
 	}
-	confirmation, ok := infrastructure.InMemoryCacheInstance().Get(userQuery.Token)
+	confirmation, ok := cache.InMemoryCacheInstance().Get(userQuery.Token)
 	if !ok {
 		return dto.JWTToken{}, ErrConfirmationNotFound
 	}
@@ -109,7 +125,7 @@ func (userQuery UserQuery) Login(
 		return dto.JWTToken{}, ErrWrongTypeAssertion
 	}
 	if loginConfirmation.IsConfirmed() {
-		infrastructure.InMemoryCacheInstance().Delete(userQuery.Token)
+		cache.InMemoryCacheInstance().Delete(userQuery.Token)
 		return dto.JWTToken{}, ErrConfirmationAlreadyDone
 	}
 	code, err := application_services.JWTApplicationServiceInstance().ParseConfirmationCode(
@@ -126,7 +142,7 @@ func (userQuery UserQuery) Login(
 		return dto.JWTToken{}, ErrConfirmationCodeNotMatch
 	}
 	loginConfirmation.Confirm()
-	_, swap := infrastructure.InMemoryCacheInstance().Swap(userQuery.Token, loginConfirmation)
+	_, swap := cache.InMemoryCacheInstance().Swap(userQuery.Token, loginConfirmation)
 	if !swap {
 		return dto.JWTToken{}, &erros.ValueNotFoundError{}
 	}
@@ -187,76 +203,113 @@ func (userQuery UserQuery) HiringInvitations(
 	if err != nil {
 		return []dto.HiringInvitation{}, err
 	}
-	hiringInvitations, err := repositories.MapperRegistryInstance().Get(
+	storedEvents, err := repositories.MapperRegistryInstance().Get(
 		"Event",
 	).(repositories.EventRepository).FindAll(
 		ctx,
-		find_all_events.ByTypeName("*enterprise.HiringInvitationSent"),
+		find_all_events.By(),
 	)
 	if err != nil {
 		return []dto.HiringInvitation{}, err
 	}
-	invitationsAccepted, err := repositories.MapperRegistryInstance().Get(
-		"Event",
-	).(repositories.EventRepository).FindAll(
-		ctx,
-		find_all_events.ByTypeName("*identity.HiringInvitationAccepted"),
-	)
-	if err != nil {
-		return []dto.HiringInvitation{}, err
-	}
-	myInvitations := make(map[string]enterprise.HiringInvitationSent, 0)
-	alreadyAcceptedInvitations := make(map[string]identity.HiringInvitationAccepted, 0)
-	thisDate := time.Now()
-	for invitation := range hiringInvitations.Iter() {
-		var hiringInvitation enterprise.HiringInvitationSent
-		err := json.Unmarshal(invitation.EventBody, &hiringInvitation)
-		if err != nil {
-			return []dto.HiringInvitation{}, err
-		}
-		expired := thisDate.Sub(hiringInvitation.OccurredOn()) > 24*5*time.Hour
-		if hiringInvitation.ProposedTo() == userQuery.Email && !expired {
-			myInvitations[invitation.EventId.String()] = hiringInvitation
+	myInvitations := map[string]map[string]*dto.HiringInvitation{}
+	for storedEvent := range storedEvents.Iter() {
+		if storedEvent.TypeName == "*enterprise.HiringInvitationSent" {
+			var e enterprise.HiringInvitationSent
+			err := json.Unmarshal(storedEvent.EventBody, &e)
+			if err != nil {
+				return []dto.HiringInvitation{}, err
+			}
+			if e.ProposedTo() == user.Email() {
+				_, ok := myInvitations[e.ProposedTo()]
+				if !ok {
+					myInvitations[e.ProposedTo()] = make(map[string]*dto.HiringInvitation)
+				}
+				myInvitations[e.ProposedTo()][storedEvent.EventId.String()] = dto.NewHiringInvitation(storedEvent.EventId.String(), e)
+				myInvitations[e.ProposedTo()][storedEvent.EventId.String()].SetStatus(dto.PENDING.String())
+			}
 		}
 	}
-	for invitation := range invitationsAccepted.Iter() {
-		var hiringInvitation identity.HiringInvitationAccepted
-		err := json.Unmarshal(invitation.EventBody, &hiringInvitation)
-		if err != nil {
-			return []dto.HiringInvitation{}, err
-		}
-		if hiringInvitation.InvitedUserID() == userQuery.Email {
-			alreadyAcceptedInvitations[invitation.EventId.String()] = hiringInvitation
-		}
-	}
-
-	if len(alreadyAcceptedInvitations) > 0 {
-		for _, accepted := range alreadyAcceptedInvitations {
-			for j, invitation := range myInvitations {
-				if invitation.EnterpriseID() == accepted.EnterpriseID() ||
-					invitation.ProposalPosition().String() == accepted.ProposedPosition().String() {
-					delete(myInvitations, j)
+	for e := range storedEvents.Iter() {
+		switch e.TypeName {
+		case "*identity.HiringInvitationAccepted":
+			var event identity.HiringInvitationAccepted
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return []dto.HiringInvitation{}, err
+			}
+			inv, ok := myInvitations[event.InvitedUserID()]
+			if ok {
+				for k := range inv {
+					if event.OccurredOn().After(inv[k].GetOcurredOn()) {
+						inv[k].SetStatus(dto.ACCEPTED.String())
+					}
+				}
+			}
+		case "*identity.HiringInvitationRejected":
+			var event identity.HiringInvitationRejected
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return []dto.HiringInvitation{}, err
+			}
+			inv, ok := myInvitations[event.InvitedUserID()]
+			if ok {
+				for k := range inv {
+					if event.OccurredOn().After(inv[k].GetOcurredOn()) {
+						inv[k].SetStatus(dto.REJECTED.String())
+					}
+				}
+			}
+		case "*enterprise.HiringProccessCanceled":
+			var event enterprise.HiringProccessCanceled
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return []dto.HiringInvitation{}, err
+			}
+			inv, ok := myInvitations[event.CandidateID()]
+			if ok {
+				for k := range inv {
+					if event.OccurredOn().After(inv[k].GetOcurredOn()) {
+						inv[k].SetStatus(dto.CANCELED.String())
+						inv[k].SetReason(event.Reason())
+					}
 				}
 			}
 		}
 	}
-	hiringInvitationsDTO := make([]dto.HiringInvitation, 0)
-	for eventId, invitation := range myInvitations {
-		enterprise, err := repositories.MapperRegistryInstance().Get(
-			"Enterprise").(repositories.EnterpriseRepository).Get(
-			ctx,
-			invitation.EnterpriseID(),
-		)
+
+	slice := []*dto.HiringInvitation{}
+	for _, v := range myInvitations {
+		for _, c := range v {
+			slice = append(slice, c)
+		}
+	}
+	slices.SortStableFunc(slice, func(i, j *dto.HiringInvitation) int {
+		if i.GetOcurredOn().Before(j.GetOcurredOn()) {
+			return 1
+		}
+		if i.GetOcurredOn().After(j.GetOcurredOn()) {
+			return -1
+		}
+		return 0
+	})
+	slice = slices.CompactFunc(slice, func(i, j *dto.HiringInvitation) bool {
+		return i.OwnerID == j.OwnerID
+	})
+	var hiringInvitationsDTO []dto.HiringInvitation
+	for _, c := range slice {
+		user, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, c.OwnerID)
 		if err != nil {
 			return []dto.HiringInvitation{}, err
 		}
-		hiringInvitationsDTO = append(hiringInvitationsDTO, dto.NewHiringInvitation(
-			eventId,
-			false,
-			*user,
-			*enterprise,
-			invitation,
-		))
+		ep, err := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository).Get(ctx, c.EnterpriseID)
+		if err != nil {
+			return []dto.HiringInvitation{}, err
+		}
+		c.SetUser(*user)
+		c.SetEnterprise(*ep)
+		hiringInvitationsDTO = append(hiringInvitationsDTO, *c)
 	}
+
 	return hiringInvitationsDTO, nil
 }

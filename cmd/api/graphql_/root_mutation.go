@@ -6,6 +6,7 @@ import (
 	"go-complaint/cmd/api/graphql_/resolvers/employee_resolvers"
 	"go-complaint/cmd/api/graphql_/resolvers/enterprise_resolvers"
 	"go-complaint/cmd/api/graphql_/resolvers/feedback_resolvers"
+	"go-complaint/cmd/api/graphql_/resolvers/public_resolvers"
 	"go-complaint/cmd/api/graphql_/resolvers/user_resolvers"
 
 	"github.com/graphql-go/graphql"
@@ -15,6 +16,12 @@ import (
 var mutation = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Mutation",
 	Fields: graphql.Fields{
+		"Contact": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Send a contact email",
+			Args:        graphql_arguments.ContactArgument,
+			Resolve:     public_resolvers.ContactResolver,
+		},
 		//################# USER SCHEMA ####################
 		"CreateUser": &graphql.Field{
 			Type:        graphql.Boolean,
@@ -51,6 +58,12 @@ var mutation = graphql.NewObject(graphql.ObjectConfig{
 			Description: "Accept the invitation to join the enterprise",
 			Args:        graphql_arguments.StringID,
 			Resolve:     user_resolvers.AcceptEnterpriseInvitationResolver,
+		},
+		"RejectEnterpriseInvitation": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Reject the invitation to join the enterprise",
+			Args:        graphql_arguments.RejectHiringInvitationArgument,
+			Resolve:     user_resolvers.RejectEnterpriseInvitationResolver,
 		},
 		//################# ENTERPRISE SCHEMA ####################
 		"CreateEnterprise": &graphql.Field{
@@ -89,6 +102,18 @@ var mutation = graphql.NewObject(graphql.ObjectConfig{
 			Args:        graphql_arguments.EmployeeActionArgument,
 			Resolve:     enterprise_resolvers.FireEmployeeResolver,
 		},
+		"ReplyChat": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Reply a chat",
+			Args:        graphql_arguments.ChatReplyArgument,
+			Resolve:     enterprise_resolvers.ChatReplyResolver,
+		},
+		"MarkReplyChatAsSeen": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Mark an enterprise chat reply as seen",
+			Args:        graphql_arguments.MarkChatReplyAsSeenArgument,
+			Resolve:     enterprise_resolvers.MarkChatReplyAsSeenResolver,
+		},
 		"LeaveEnterprise": &graphql.Field{
 			Type:        graphql.Boolean,
 			Description: "Leave the enterprise",
@@ -113,6 +138,12 @@ var mutation = graphql.NewObject(graphql.ObjectConfig{
 			Args:        graphql_arguments.ReplyComplaintArgument,
 			Resolve:     complaint_resolvers.ReplyComplaintResolver,
 		},
+		"MarkAsSeen": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Mark a complaint reply as seen",
+			Args:        graphql_arguments.MarkReplyAsSeen,
+			Resolve:     complaint_resolvers.MarkAsSeenResolver,
+		},
 		"SendForReviewing": &graphql.Field{
 			Type:        graphql.Boolean,
 			Description: "Send a complaint for reviewing",
@@ -125,22 +156,40 @@ var mutation = graphql.NewObject(graphql.ObjectConfig{
 			Args:        graphql_arguments.RateComplaintArgument,
 			Resolve:     complaint_resolvers.RateComplaintResolver,
 		},
-		"AddReplyReview": &graphql.Field{
+		"CreateFeedback": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Create a feedback",
+			Args:        graphql_arguments.FeedbackArgument,
+			Resolve:     feedback_resolvers.CreateFeedbackResolver,
+		},
+		"AddReply": &graphql.Field{
 			Type:        graphql.Boolean,
 			Description: "Add a review to a reply",
-			Args:        graphql_arguments.AddReplyReviewArgument,
-			Resolve:     feedback_resolvers.AddReplyReviewResolver,
+			Args:        graphql_arguments.FeedbackArgument,
+			Resolve:     feedback_resolvers.AddReplyResolver,
 		},
-		"MarkNotificationAsRead": &graphql.Field{
+		"RemoveReply": &graphql.Field{
 			Type:        graphql.Boolean,
-			Description: "Mark a notification as read",
-			Args:        graphql_arguments.StringID,
-			Resolve:     user_resolvers.MarkNotificationAsReadResolver,
+			Description: "Remove a review from a reply",
+			Args:        graphql_arguments.FeedbackArgument,
+			Resolve:     feedback_resolvers.RemoveReplyResolver,
+		},
+		"AddComment": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Add a comment to a feedback",
+			Args:        graphql_arguments.FeedbackArgument,
+			Resolve:     feedback_resolvers.AddCommentResolver,
+		},
+		"DeleteComment": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Delete a comment from a feedback",
+			Args:        graphql_arguments.FeedbackArgument,
+			Resolve:     feedback_resolvers.DeleteCommentResolver,
 		},
 		"EndFeedback": &graphql.Field{
 			Type:        graphql.Boolean,
 			Description: "End the feedback",
-			Args:        graphql_arguments.StringID,
+			Args:        graphql_arguments.FeedbackArgument,
 			Resolve:     feedback_resolvers.EndFeedbackResolver,
 		},
 		"AnswerFeedback": &graphql.Field{
@@ -148,6 +197,12 @@ var mutation = graphql.NewObject(graphql.ObjectConfig{
 			Description: "Answer a feedback",
 			Args:        graphql_arguments.AnswerFeedbackArgument,
 			Resolve:     feedback_resolvers.AnswerFeedbackResolver,
+		},
+		"MarkNotificationAsRead": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Mark a notification as read",
+			Args:        graphql_arguments.StringID,
+			Resolve:     user_resolvers.MarkNotificationAsReadResolver,
 		},
 	},
 })

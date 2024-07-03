@@ -9,7 +9,6 @@ import (
 
 func CreateUserResolver(p graphql.ResolveParams) (interface{}, error) {
 	command := commands.UserCommand{
-
 		Email:          p.Args["email"].(string),
 		Password:       p.Args["password"].(string),
 		FirstName:      p.Args["firstName"].(string),
@@ -17,6 +16,7 @@ func CreateUserResolver(p graphql.ResolveParams) (interface{}, error) {
 		Gender:         p.Args["gender"].(string),
 		Pronoun:        p.Args["pronoun"].(string),
 		BirthDate:      p.Args["birthDate"].(string),
+		PhoneCode:      p.Args["phoneCode"].(string),
 		Phone:          p.Args["phone"].(string),
 		CountryID:      p.Args["country"].(int),
 		CountryStateID: p.Args["county"].(int),
@@ -80,23 +80,23 @@ func UpdateUserResolver(params graphql.ResolveParams) (interface{}, error) {
 	}
 	switch updateType {
 	case "pronoun":
-		command.Pronoun = params.Args["pronoun"].(string)
+		command.Pronoun = params.Args["value"].(string)
 	case "gender":
-		command.Gender = params.Args["gender"].(string)
+		command.Gender = params.Args["value"].(string)
 	case "profileIMG":
-		command.ProfileIMG = params.Args["profileIMG"].(string)
+		command.ProfileIMG = params.Args["value"].(string)
 	case "firstName":
-		command.FirstName = params.Args["firstName"].(string)
+		command.FirstName = params.Args["value"].(string)
 	case "lastName":
-		command.LastName = params.Args["lastName"].(string)
+		command.LastName = params.Args["value"].(string)
 	case "phone":
-		command.Phone = params.Args["phone"].(string)
+		command.Phone = params.Args["value"].(string)
 	case "country":
-		command.CountryID = params.Args["countryID"].(int)
+		command.CountryID = params.Args["numberValue"].(int)
 	case "countryState":
-		command.CountryStateID = params.Args["countryStateID"].(int)
+		command.CountryStateID = params.Args["numberValue"].(int)
 	case "city":
-		command.CityID = params.Args["cityID"].(int)
+		command.CityID = params.Args["numberValue"].(int)
 	default:
 		return false, command.UpdatePersonalData(params.Context)
 	}
@@ -126,11 +126,40 @@ func AcceptEnterpriseInvitationResolver(params graphql.ResolveParams) (interface
 	return true, nil
 }
 
-func MarkNotificationAsReadResolver(params graphql.ResolveParams) (interface{}, error) {
-	notificationCommand := commands.NotificationCommand{
-		ID: params.Args["id"].(string),
+func RejectEnterpriseInvitationResolver(params graphql.ResolveParams) (interface{}, error) {
+	userID, err := application_services.AuthorizationApplicationServiceInstance().Credentials(params.Context)
+	if err != nil {
+		return false, err
 	}
-	err := notificationCommand.MarkAsRead(params.Context)
+	reason, ok := params.Args["reason"].(string)
+	if !ok {
+		reason = ""
+	}
+	uc := commands.UserCommand{
+		Email:          userID.Email,
+		RejectedReason: reason,
+		EventID:        params.Args["id"].(string),
+	}
+	err = uc.RejectHiringInvitation(
+		params.Context,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func MarkNotificationAsReadResolver(params graphql.ResolveParams) (interface{}, error) {
+	currentUser, err := application_services.AuthorizationApplicationServiceInstance().Credentials(params.Context)
+	if err != nil {
+		return false, err
+	}
+	notificationCommand := commands.NotificationCommand{
+		ID:      params.Args["id"].(string),
+		OwnerID: currentUser.Email,
+	}
+	err = notificationCommand.MarkAsRead(params.Context)
 	if err != nil {
 		return false, err
 	}

@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// userID is emitBy
 type HiringInvitationSent struct {
 	enterpriseID     string
 	userID           string

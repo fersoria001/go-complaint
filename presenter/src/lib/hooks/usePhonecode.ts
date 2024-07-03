@@ -1,22 +1,17 @@
 import { useEffect, useState } from "react";
-import { Query, PhoneCodeQuery, PhoneCodeType } from "../queries";
-import { PhoneCode } from "../types";
+import { Country } from "../types";
 
-function usePhonecode(countryID: number): PhoneCode {
-  const [phoneCode, setPhoneCode] = useState<PhoneCode>({ id: 0, code: "" });
+function usePhonecode(countryID: number, countries: Country[]): string {
+  const [phoneCode, setPhoneCode] = useState<string>("");
   useEffect(() => {
-    const phoneCodeFallback = { id: 0, code: "" };
-    Query<PhoneCode>(PhoneCodeQuery, PhoneCodeType, [countryID]).then(
-      (data) => {
-        if (data) {
-          setPhoneCode(data);
-          return;
-        }
-        setPhoneCode(phoneCodeFallback);
-        return;
+    function fetchPhoneCode() {
+      const country = countries.find((c) => c.id == countryID)
+      if (country) {
+        setPhoneCode(country.phoneCode);
       }
-    );
-  }, [countryID]);
+    }
+    fetchPhoneCode();
+  }, [countryID, countries]);
   return phoneCode;
 }
 

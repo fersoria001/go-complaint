@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
+	"fmt"
 
+	"go-complaint/application"
 	"go-complaint/cmd/api/graphql_"
 	"go-complaint/cmd/server/graphql_subscriptions"
-	"go-complaint/infrastructure"
+	"go-complaint/domain"
+	"go-complaint/infrastructure/cache"
 	"net/http"
 	"sync"
 
-	"github.com/gorilla/csrf"
 	"github.com/graphql-go/graphql"
 	"nhooyr.io/websocket"
 )
@@ -24,28 +25,11 @@ type postData struct {
 }
 
 func PublisherHandler(w http.ResponseWriter, r *http.Request) {
-	var p map[string]interface{}
-	err := json.NewDecoder(r.Body).Decode(&p)
-	if err != nil {
-		r.Body.Close()
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	operationID := r.Header.Get("subscription-id")
+	if operationID == "" {
+		http.Error(w, "operation-id header is required", http.StatusBadRequest)
 		return
 	}
-	operationID, ok := p["operation_id"].(string)
-	if !ok {
-		http.Error(w, "missing operation_id", http.StatusBadRequest)
-		return
-	}
-	err = graphql_subscriptions.SubscriptionsPublisherInstance().Publish(r.Context(), operationID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-func GraphQLHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("X-CSRF-Token", csrf.Token(r))
 	var p postData = postData{}
 	err := json.NewDecoder(r.Body).Decode(&p)
 	if err != nil {
@@ -59,10 +43,54 @@ func GraphQLHandler(w http.ResponseWriter, r *http.Request) {
 		VariableValues: p.Variables,
 		OperationName:  p.Operation,
 	})
-	w.Header().Set("Content-Type", "application/json")
+	if result.HasErrors() {
+		http.Error(w, "error processing request", http.StatusInternalServerError)
+		return
+	}
+	payload, ok := cache.InMemoryCacheInstance().GetPublish(operationID)
+	if !ok {
+		http.Error(w, fmt.Errorf("no subscriber found for operation %s", operationID).Error(), http.StatusInternalServerError)
+		return
+	}
+	dataMessage := graphql_subscriptions.DataMessage{
+		Type:        graphql_subscriptions.DATA.String(),
+		OperationID: operationID,
+		Payload:     payload,
+	}
+	err = graphql_subscriptions.SubscriptionsPublisherInstance().Publish(r.Context(), dataMessage)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func GraphQLHandler(w http.ResponseWriter, r *http.Request) {
+	domain.DomainEventPublisherInstance().Reset()
+	ep := application.EventProcessor{}
+	domain.DomainEventPublisherInstance().Subscribe(
+		domain.DomainEventSubscriber{
+			HandleEvent:           ep.HandleEvent,
+			SubscribedToEventType: ep.SubscribedToEventType,
+		},
+	)
+
+	var p postData = postData{}
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		r.Body.Close()
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	result := graphql.Do(graphql.Params{
+		Context:        r.Context(),
+		Schema:         graphql_.Schema,
+		RequestString:  p.Query,
+		VariableValues: p.Variables,
+		OperationName:  p.Operation,
+	})
+
+	w.Header().Set("content-type", "application/json")
 	json.NewEncoder(w).Encode(result)
-	queue := infrastructure.PushNotificationInMemoryQueueInstance()
-	queue.SendAll(r.Context())
 }
 
 func SubscriptionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +118,7 @@ func subscribe(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	var closed bool
 	var mu sync.Mutex
 	subscriber := graphql_subscriptions.NewSubscriber(
-		infrastructure.InMemoryCacheInstance().NextID(),
+		cache.InMemoryCacheInstance().NextID(),
 		conn1,
 		func() {
 			mu.Lock()
@@ -106,7 +134,6 @@ func subscribe(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	)
 	err = graphql_subscriptions.SubscriptionsPublisherInstance().Subscribe(ctx, subscriber)
 	if err != nil {
-		log.Printf("error subscribing: %v", err)
 		return err
 	}
 	defer func() {

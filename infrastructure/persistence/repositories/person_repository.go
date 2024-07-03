@@ -28,16 +28,16 @@ func (pr PersonRepository) Get(
 	//
 	selectQuery := string(`
 		SELECT 
-		"person".email,
-		"person".profile_img,
-		"person".gender,
-		"person".pronoun,
-		"person".first_name,
-		"person".last_name,
-		"person".birth_date,
-		"person".phone,
-		"person".address_id
-		FROM public."person"
+		email,
+		profile_img,
+		gender,
+		pronoun,
+		first_name,
+		last_name,
+		birth_date,
+		phone,
+		address_id
+		FROM person
 		WHERE email = $1
 		`)
 	var (
@@ -185,7 +185,7 @@ func (pr PersonRepository) Update(
 		return ErrWrongTypeAssertion
 	}
 	insertCommand := string(`
-		UPDATE public."person"
+		UPDATE person
 		SET profile_img=$2,
 			gender=$3 ,
 			pronoun=$4 ,

@@ -1,7 +1,5 @@
 package graphql_subscriptions
 
-import "github.com/graphql-go/graphql"
-
 type SubscriptionsMessageType int
 
 const (
@@ -32,10 +30,10 @@ type ConnectionACKMessage struct {
 	} `json:"payload"`
 }
 
-type GraphQLResultMessage struct {
-	Type        string          `json:"type"`
-	OperationID string          `json:"operation_id"`
-	Payload     *graphql.Result `json:"payload"`
+type DataMessage struct {
+	Type        string      `json:"type"`
+	OperationID string      `json:"operation_id"`
+	Payload     interface{} `json:"payload"`
 }
 type Message struct {
 	SubscriptionID int    `json:"subscription_id"`

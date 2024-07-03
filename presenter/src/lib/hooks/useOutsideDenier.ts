@@ -6,7 +6,7 @@ import { useEffect } from "react";
  */
 function useOutsideDenier(
   ref: any,
-  setter: React.Dispatch<React.SetStateAction<boolean>>
+  setter: (value : boolean) => void
 ) {
   useEffect(() => {
     /**

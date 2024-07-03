@@ -29,6 +29,9 @@ func NewNotification(
 	occurredOn time.Time,
 	seen bool,
 ) (*Notification, error) {
+	if thumbnail == "" {
+		return nil, ErrThumbnailIsRequired
+	}
 	return &Notification{
 		id:         id,
 		ownerID:    ownerID,

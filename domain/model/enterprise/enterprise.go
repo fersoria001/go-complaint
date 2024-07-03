@@ -2,11 +2,14 @@ package enterprise
 
 import (
 	"context"
+	"fmt"
 	"go-complaint/domain"
 	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/identity"
 	"go-complaint/erros"
+	"log"
 	"net/mail"
+	"slices"
 	"strconv"
 	"time"
 
@@ -41,43 +44,44 @@ func (e *Enterprise) PromoteEmployee(
 	promotedBy string,
 	employeeID uuid.UUID,
 	newPosition Position) (*identity.User, error) {
-	var (
-		err       error
-		user      *identity.User
-		publisher = domain.DomainEventPublisherInstance()
-		event     *EmployeePromoted
-	)
-	for emp := range e.Employees().Iter() {
-		if employeeID == emp.ID() {
-			if emp.ApprovedHiring() {
-				return nil, &erros.ValidationError{Expected: "employee needs to be approved first"}
-			}
-			err = emp.SetPosition(newPosition)
+	slice := e.Employees().ToSlice()
+	index, ok := slices.BinarySearchFunc(slice, employeeID, func(i Employee, j uuid.UUID) int {
+		if i.ID() == j {
+			return 0
+		}
+		return -1
+	})
+	if !ok {
+		return nil, fmt.Errorf("employee with id %s not found", employeeID)
+	}
+	emp := slice[index]
+	if !emp.ApprovedHiring() {
+		return nil, &erros.ValidationError{Expected: "employee needs to be approved first"}
+	}
+	err := emp.SetPosition(newPosition)
+	if err != nil {
+		return nil, err
+	}
+	user := emp.GetUser()
+	role, err := identity.ParseRole(newPosition.String())
+	if err != nil {
+		return nil, err
+	}
+	urSlice := user.UserRoles().ToSlice()
+	for _, r := range urSlice {
+		if r.EnterpriseID() == e.name {
+			err = user.RemoveUserRole(ctx, r.GetRole(), e.name)
 			if err != nil {
 				return nil, err
 			}
-			user := emp.GetUser()
-			role, err := identity.ParseRole(newPosition.String())
-			if err != nil {
-				return nil, err
-			}
-			for r := range user.UserRoles().Iter() {
-				if r.EnterpriseID() == e.name {
-					err = user.RemoveUserRole(ctx, r.GetRole(), e.name)
-					if err != nil {
-						return nil, err
-					}
-				}
-			}
-			err = user.AddRole(ctx, role, e.name)
-			if err != nil {
-				return nil, err
-			}
-			event = NewEmployeePromoted(e.name, promotedBy, emp.Email(), newPosition)
-			break
 		}
 	}
-	err = publisher.Publish(ctx, event)
+	err = user.AddRole(ctx, role, e.name)
+	if err != nil {
+		return nil, err
+	}
+	event := NewEmployeePromoted(e.name, promotedBy, emp.Email(), newPosition)
+	err = domain.DomainEventPublisherInstance().Publish(ctx, event)
 	if err != nil {
 		return nil, err
 	}
@@ -121,37 +125,48 @@ func (e *Enterprise) EmployeeLeave(ctx context.Context,
 	return user, nil
 }
 
-func (e *Enterprise) FireEmployee(ctx context.Context,
+func (e *Enterprise) FireEmployee(
+	ctx context.Context,
+	emitedBy string,
 	employeeID uuid.UUID) (*identity.User, error) {
 	var (
 		publisher = domain.DomainEventPublisherInstance()
 		err       error
 	)
-	var employee Employee
-	var user *identity.User
-	for emp := range e.Employees().Iter() {
-		if employeeID == emp.ID() {
-			if !emp.ApprovedHiring() {
-				return nil, &erros.ValidationError{Expected: "employee needs to be approved first"}
-			}
-			role, err := identity.ParseRole(emp.Position().String())
-			if err != nil {
-				return nil, err
-			}
-			user = emp.GetUser()
-			err = emp.GetUser().RemoveUserRole(ctx,
-				role,
-				e.Name(),
-			)
-			if err != nil {
-				return nil, err
-			}
-			employee = emp
-			e.Employees().Remove(emp)
+	slice := e.Employees().ToSlice()
+	index, ok := slices.BinarySearchFunc(slice, employeeID, func(i Employee, j uuid.UUID) int {
+		if i.ID() == j {
+			return 0
 		}
+		return -1
+	})
+	if !ok {
+		return nil, fmt.Errorf("employee with id %s not found", employeeID)
 	}
+	emp := slice[index]
 
-	err = publisher.Publish(ctx, NewEmployeeFired(employee))
+	if !emp.ApprovedHiring() {
+		return nil, &erros.ValidationError{Expected: "employee needs to be approved first"}
+	}
+	role, err := identity.ParseRole(emp.Position().String())
+	if err != nil {
+		return nil, err
+	}
+	user := emp.GetUser()
+	err = emp.GetUser().RemoveUserRole(ctx,
+		role,
+		e.Name(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	log.Println("befor remove employee from enterprise", len(slice))
+	slice = slices.DeleteFunc(slice, func(i Employee) bool {
+		return i.ID() == employeeID
+	})
+	log.Println("after remove employee from enterprise", len(slice))
+	e.employees = mapset.NewSet(slice...)
+	err = publisher.Publish(ctx, NewEmployeeFired(emitedBy, emp))
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +176,8 @@ func (e *Enterprise) FireEmployee(ctx context.Context,
 func (e *Enterprise) CancelHiringProccess(
 	ctx context.Context,
 	candidateID string,
+	emitedBy string,
+	reason string,
 	position Position,
 ) error {
 	return domain.DomainEventPublisherInstance().Publish(
@@ -168,6 +185,8 @@ func (e *Enterprise) CancelHiringProccess(
 		NewHiringProccessCanceled(
 			e.Name(),
 			candidateID,
+			emitedBy,
+			reason,
 			position,
 		),
 	)
@@ -175,18 +194,15 @@ func (e *Enterprise) CancelHiringProccess(
 
 func (e *Enterprise) HireEmployee(
 	ctx context.Context,
-	user *identity.User,
+	emitedBy string,
 	employee Employee,
 ) error {
-	err := e.AddEmployee(employee)
-	if err != nil {
-		return err
-	}
 	role, err := identity.ParseRole(employee.Position().String())
+
 	if err != nil {
 		return err
 	}
-	err = user.AddRole(
+	err = employee.GetUser().AddRole(
 		ctx,
 		role,
 		e.Name(),
@@ -194,19 +210,27 @@ func (e *Enterprise) HireEmployee(
 	if err != nil {
 		return err
 	}
+	employee.SetApprovedHiring(true)
+	err = e.AddEmployee(employee)
+	if err != nil {
+		return err
+	}
 	domainEventPublisher := domain.DomainEventPublisherInstance()
+	ev := NewEmployeeHired(
+		e.Name(),
+		emitedBy,
+		employee.ID(),
+		employee.Email(),
+		employee.Position(),
+	)
 	err = domainEventPublisher.Publish(
 		ctx,
-		NewEmployeeHired(
-			e.Name(),
-			employee.ID(),
-			employee.Email(),
-			employee.Position(),
-		),
+		ev,
 	)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -216,21 +240,6 @@ func (e *Enterprise) InviteToProject(
 	proposedTo string,
 	proposalPosition Position,
 ) error {
-	ok := false
-	if userID != e.owner {
-		for employee := range e.employees.Iter() {
-			if employee.Email() == userID &&
-				employee.Position() == MANAGER {
-				ok = true
-				break
-			}
-		}
-	} else {
-		ok = true
-	}
-	if !ok {
-		return ErrForbidden
-	}
 	event := NewHiringInvitationSent(
 		e.name,
 		userID,
@@ -429,8 +438,8 @@ func CreateEnterprise(
 	e, err := NewEnterprise(
 		owner.Email(),
 		name,
-		"/banner.jpg",
 		"/logo.jpg",
+		"/banner.jpg",
 		website,
 		email,
 		phone,

@@ -11,6 +11,7 @@ import (
 )
 
 func TestSave(t *testing.T) {
+	setup()
 	// Arrange
 	ctx := context.Background()
 	enterpriseRepository := repositories.NewEnterpriseRepository(datasource.PublicSchema())
@@ -22,6 +23,7 @@ func TestSave(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
+	setup()
 	// Arrange
 	ctx := context.Background()
 	enterpriseRepository := repositories.NewEnterpriseRepository(datasource.PublicSchema())
@@ -35,6 +37,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
+	setup()
 	// Arrange
 	ctx := context.Background()
 	enterpriseRepository := repositories.NewEnterpriseRepository(datasource.PublicSchema())

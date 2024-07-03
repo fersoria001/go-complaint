@@ -43,28 +43,43 @@ func (event HiringInvitationAccepted) ProposedPosition() RolesEnum {
 }
 
 func (event *HiringInvitationAccepted) MarshalJSON() ([]byte, error) {
-	stringDate := common.StringDate(event.occurredOn)
-	return json.Marshal(map[string]interface{}{
-		"enterprise_id":     event.enterpriseID,
-		"invited_user_id":   event.invitedUserID,
-		"proposed_position": event.proposedPosition,
-		"occurred_on":       stringDate,
+	commonDate := common.NewDate(event.occurredOn)
+	stringDate := commonDate.StringRepresentation()
+	return json.Marshal(struct {
+		EnterpriseID     string `json:"enterprise_id"`
+		InvitedUserID    string `json:"invited_user_id"`
+		ProposedPosition string `json:"proposed_position"`
+		OccurredOn       string `json:"occurred_on"`
+	}{
+		EnterpriseID:     event.enterpriseID,
+		InvitedUserID:    event.invitedUserID,
+		ProposedPosition: event.proposedPosition.String(),
+		OccurredOn:       stringDate,
 	})
+
 }
 
 func (event *HiringInvitationAccepted) UnmarshalJSON(data []byte) error {
-	var raw map[string]interface{}
+	var raw struct {
+		EnterpriseID     string `json:"enterprise_id"`
+		InvitedUserID    string `json:"invited_user_id"`
+		ProposedPosition string `json:"proposed_position"`
+		OccurredOn       string `json:"occurred_on"`
+	}
 	err := json.Unmarshal(data, &raw)
 	if err != nil {
 		return err
 	}
-	event.enterpriseID = raw["enterprise_id"].(string)
-	event.invitedUserID = raw["invited_user_id"].(string)
-	event.proposedPosition = raw["proposed_position"].(RolesEnum)
-	stringDate := raw["occurred_on"].(string)
-	event.occurredOn, err = common.ParseDate(stringDate)
+	event.enterpriseID = raw.EnterpriseID
+	event.invitedUserID = raw.InvitedUserID
+	event.proposedPosition, err = ParseRole(raw.ProposedPosition)
 	if err != nil {
 		return err
 	}
+	date, err := common.NewDateFromString(raw.OccurredOn)
+	if err != nil {
+		return err
+	}
+	event.occurredOn = date.Date()
 	return nil
 }

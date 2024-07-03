@@ -9,4 +9,7 @@ var EnterpriseEventArgument = graphql.FieldConfigArgument{
 	"eventID": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
+	"reason": &graphql.ArgumentConfig{
+		Type: graphql.String,
+	},
 }

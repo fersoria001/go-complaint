@@ -24,6 +24,9 @@ var CreateUser = graphql.FieldConfigArgument{
 	"birthDate": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
+	"phoneCode": &graphql.ArgumentConfig{
+		Type: graphql.NewNonNull(graphql.String),
+	},
 	"phone": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
@@ -64,9 +67,17 @@ var StringID = graphql.FieldConfigArgument{
 		Type: graphql.NewNonNull(graphql.String),
 	},
 }
+var MarkReplyAsSeen = graphql.FieldConfigArgument{
+	"complaintID": &graphql.ArgumentConfig{
+		Type: graphql.NewNonNull(graphql.String),
+	},
+	"ids": &graphql.ArgumentConfig{
+		Type: graphql.String,
+	},
+}
 
-var StringIDWPaginationAndQuery = graphql.FieldConfigArgument{
-	"ID": &graphql.ArgumentConfig{
+var StringIDWithPaginationAndQuery = graphql.FieldConfigArgument{
+	"id": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
 	"query": &graphql.ArgumentConfig{
@@ -84,31 +95,10 @@ var UpdateUserProfile = graphql.FieldConfigArgument{
 	"updateType": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
-	"pronoun": &graphql.ArgumentConfig{
+	"value": &graphql.ArgumentConfig{
 		Type: graphql.String,
 	},
-	"gender": &graphql.ArgumentConfig{
-		Type: graphql.String,
-	},
-	"profileIMG": &graphql.ArgumentConfig{
-		Type: graphql.String,
-	},
-	"firstName": &graphql.ArgumentConfig{
-		Type: graphql.String,
-	},
-	"lastName": &graphql.ArgumentConfig{
-		Type: graphql.String,
-	},
-	"phone": &graphql.ArgumentConfig{
-		Type: graphql.String,
-	},
-	"countryID": &graphql.ArgumentConfig{
-		Type: graphql.Int,
-	},
-	"countryStateID": &graphql.ArgumentConfig{
-		Type: graphql.Int,
-	},
-	"cityID": &graphql.ArgumentConfig{
+	"numberValue": &graphql.ArgumentConfig{
 		Type: graphql.Int,
 	},
 }
@@ -177,6 +167,9 @@ var CreateAnEnterprise = graphql.FieldConfigArgument{
 	"email": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
+	"phoneCode": &graphql.ArgumentConfig{
+		Type: graphql.NewNonNull(graphql.String),
+	},
 	"phone": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
@@ -204,28 +197,10 @@ var UpdateEnterprise = graphql.FieldConfigArgument{
 	"enterpriseID": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
-	"logoIMG": &graphql.ArgumentConfig{
+	"value": &graphql.ArgumentConfig{
 		Type: graphql.String,
 	},
-	"bannerIMG": &graphql.ArgumentConfig{
-		Type: graphql.String,
-	},
-	"website": &graphql.ArgumentConfig{
-		Type: graphql.String,
-	},
-	"email": &graphql.ArgumentConfig{
-		Type: graphql.String,
-	},
-	"phone": &graphql.ArgumentConfig{
-		Type: graphql.String,
-	},
-	"countryID": &graphql.ArgumentConfig{
-		Type: graphql.Int,
-	},
-	"countryStateID": &graphql.ArgumentConfig{
-		Type: graphql.Int,
-	},
-	"cityID": &graphql.ArgumentConfig{
+	"numberValue": &graphql.ArgumentConfig{
 		Type: graphql.Int,
 	},
 }

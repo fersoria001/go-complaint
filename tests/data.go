@@ -258,7 +258,11 @@ var (
 	Complaint1, _ = complaint.NewComplaint(
 		ComplaintID,
 		UserClient.Email(),
-		Enterprise1.Email(),
+		UserClient.FullName(),
+		UserClient.ProfileIMG(),
+		Enterprise1.Name(),
+		Enterprise1.Name(),
+		Enterprise1.LogoIMG(),
 		status,
 		msg,
 		CommonDate,
@@ -266,11 +270,26 @@ var (
 		rating,
 		emptySet,
 	)
-	ReceiverReply1ID = uuid.MustParse("b21ea78c-d4f2-4a0e-984b-17f238b12e0a")
-	AuthorReply1ID   = uuid.MustParse("1ca0f32b-87d9-4f1e-a9b2-02c47e8f1b21")
-
+	ReceiverReply1ID  = uuid.MustParse("b21ea78c-d4f2-4a0e-984b-17f238b12e0a")
+	ReceiverReply2ID  = uuid.MustParse("b21ea78c-d4f2-4a0e-984b-17f238b12e0b")
+	AuthorReply1ID    = uuid.MustParse("1ca0f32b-87d9-4f1e-a9b2-02c47e8f1b21")
+	AuthorReply2ID    = uuid.MustParse("1ca0f32b-87d9-4f1e-a9b2-02c47e8f1b22")
 	ReceiverReply1, _ = complaint.NewReply(
 		ReceiverReply1ID,
+		ComplaintID,
+		Asisstant.Email(),
+		Asisstant.ProfileIMG(),
+		Asisstant.FullName(),
+		"reply body",
+		false,
+		CommonDate,
+		CommonDate,
+		CommonDate,
+		true,
+		EnterpriseID,
+	)
+	ReceiverReply2, _ = complaint.NewReply(
+		ReceiverReply2ID,
 		ComplaintID,
 		Asisstant.Email(),
 		Asisstant.ProfileIMG(),
@@ -297,20 +316,35 @@ var (
 		false,
 		"",
 	)
+	AuthorReply2, _ = complaint.NewReply(
+		AuthorReply2ID,
+		ComplaintID,
+		UserClient.Email(),
+		UserClient.ProfileIMG(),
+		UserClient.FullName(),
+		"reply body",
+		false,
+		CommonDate,
+		CommonDate,
+		CommonDate,
+		false,
+		"",
+	)
 	ReplyReview1ID      = uuid.MustParse("e8742109-a23b-4d42-827e-b98d1c07f1a3")
 	ReplyReview1Replies = mapset.NewSet[complaint.Reply](*ReceiverReply1)
-	Review1, _          = feedback.NewReview(
+	Review1             = feedback.NewReview(
+		ComplaintID,
 		ReplyReview1ID,
-		Manager.Email(),
-		CommonDate,
 		"nice reply",
 	)
 	ReplyReview1, _ = feedback.NewReplyReview(
 		ReplyReview1ID,
 		ComplaintID,
 		ReplyReview1Replies,
+		*Asisstant.User,
 		Review1,
 		"#375774",
+		time.Now(),
 	)
 	replyReviews    = mapset.NewSet[*feedback.ReplyReview](ReplyReview1)
 	feedbackAnswers = mapset.NewSet[*feedback.Answer]()
@@ -318,8 +352,11 @@ var (
 	Feedback1, _    = feedback.NewFeedback(
 		Feedback1ID,
 		ComplaintID,
-		Asisstant.Email(),
+		EnterpriseID,
 		replyReviews,
 		feedbackAnswers,
+		time.Now(),
+		time.Now(),
+		false,
 	)
 )

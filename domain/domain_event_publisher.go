@@ -24,7 +24,7 @@ func (dep *DomainEventPublisher) Subscribe(subscriber DomainEventSubscriber) {
 		dep.subscribers = subscribers
 	}
 	dep.subscribers = append(dep.subscribers, subscriber)
-	//log.Printf("Subscriber %s Subscribed to %s", reflect.TypeOf(subscriber).String(), subscriber.SubscribedToEventType().String())
+
 }
 
 func (dep *DomainEventPublisher) Publish(ctx context.Context, event DomainEvent) error {
@@ -39,7 +39,6 @@ func (dep *DomainEventPublisher) Publish(ctx context.Context, event DomainEvent)
 		interfaceType = reflect.TypeOf(interfacePtr)
 	)
 	dep.publishing = true
-	//log.Printf("Publishing %s", eventType.String())
 	defer func() {
 		dep.publishing = false
 	}()

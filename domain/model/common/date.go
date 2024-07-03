@@ -49,11 +49,10 @@ func (d Date) Date() time.Time {
 }
 func (d Date) Age() int {
 	today := time.Now()
-	age := today.Year() - d.date.Year()
-	if today.YearDay() < d.date.YearDay() {
-		age--
-	}
-	return age
+	birhtDate := d.date
+	age := today.Sub(birhtDate).Hours() / 24 / 365
+	intAge := int(age)
+	return intAge
 }
 
 func (d Date) StringRepresentation() string {

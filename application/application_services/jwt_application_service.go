@@ -4,6 +4,7 @@ import (
 	"go-complaint/application"
 	"go-complaint/domain/model/identity"
 	"go-complaint/dto"
+	"os"
 	"sync"
 
 	"github.com/golang-jwt/jwt"
@@ -30,7 +31,7 @@ func (jwts *JWTApplicationService) GenerateJWTToken(claims jwt.Claims) (
 	error,
 ) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte("JWT-supersecret-sign-password"))
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 	if err != nil {
 		return application.JWTToken{}, err
 	}
@@ -40,7 +41,7 @@ func (jwts *JWTApplicationService) GenerateJWTToken(claims jwt.Claims) (
 func (jwts *JWTApplicationService) ParseUserDescriptor(jwtToken string) (dto.UserDescriptor, error) {
 	var claims dto.UserDescriptor
 	token, err := jwt.ParseWithClaims(jwtToken, &claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte("JWT-supersecret-sign-password"), nil
+		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
 		return claims, err
@@ -60,7 +61,7 @@ func (jwts *JWTApplicationService) ParseConfirmationCode(jwtToken string) (
 ) {
 	var claims application.ConfirmationCode
 	token, err := jwt.ParseWithClaims(jwtToken, &claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte("JWT-supersecret-sign-password"), nil
+		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
 		return claims, err
@@ -80,7 +81,7 @@ func (jwts *JWTApplicationService) ParseEmailVerification(jwtToken string) (
 ) {
 	var claims identity.EmailVerification
 	token, err := jwt.ParseWithClaims(jwtToken, &claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte("JWT-supersecret-sign-password"), nil
+		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
 		return claims, err

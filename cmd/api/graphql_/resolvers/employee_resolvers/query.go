@@ -11,8 +11,8 @@ import (
 func EmployeeResolver(p graphql.ResolveParams) (interface{}, error) {
 	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
 		p.Context,
-		"rid",
-		p.Args["enterpriseID"].(string),
+		"Enterprise",
+		p.Args["enterpriseName"].(string),
 		application_services.READ,
 		"MANAGER", "ASSISTANT",
 	)
@@ -32,8 +32,8 @@ func EmployeeResolver(p graphql.ResolveParams) (interface{}, error) {
 func EmployeesResolver(p graphql.ResolveParams) (interface{}, error) {
 	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
 		p.Context,
-		"rid",
-		p.Args["enterpriseID"].(string),
+		"Enterprise",
+		p.Args["enterpriseName"].(string),
 		application_services.READ,
 		"MANAGER", "ASSISTANT",
 	)
@@ -41,7 +41,7 @@ func EmployeesResolver(p graphql.ResolveParams) (interface{}, error) {
 		return []dto.Employee{}, err
 	}
 	q := queries.EmployeeQuery{
-		EnterpriseID: p.Args["enterpriseID"].(string),
+		EnterpriseID: p.Args["enterpriseName"].(string),
 	}
 	emp, err := q.Employees(p.Context)
 	if err != nil {

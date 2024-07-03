@@ -3,40 +3,54 @@ package commands
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"go-complaint/application/application_services"
 	"go-complaint/domain"
 	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/employee"
 	"go-complaint/domain/model/enterprise"
 	"go-complaint/domain/model/identity"
+	"go-complaint/dto"
 	"go-complaint/erros"
+	"go-complaint/infrastructure/cache"
 	employeefindall "go-complaint/infrastructure/persistence/finders/employee_findall"
 	"go-complaint/infrastructure/persistence/repositories"
 	"reflect"
+	"slices"
+	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type EnterpriseCommand struct {
-	OwnerID        string `json:"owner_id"`
-	Name           string `json:"name"`
-	LogoIMG        string `json:"logo_img"`
-	BannerIMG      string `json:"banner_img"`
-	Website        string `json:"website"`
-	Email          string `json:"email"`
-	Phone          string `json:"phone"`
-	CountryID      int    `json:"country_id"`
-	CountryStateID int    `json:"country_state_id"`
-	CityID         int    `json:"city_id"`
-	IndustryID     int    `json:"industry_id"`
-	FoundationDate string `json:"foundation_date"`
-	UpdateType     string `json:"update_type"`
-	ProposeTo      string `json:"propose_to"`
-	Position       string `json:"position"`
-	EventID        string `json:"event_id"`
-	EmployeeID     string `json:"employee_id"`
-	TriggeredByID  string `json:"triggered_by_id"`
+	ID             string   `json:"id"`
+	OwnerID        string   `json:"owner_id"`
+	Name           string   `json:"name"`
+	LogoIMG        string   `json:"logo_img"`
+	BannerIMG      string   `json:"banner_img"`
+	Website        string   `json:"website"`
+	Email          string   `json:"email"`
+	PhoneCode      string   `json:"phone_code"`
+	Phone          string   `json:"phone"`
+	CountryID      int      `json:"country_id"`
+	CountryStateID int      `json:"country_state_id"`
+	CityID         int      `json:"city_id"`
+	IndustryID     int      `json:"industry_id"`
+	FoundationDate string   `json:"foundation_date"`
+	UpdateType     string   `json:"update_type"`
+	ProposeTo      string   `json:"propose_to"`
+	Position       string   `json:"position"`
+	EventID        string   `json:"event_id"`
+	EmployeeID     string   `json:"employee_id"`
+	TriggeredByID  string   `json:"triggered_by_id"`
+	CancelReason   string   `json:"cancel_reason"`
+	SenderID       string   `json:"sender_id"`
+	Content        string   `json:"content"`
+	RepliesID      []string `json:"replies_id"`
 }
 
 func (enterpriseCommand EnterpriseCommand) Register(
@@ -46,6 +60,7 @@ func (enterpriseCommand EnterpriseCommand) Register(
 		enterpriseCommand.Name == "" ||
 		enterpriseCommand.Website == "" ||
 		enterpriseCommand.Email == "" ||
+		enterpriseCommand.PhoneCode == "" ||
 		enterpriseCommand.Phone == "" ||
 		enterpriseCommand.FoundationDate == "" {
 		return ErrBadRequest
@@ -97,13 +112,20 @@ func (enterpriseCommand EnterpriseCommand) Register(
 	if err != nil {
 		return err
 	}
+	var phoneCode string
+	if strings.HasPrefix(enterpriseCommand.PhoneCode, "+") {
+		phoneCode = enterpriseCommand.PhoneCode
+	} else {
+		phoneCode = "+" + enterpriseCommand.PhoneCode
+	}
+	phone := phoneCode + enterpriseCommand.Phone
 	newEnterprise, err := enterprise.CreateEnterprise(
 		ctx,
 		user,
 		enterpriseCommand.Name,
 		enterpriseCommand.Website,
 		enterpriseCommand.Email,
-		enterpriseCommand.Phone,
+		phone,
 		foundationDate,
 		industry,
 		address,
@@ -134,7 +156,6 @@ func (enterpriseCommand EnterpriseCommand) UpdateEnterprise(
 	ctx context.Context,
 ) error {
 	if enterpriseCommand.UpdateType == "" ||
-		enterpriseCommand.OwnerID == "" ||
 		enterpriseCommand.Name == "" {
 		return ErrBadRequest
 	}
@@ -146,15 +167,9 @@ func (enterpriseCommand EnterpriseCommand) UpdateEnterprise(
 	if !ok {
 		return repositories.ErrWrongTypeAssertion
 	}
-	if enterpriseCommand.LogoIMG == "" {
-		return ErrBadRequest
-	}
 	enterprise, err := enterpriseMapper.Get(ctx, enterpriseCommand.Name)
 	if err != nil {
 		return err
-	}
-	if enterprise.Owner() != enterpriseCommand.OwnerID {
-		return ErrUnauthorized
 	}
 	switch enterpriseCommand.UpdateType {
 	case "logoIMG":
@@ -228,7 +243,8 @@ func (enterpriseCommand EnterpriseCommand) InviteToProject(
 	if enterprise.ParsePosition(enterpriseCommand.Position) == enterprise.NOT_EXISTS {
 		return ErrBadRequest
 	}
-	enterpriseOwner, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, enterpriseCommand.OwnerID)
+	enterpriseOwner, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(
+		ctx, enterpriseCommand.OwnerID)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -245,10 +261,10 @@ func (enterpriseCommand EnterpriseCommand) InviteToProject(
 	if dbemployee.Cardinality() != 0 {
 		return ErrAlreadyHired
 	}
-	targetUser, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, enterpriseCommand.ProposeTo)
-	if err != nil {
-		return ErrNotFound
-	}
+	// targetUser, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, enterpriseCommand.ProposeTo)
+	// if err != nil {
+	// 	return ErrNotFound
+	// }
 	dbEnterprise, err := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository).Get(
 		ctx, enterpriseCommand.Name)
 	if err != nil {
@@ -259,17 +275,18 @@ func (enterpriseCommand EnterpriseCommand) InviteToProject(
 		domain.DomainEventSubscriber{
 			HandleEvent: func(event domain.DomainEvent) error {
 				if castedEvent, ok := event.(*enterprise.HiringInvitationSent); ok {
-					SendEmailCommand{
-						ToEmail: castedEvent.ProposedTo(),
-						ToName:  targetUser.FullName(),
-					}.HiringInvitationSent(ctx)
 					NotificationCommand{
-						OwnerID:   castedEvent.ProposedTo(),
-						Thumbnail: "",
-						Title:     "You have been invited to join a project",
-						Content:   enterpriseOwner.FullName() + " has invited you to join the project " + dbEnterprise.Name(),
-						Link:      "/hiring-invitations",
+						OwnerID:     castedEvent.ProposedTo(),
+						ThumbnailID: dbEnterprise.Name(),
+						Thumbnail:   dbEnterprise.LogoIMG(),
+						Title:       "You have been invited to join a project",
+						Content:     enterpriseOwner.FullName() + " has invited you to join the project " + dbEnterprise.Name(),
+						Link:        "/hiring-invitations",
 					}.SaveNew(ctx)
+					// SendEmailCommand{
+					// 	ToEmail: castedEvent.ProposedTo(),
+					// 	ToName:  targetUser.FullName(),
+					// }.HiringInvitationSent(ctx)
 					return nil
 				}
 				return nil
@@ -279,6 +296,7 @@ func (enterpriseCommand EnterpriseCommand) InviteToProject(
 			},
 		},
 	)
+
 	err = dbEnterprise.InviteToProject(
 		ctx,
 		enterpriseCommand.OwnerID,
@@ -306,15 +324,12 @@ func (enterpriseCommand EnterpriseCommand) HireEmployee(
 	if err != nil {
 		return ErrNotFound
 	}
-	if dbEnterprise.Owner() != enterpriseCommand.OwnerID {
-		return ErrForbidden
-	}
 	parseID, err := uuid.Parse(enterpriseCommand.EventID)
 	if err != nil {
 		return ErrBadRequest
 	}
 	storedEvent, err := repositories.MapperRegistryInstance().Get(
-		"StoredEvent",
+		"Event",
 	).(repositories.EventRepository).Get(
 		ctx,
 		parseID,
@@ -338,6 +353,7 @@ func (enterpriseCommand EnterpriseCommand) HireEmployee(
 		return err
 	}
 	position := enterprise.ParsePosition(acceptedInvitation.ProposedPosition().String())
+
 	hiringDate := common.NewDate(time.Now())
 	newEmployee, err := employee.NewEmployee(
 		uuid.New(),
@@ -354,22 +370,25 @@ func (enterpriseCommand EnterpriseCommand) HireEmployee(
 	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
 		HandleEvent: func(event domain.DomainEvent) error {
 			if _, ok := event.(*enterprise.EmployeeHired); ok {
+
 				NotificationCommand{
-					OwnerID:   invitedUser.Email(),
-					Thumbnail: dbEnterprise.LogoIMG(),
-					Title:     fmt.Sprintf("You have been hired by %s", dbEnterprise.Name()),
-					Content:   fmt.Sprintf("You have been hired by %s as %s", dbEnterprise.Name(), position.String()),
-					Link:      fmt.Sprintf("/offices/%s", dbEnterprise.Name()),
+					OwnerID:     invitedUser.Email(),
+					ThumbnailID: dbEnterprise.Name(),
+					Thumbnail:   dbEnterprise.LogoIMG(),
+					Title:       fmt.Sprintf("You have been hired by %s", dbEnterprise.Name()),
+					Content:     fmt.Sprintf("You have been hired by %s as %s", dbEnterprise.Name(), position.String()),
+					Link:        fmt.Sprintf("/%s", dbEnterprise.Name()),
 				}.SaveNew(ctx)
+
 				return nil
 			}
 			return &erros.ValueNotFoundError{}
 		},
 		SubscribedToEventType: func() reflect.Type {
-			return reflect.TypeOf(&identity.HiringInvitationAccepted{})
+			return reflect.TypeOf(&enterprise.EmployeeHired{})
 		},
 	})
-	err = dbEnterprise.HireEmployee(ctx, invitedUser, newEmployee)
+	err = dbEnterprise.HireEmployee(ctx, enterpriseCommand.OwnerID, newEmployee)
 	if err != nil {
 		return err
 	}
@@ -377,7 +396,7 @@ func (enterpriseCommand EnterpriseCommand) HireEmployee(
 	if err != nil {
 		return err
 	}
-	err = repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Update(ctx, invitedUser)
+	err = repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Update(ctx, newEmployee.GetUser())
 	if err != nil {
 		return err
 	}
@@ -396,7 +415,7 @@ func (command EnterpriseCommand) CancelHiringProccess(
 	if err != nil {
 		return ErrBadRequest
 	}
-	storedEvent, err := repositories.MapperRegistryInstance().Get("StoredEvent").(repositories.EventRepository).Get(
+	storedEvent, err := repositories.MapperRegistryInstance().Get("Event").(repositories.EventRepository).Get(
 		ctx,
 		parsedID,
 	)
@@ -418,9 +437,15 @@ func (command EnterpriseCommand) CancelHiringProccess(
 	if err != nil {
 		return ErrNotFound
 	}
-	if dbEnterprise.Owner() != command.OwnerID {
-		return ErrForbidden
+	employee, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(
+		ctx,
+		command.OwnerID,
+	)
+	if err != nil {
+		return ErrNotFound
 	}
+	param := fmt.Sprintf("id=%s", command.EventID)
+	replaced := application_services.EncodingApplicationServiceInstance().SafeUtf16Encode(param)
 	position := enterprise.ParsePosition(acceptedInvitation.ProposedPosition().String())
 	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
 		HandleEvent: func(event domain.DomainEvent) error {
@@ -429,8 +454,9 @@ func (command EnterpriseCommand) CancelHiringProccess(
 					OwnerID:   acceptedInvitation.InvitedUserID(),
 					Thumbnail: dbEnterprise.LogoIMG(),
 					Title:     fmt.Sprintf("Your hiring process at %s has been canceled", dbEnterprise.Name()),
-					Content:   fmt.Sprintf("Your hiring process at %s as %s has been canceled", dbEnterprise.Name(), position.String()),
-					Link:      "/hiring-invitations",
+					Content: fmt.Sprintf("Your hiring process at %s as %s has been canceled by %s",
+						dbEnterprise.Name(), position.String(), employee.FullName()),
+					Link: fmt.Sprintf("/hiring-invitations?%s", replaced),
 				}.SaveNew(ctx)
 				return nil
 			}
@@ -443,6 +469,8 @@ func (command EnterpriseCommand) CancelHiringProccess(
 	err = dbEnterprise.CancelHiringProccess(
 		ctx,
 		acceptedInvitation.InvitedUserID(),
+		employee.Email(),
+		command.CancelReason,
 		position,
 	)
 	if err != nil {
@@ -455,7 +483,7 @@ func (command EnterpriseCommand) FireEmployee(
 	ctx context.Context,
 ) error {
 	if command.Name == "" ||
-		command.EmployeeID == "" {
+		command.EmployeeID == "" || command.OwnerID == "" {
 		return ErrBadRequest
 	}
 	dbEnterprise, err := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository).Get(
@@ -473,11 +501,12 @@ func (command EnterpriseCommand) FireEmployee(
 		HandleEvent: func(event domain.DomainEvent) error {
 			if e, ok := event.(*enterprise.EmployeeFired); ok {
 				NotificationCommand{
-					OwnerID:   e.UserID(),
-					Thumbnail: dbEnterprise.LogoIMG(),
-					Title:     fmt.Sprintf("Your work has end at %s", dbEnterprise.Name()),
-					Content:   fmt.Sprintf("You no longer hold the position %s at %s ", e.Position().String(), dbEnterprise.Name()),
-					Link:      "/",
+					OwnerID:     e.UserID(),
+					ThumbnailID: dbEnterprise.Name(),
+					Thumbnail:   dbEnterprise.LogoIMG(),
+					Title:       fmt.Sprintf("Your work has end at %s", dbEnterprise.Name()),
+					Content:     fmt.Sprintf("You no longer hold the position %s at %s ", e.Position().String(), dbEnterprise.Name()),
+					Link:        "/",
 				}.SaveNew(ctx)
 				return nil
 			}
@@ -487,7 +516,7 @@ func (command EnterpriseCommand) FireEmployee(
 			return reflect.TypeOf(&enterprise.EmployeeFired{})
 		},
 	})
-	user, err := dbEnterprise.FireEmployee(ctx, employeeID)
+	user, err := dbEnterprise.FireEmployee(ctx, command.OwnerID, employeeID)
 	if err != nil {
 		return err
 	}
@@ -515,29 +544,43 @@ func (command EnterpriseCommand) PromoteEmployee(
 		command.Name,
 	)
 	if err != nil {
+
 		return ErrNotFound
 	}
 	employeeID, err := uuid.Parse(command.EmployeeID)
 	if err != nil {
+
 		return ErrBadRequest
 	}
 	position := enterprise.ParsePosition(command.Position)
+	slice := dbEnterprise.Employees().ToSlice()
+	index, ok := slices.BinarySearchFunc(slice, employeeID, func(i enterprise.Employee, j uuid.UUID) int {
+		if i.ID() == j {
+			return 0
+		}
+		return -1
+	})
+	if !ok {
+		return ErrNotFound
+	}
+	user := slice[index].GetUser()
 	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
 		HandleEvent: func(event domain.DomainEvent) error {
-			if e, ok := event.(*enterprise.EmployeeFired); ok {
+			if e, ok := event.(*enterprise.EmployeePromoted); ok {
 				NotificationCommand{
-					OwnerID:   e.UserID(),
-					Thumbnail: dbEnterprise.LogoIMG(),
-					Title:     fmt.Sprintf("Your work has end at %s", dbEnterprise.Name()),
-					Content:   fmt.Sprintf("You no longer hold the position %s at %s ", e.Position().String(), dbEnterprise.Name()),
-					Link:      "/",
+					OwnerID:     user.Email(),
+					Thumbnail:   dbEnterprise.LogoIMG(),
+					ThumbnailID: dbEnterprise.Name(),
+					Title:       fmt.Sprintf("You have been promoted in %s", dbEnterprise.Name()),
+					Content:     fmt.Sprintf("You have been promoted to %s at %s", e.Position().String(), dbEnterprise.Name()),
+					Link:        "/",
 				}.SaveNew(ctx)
 				return nil
 			}
-			return &erros.ValueNotFoundError{}
+			return nil
 		},
 		SubscribedToEventType: func() reflect.Type {
-			return reflect.TypeOf(&enterprise.EmployeeFired{})
+			return reflect.TypeOf(&enterprise.EmployeePromoted{})
 		},
 	})
 	updatedUser, err := dbEnterprise.PromoteEmployee(ctx, command.TriggeredByID, employeeID, position)
@@ -553,5 +596,94 @@ func (command EnterpriseCommand) PromoteEmployee(
 		return err
 	}
 	return nil
+}
 
+func (command EnterpriseCommand) ReplyChat(
+	ctx context.Context,
+) error {
+	if command.ID == "" ||
+		command.SenderID == "" ||
+		command.Content == "" {
+		return ErrBadRequest
+	}
+	sender, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(
+		ctx,
+		command.SenderID,
+	)
+	if err != nil {
+		return ErrNotFound
+	}
+	chatID, err := enterprise.NewChatID(command.ID)
+	if err != nil {
+		return err
+	}
+	dbChat, err := repositories.MapperRegistryInstance().Get("Chat").(repositories.ChatRepository).Get(
+		ctx,
+		*chatID,
+	)
+	var reply enterprise.Reply
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			dbChat = enterprise.NewChatEntity(
+				*chatID,
+			)
+			reply = dbChat.Reply(uuid.New(), *sender, command.Content)
+			err = repositories.MapperRegistryInstance().Get("Chat").(repositories.ChatRepository).Save(ctx, dbChat)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		reply = dbChat.Reply(uuid.New(), *sender, command.Content)
+		err = repositories.MapperRegistryInstance().Get("Chat").(repositories.ChatRepository).Update(ctx, dbChat)
+		if err != nil {
+			return err
+		}
+	}
+	cache.RequestChannel <- cache.Request{
+		Type:    cache.WRITE,
+		Key:     command.ID,
+		Payload: dto.NewChatReply(reply),
+	}
+	return nil
+}
+func (command EnterpriseCommand) MarkAsSeen(ctx context.Context) error {
+	if command.RepliesID == nil || len(command.RepliesID) == 0 || command.ID == "" {
+		return ErrBadRequest
+	}
+	parseIds := make([]uuid.UUID, len(command.RepliesID))
+	for _, replyID := range command.RepliesID {
+		parsedReplyID, err := uuid.Parse(replyID)
+		if err != nil {
+			return ErrBadRequest
+		}
+		parseIds = append(parseIds, parsedReplyID)
+	}
+	chatID, err := enterprise.NewChatID(command.ID)
+	if err != nil {
+		return err
+	}
+	parsedIds := mapset.NewSet(parseIds...)
+	r := repositories.MapperRegistryInstance().Get("Chat").(repositories.ChatRepository)
+	dbChat, err := r.Get(ctx, *chatID)
+	if err != nil {
+		return err
+	}
+	dbChat.MarkAsSeen(parsedIds)
+	err = r.Update(ctx, dbChat)
+	if err != nil {
+		return err
+	}
+	replies := dbChat.Replies()
+	dtos := make([]*dto.ChatReply, 0, len(replies))
+	for _, reply := range replies {
+		dtos = append(dtos, dto.NewChatReply(*reply))
+	}
+	cache.RequestChannel <- cache.Request{
+		Key:     fmt.Sprintf("complaintLastReply:%s", chatID.String()),
+		Payload: dtos,
+	}
+	return nil
 }

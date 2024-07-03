@@ -12,6 +12,7 @@ import (
 // <<Domain event>> Implements domain.DomainEvent
 type EmployeeHired struct {
 	enterpriseName string
+	emitedBy       string
 	employeeID     uuid.UUID
 	employeeEmail  string
 	position       Position
@@ -20,15 +21,23 @@ type EmployeeHired struct {
 
 func NewEmployeeHired(
 	enterpriseName string,
+	emitedBy string,
 	employeeID uuid.UUID,
 	employeeEmail string,
 	position Position,
 ) *EmployeeHired {
 	return &EmployeeHired{
 		enterpriseName: enterpriseName,
+		emitedBy:       emitedBy,
 		employeeID:     employeeID,
+		employeeEmail:  employeeEmail,
+		position:       position,
 		occurredOn:     time.Now(),
 	}
+}
+
+func (eh EmployeeHired) EmitedBy() string {
+	return eh.emitedBy
 }
 
 func (eh *EmployeeHired) EmployeeEmail() string {
@@ -54,12 +63,14 @@ func (eh *EmployeeHired) OccurredOn() time.Time {
 func (eh *EmployeeHired) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
 		EnterpriseName string `json:"enterprise_name"`
+		EmitedBy       string `json:"emited_by"`
 		EmployeeID     string `json:"employee_id"`
 		EmployeeEmail  string `json:"employee_email"`
 		Position       string `json:"position"`
 		OccurredOn     string `json:"occurred_on"`
 	}{
 		EnterpriseName: eh.enterpriseName,
+		EmitedBy:       eh.emitedBy,
 		EmployeeID:     eh.employeeID.String(),
 		EmployeeEmail:  eh.employeeEmail,
 		Position:       eh.position.String(),
@@ -74,6 +85,7 @@ func (eh *EmployeeHired) MarshalJSON() ([]byte, error) {
 func (eh *EmployeeHired) UnmarshalJSON(data []byte) error {
 	aux := struct {
 		EnterpriseName string `json:"enterprise_name"`
+		EmitedBy       string `json:"emited_by"`
 		EmployeeID     string `json:"employee_id"`
 		EmployeeEmail  string `json:"employee_email"`
 		Position       string `json:"position"`
@@ -83,6 +95,7 @@ func (eh *EmployeeHired) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	eh.emitedBy = aux.EmitedBy
 	eh.employeeEmail = aux.EmployeeEmail
 	eh.position = ParsePosition(aux.Position)
 	eh.enterpriseName = aux.EnterpriseName

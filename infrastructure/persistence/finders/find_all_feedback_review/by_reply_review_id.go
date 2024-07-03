@@ -12,8 +12,7 @@ func ByReplyReviewID(replyReviewID uuid.UUID) *ReplyReviewID {
 		query: string(`
 		SELECT 
 		id,
-		reviewer_id,
-		reviewed_at,
+		feedback_id,
 		review_comment
 		FROM feedback_reviews
 		WHERE ID = $1

@@ -5,6 +5,9 @@ import "github.com/graphql-go/graphql"
 var NotificationsType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Notifications",
 	Fields: graphql.Fields{
+		"id": &graphql.Field{
+			Type: graphql.String,
+		},
 		"ownerID": &graphql.Field{
 			Type: graphql.String,
 		},
@@ -22,6 +25,9 @@ var NotificationsType = graphql.NewObject(graphql.ObjectConfig{
 		},
 		"seen": &graphql.Field{
 			Type: graphql.Boolean,
+		},
+		"occurredOn": &graphql.Field{
+			Type: graphql.String,
 		},
 	},
 })

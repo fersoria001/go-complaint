@@ -2,10 +2,32 @@ package datasource
 
 import (
 	"context"
-	"fmt"
+	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+func Config() *pgxpool.Config {
+	var defaultMaxConns = int32(100)
+	var defaultMinConns = int32(0)
+	var defaultMaxConnLifetime = time.Hour
+	var defaultMaxConnIdleTime = time.Minute * 30
+	var defaultHealthCheckPeriod = time.Minute
+	var defaultConnectTimeout = time.Second * 5
+	var DATABASE_URL string = os.Getenv("DATABASE_URL")
+	dbConfig, err := pgxpool.ParseConfig(DATABASE_URL)
+	dbConfig.MaxConns = defaultMaxConns
+	dbConfig.MinConns = defaultMinConns
+	dbConfig.MaxConnLifetime = defaultMaxConnLifetime
+	dbConfig.MaxConnIdleTime = defaultMaxConnIdleTime
+	dbConfig.HealthCheckPeriod = defaultHealthCheckPeriod
+	dbConfig.ConnConfig.ConnectTimeout = defaultConnectTimeout
+	if err != nil {
+		return nil
+	}
+	return dbConfig
+}
 
 type Schema interface {
 	Acquire(ctx context.Context) (*pgxpool.Conn, error)
@@ -13,31 +35,12 @@ type Schema interface {
 }
 
 type PGSQLSchema struct {
-	host       string
-	port       int
-	user       string
-	dbname     string
-	schemaName string
-	maxConn    int
-	pool       *pgxpool.Pool
+	pool *pgxpool.Pool
 }
 
 func NewPGSqlSchema(ctx context.Context) (*PGSQLSchema, error) {
-	host := "localhost"
-	port := 5432
-	user := "postgres"
-	dbname := "postgres"
-	schemaName := "public"
-	maxConn := 100
-	p := &PGSQLSchema{
-		host:       host,
-		port:       port,
-		user:       user,
-		dbname:     dbname,
-		schemaName: schemaName,
-		maxConn:    maxConn,
-	}
-	pool, err := pgxpool.New(ctx, p.ConnectionString())
+	p := &PGSQLSchema{}
+	pool, err := pgxpool.NewWithConfig(ctx, Config())
 	if err != nil {
 		return p, err
 	}
@@ -54,7 +57,5 @@ func (p PGSQLSchema) Acquire(ctx context.Context) (*pgxpool.Conn, error) {
 }
 
 func (p *PGSQLSchema) ConnectionString() string {
-	password := "sfdkwtf"
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?pool_max_conns=%d&search_path=%s&connect_timeout=5",
-		p.user, password, p.host, p.port, p.dbname, p.maxConn, p.schemaName)
+	return os.Getenv("DATABASE_URL")
 }

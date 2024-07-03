@@ -13,7 +13,10 @@ func ByComplaintID(complaintID uuid.UUID) *ComplaintID {
 		SELECT 
 			id,
 			complaint_id,
-			reviewed_id
+			enterprise_id,
+			reviewed_at,
+			updated_at,
+			is_done
 		FROM feedback
 		WHERE complaint_id = $1`),
 		args: []interface{}{complaintID},

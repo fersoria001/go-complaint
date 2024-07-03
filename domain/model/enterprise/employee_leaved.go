@@ -107,6 +107,7 @@ func (ef *EmployeeLeaved) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	ef.userID = aux.UserID
 	ef.id, err = uuid.Parse(aux.ID)
 	if err != nil {
 		return err

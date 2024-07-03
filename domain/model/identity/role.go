@@ -25,12 +25,6 @@ func (r RolesEnum) String() string {
 
 func ParseRole(role string) (RolesEnum, error) {
 	switch role {
-	case "Not assigned":
-		return -1, &erros.OutOfRangeError{}
-	case "Assistant":
-		return ASSISTANT, nil
-	case "Manager":
-		return MANAGER, nil
 	case "ASSISTANT":
 		return ASSISTANT, nil
 	case "MANAGER":

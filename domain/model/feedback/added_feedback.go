@@ -87,3 +87,19 @@ func (f *AddedFeedback) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+func (f AddedFeedback) FeedbackID() uuid.UUID {
+	return f.feedbackID
+}
+
+func (f AddedFeedback) ComplaintID() uuid.UUID {
+	return f.complaintID
+}
+
+func (f AddedFeedback) ReviewerID() string {
+	return f.reviewerID
+}
+
+func (f AddedFeedback) ReviewedID() string {
+	return f.reviewedID
+}

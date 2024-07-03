@@ -9,20 +9,20 @@ func NewByReceiverIDWithLimitAndOffset(receiverID string, limit, offset int) *By
 	return &ByReceiverIDWithLimitAndOffset{
 		query: string(`
 	SELECT
-	"complaint".id,
-	"complaint".author_id,
-	"complaint".receiver_id,
-	"complaint".complaint_status,
-	"complaint".title,
-	"complaint".complaint_description,
-	"complaint".body,
-	"complaint".rating_rate,
-	"complaint".rating_comment,
-	"complaint".created_at,
-	"complaint".updated_at
+	id,
+	author_id,
+	receiver_id,
+	complaint_status,
+	title,
+	complaint_description,
+	body,
+	rating_rate,
+	rating_comment,
+	created_at,
+	updated_at
 	FROM 
-	public."complaint"
-	WHERE "complaint".receiver_id = $1
+	complaint
+	WHERE receiver_id = $1
 	LIMIT $2
 	OFFSET $3
 	`),

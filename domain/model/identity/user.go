@@ -23,6 +23,31 @@ type User struct {
 	*Person
 }
 
+func (user *User) RejectHiringInvitation(
+	ctx context.Context,
+	enterpriseID string,
+	rejectionReason string,
+	proposedPosition RolesEnum,
+) error {
+	var (
+		publisher = domain.DomainEventPublisherInstance()
+		err       error
+	)
+	err = publisher.Publish(
+		ctx,
+		NewHiringInvitationRejected(
+			enterpriseID,
+			user.Email(),
+			rejectionReason,
+			proposedPosition,
+		),
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (user *User) AcceptHiringInvitation(
 	ctx context.Context,
 	enterpriseID string,
@@ -107,7 +132,7 @@ func CreateUser(
 		password,
 		registerDate,
 		person,
-		false,
+		true,
 		emptyUserRoles,
 	)
 	if err != nil {

@@ -1,46 +1,18 @@
-import { isRouteErrorResponse, useParams, useRouteError } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
+
 
 export function ErrorPage() {
-  const error = useRouteError();
-  const { message } = useParams();
-  if (isRouteErrorResponse(error)) {
-    if (error.status === 401) {
-      // ...
-    }
-    else if (error.status === 404) {
-      // ...
-    }
+  return (
+    <div className="h-screen bg-white flex flex-col">
+      <div className="bg-white shadow rounded-md border h-1/2 w-1/2 self-center p-5 mt-12 flex flex-col justify-center">
+        <h1 className="self-center text-2xl font-bold text-red-600">We encountered an error</h1>
+        <p className="self-center text-gray-500">We are working  hard to solve it</p>
+        <Link to="/" className="self-center text-gray-600">Go back to Home</Link>
+      </div>
+    </div>
+  );
 
-    return (
-      <div id="error-page">
-        <h1>Oops! {error.status}</h1>
-        <p>{error.statusText}</p>
-        {error.data?.message && (
-          <p>
-            <i>{error.data.message}</i>
-          </p>
-        )}
-      </div>
-    );
-  } else if (error instanceof Error) {
-    return (
-      <div id="error-page">
-        <h1>Oops! Unexpected Error</h1>
-        <p>Something went wrong.</p>
-        <p>
-          <i>{error.message}</i>
-        </p>
-      </div>
-    );
-  } else if (message) {
-    return (
-      <div id="error-page">
-        <h1>Oops! Unexpected Error</h1>
-        <p>Something went wrong.</p>
-        <p>
-          <i>{message}</i>
-        </p>
-      </div>
-    );
-  }
+
+
 }
+export default ErrorPage;

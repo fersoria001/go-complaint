@@ -11,6 +11,9 @@ var ReplyReviewType = graphql.NewObject(graphql.ObjectConfig{
 		"feedbackID": &graphql.Field{
 			Type: graphql.String,
 		},
+		"reviewer": &graphql.Field{
+			Type: UserType,
+		},
 		"replies": &graphql.Field{
 			Type: graphql.NewList(ComplaintReplyType),
 		},
@@ -18,6 +21,9 @@ var ReplyReviewType = graphql.NewObject(graphql.ObjectConfig{
 			Type: ReviewType,
 		},
 		"color": &graphql.Field{
+			Type: graphql.String,
+		},
+		"createdAt": &graphql.Field{
 			Type: graphql.String,
 		},
 	},

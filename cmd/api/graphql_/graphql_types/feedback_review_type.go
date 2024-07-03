@@ -8,12 +8,6 @@ var ReviewType = graphql.NewObject(graphql.ObjectConfig{
 		"replyReviewID": &graphql.Field{
 			Type: graphql.String,
 		},
-		"reviewerID": &graphql.Field{
-			Type: graphql.String,
-		},
-		"reviewedAt": &graphql.Field{
-			Type: graphql.String,
-		},
 		"comment": &graphql.Field{
 			Type: graphql.String,
 		},

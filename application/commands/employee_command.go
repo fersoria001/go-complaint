@@ -2,7 +2,12 @@ package commands
 
 import (
 	"context"
+	"fmt"
+	"go-complaint/domain"
+	"go-complaint/domain/model/enterprise"
+	"go-complaint/erros"
 	"go-complaint/infrastructure/persistence/repositories"
+	"reflect"
 
 	"github.com/google/uuid"
 )
@@ -23,6 +28,30 @@ func (command EmployeeCommand) LeaveEnterprise(
 	if err != nil {
 		return err
 	}
+	r := repositories.MapperRegistryInstance().Get("Employee").(repositories.EmployeeRepository)
+	emp, err := r.Get(ctx, parsedID)
+	if err != nil {
+		return err
+	}
+	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
+		HandleEvent: func(event domain.DomainEvent) error {
+			if e, ok := event.(*enterprise.EmployeeLeaved); ok {
+				NotificationCommand{
+					OwnerID:     e.EnterpriseID(),
+					ThumbnailID: emp.Email(),
+					Thumbnail:   emp.ProfileIMG(),
+					Title:       fmt.Sprintf("%s has leaved %s", emp.FullName(), dbEnterprise.Name()),
+					Content:     fmt.Sprintf("%s is no longer part of %s", emp.FullName(), dbEnterprise.Name()),
+					Link:        fmt.Sprintf("/%s/employees", dbEnterprise.Name()),
+				}.SaveNew(ctx)
+				return nil
+			}
+			return &erros.ValueNotFoundError{}
+		},
+		SubscribedToEventType: func() reflect.Type {
+			return reflect.TypeOf(&enterprise.EmployeeLeaved{})
+		},
+	})
 	user, err := dbEnterprise.EmployeeLeave(ctx, parsedID)
 	if err != nil {
 		return err

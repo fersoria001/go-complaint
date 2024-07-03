@@ -24,7 +24,7 @@ var query = graphql.NewObject(graphql.ObjectConfig{
 			Resolve:     user_resolvers.SignInResolver,
 		},
 		"Login": &graphql.Field{
-			Type:        graphql.String,
+			Type:        graphql_types.JwtTokenType,
 			Description: "Authenticate the user with the token and confirmation code it got the token from the request header",
 			Args: graphql.FieldConfigArgument{
 				"confirmationCode": &graphql.ArgumentConfig{
@@ -55,6 +55,24 @@ var query = graphql.NewObject(graphql.ObjectConfig{
 			Args:        graphql_arguments.StringID,
 			Resolve:     enterprise_resolvers.IsEnterpriseNameAvailableResolver,
 		},
+		"HiringProcceses": &graphql.Field{
+			Type:        graphql_types.HiringProccessListType,
+			Description: "Get the list of hiring invitations accepted",
+			Args:        graphql_arguments.StringIDWithPaginationAndQuery,
+			Resolve:     enterprise_resolvers.HiringProccesesResolver,
+		},
+		"OnlineUsers": &graphql.Field{
+			Type:        graphql.NewList(graphql_types.UserType),
+			Description: "Get the list of online users",
+			Args:        graphql_arguments.StringID,
+			Resolve:     enterprise_resolvers.OnlineUsersResolver,
+		},
+		"EnterpriseChat": &graphql.Field{
+			Type:        graphql_types.EnterpriseChatType,
+			Description: "Get the chat for the enterprise",
+			Args:        graphql_arguments.EnterpriseChatArgument,
+			Resolve:     enterprise_resolvers.EnterpriseChatResolver,
+		},
 		"Employee": &graphql.Field{
 			Type:        graphql_types.EmployeeType,
 			Description: "Get the employee by it's ID, enterpriseID required for auth for authorization",
@@ -67,17 +85,18 @@ var query = graphql.NewObject(graphql.ObjectConfig{
 			Args:        graphql_arguments.EmployeeActionArgument,
 			Resolve:     employee_resolvers.EmployeesResolver,
 		},
-
 		"HiringInvitations": &graphql.Field{
 			Type:        graphql.NewList(graphql_types.HiringInvitationType),
 			Description: "Get the list of hiring invitations",
 			Resolve:     user_resolvers.HiringInvitationsResolver,
 		},
 		"UsersForHiring": &graphql.Field{
-			Type:        graphql.NewList(graphql_types.UserType),
+			Type:        graphql_types.UserListType,
 			Description: "Get the list of users for hiring",
+			Args:        graphql_arguments.StringIDWithPaginationAndQuery,
 			Resolve:     user_resolvers.UsersForHiringResolver,
 		},
+
 		"Countries": &graphql.Field{
 			Type:        graphql.NewList(graphql_types.CountryType),
 			Description: "Get the list of countries",
@@ -101,18 +120,35 @@ var query = graphql.NewObject(graphql.ObjectConfig{
 			Description: "Get the list of industries",
 			Resolve:     industry_resolvers.IndustriesResolver,
 		},
-
 		"FindComplaintReceivers": &graphql.Field{
 			Type:        graphql.NewList(graphql_types.ComplaintReceiverType),
 			Description: "Find the receivers for a complaint",
 			Args:        graphql_arguments.SearchTermArgument,
 			Resolve:     complaint_resolvers.FindComplaintReceiversResolver,
 		},
+		"FindAuthorByID": &graphql.Field{
+			Type:        graphql_types.ComplaintReceiverType,
+			Description: "Find the author by ID",
+			Args:        graphql_arguments.StringID,
+			Resolve:     complaint_resolvers.FindAuthorByIDResolver,
+		},
+		"IsValidComplaintReceiver": &graphql.Field{
+			Type:        graphql.Boolean,
+			Description: "Check if the receiver is valid for a complaint",
+			Args:        graphql_arguments.StringID,
+			Resolve:     complaint_resolvers.IsValidComplaintReceiverResolver,
+		},
 		"Complaint": &graphql.Field{
 			Type:        graphql_types.ComplaintType,
 			Description: "Get a complaint by it's ID",
 			Args:        graphql_arguments.StringID,
 			Resolve:     complaint_resolvers.ComplaintResolver,
+		},
+		"ComplaintsReceivedInfo": &graphql.Field{
+			Type:        graphql_types.ComplaintInfoType,
+			Description: "Get the complaints received info for the current user",
+			Args:        graphql_arguments.StringID,
+			Resolve:     complaint_resolvers.ComplaintsReceivedInfoResolver,
 		},
 		"PendingComplaintReviews": &graphql.Field{
 			Type:        graphql.NewList(graphql_types.PendingReviewType),
@@ -126,11 +162,23 @@ var query = graphql.NewObject(graphql.ObjectConfig{
 			Args:        graphql_arguments.ComplaintListArgument,
 			Resolve:     complaint_resolvers.ComplaintInboxResolver,
 		},
+		"ComplaintInboxSearch": &graphql.Field{
+			Type:        graphql_types.ComplaintListType,
+			Description: "Search the inbox complaints for the current user",
+			Args:        graphql_arguments.ComplaintListArgument,
+			Resolve:     complaint_resolvers.ComplaintInboxSearchResolver,
+		},
 		"ComplaintsSent": &graphql.Field{
 			Type:        graphql_types.ComplaintListType,
 			Description: "Get the list of sent complaints for the current user",
 			Args:        graphql_arguments.ComplaintListArgument,
 			Resolve:     complaint_resolvers.ComplaintsSentResolver,
+		},
+		"ComplaintsSentSearch": &graphql.Field{
+			Type:        graphql_types.ComplaintListType,
+			Description: "Get the list of sent complaints for the current user",
+			Args:        graphql_arguments.ComplaintListArgument,
+			Resolve:     complaint_resolvers.ComplaintSentSearchResolver,
 		},
 		"ComplaintHistory": &graphql.Field{
 			Type:        graphql_types.ComplaintListType,
@@ -145,18 +193,18 @@ var query = graphql.NewObject(graphql.ObjectConfig{
 			Resolve:     employee_resolvers.SolvedComplaintsResolver,
 		},
 		"FeedbackByComplaintID": &graphql.Field{
-			Type:        graphql.NewList(graphql_types.FeedbackType),
+			Type:        graphql_types.FeedbackType,
 			Description: "Get the feedback by complaint ID",
 			Args:        graphql_arguments.StringID,
 			Resolve:     feedback_resolvers.FeedbackByComplaintIDResolver,
 		},
-		"FeedbackByReviewerID": &graphql.Field{
-			Type:        graphql.NewList(graphql_types.FeedbackType),
+		"FeedbackByID": &graphql.Field{
+			Type:        graphql_types.FeedbackType,
 			Description: "Get the reviews by reviewer ID",
 			Args:        graphql_arguments.StringID,
-			Resolve:     feedback_resolvers.FeedbackByReviewerIDResolver,
+			Resolve:     feedback_resolvers.FeedbackByIDResolver,
 		},
-		"FeedbackByRevieeID": &graphql.Field{
+		"FeedbackByRevieweeID": &graphql.Field{
 			Type:        graphql.NewList(graphql_types.FeedbackType),
 			Description: "Get the reviews by reviee ID",
 			Args:        graphql_arguments.StringID,

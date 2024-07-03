@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 	"go-complaint/erros"
+	"os"
+	"strconv"
 )
 
 type Configuration struct {
@@ -11,9 +13,14 @@ type Configuration struct {
 }
 
 func NewConfiguration(options ...OptionsConfigurationFunc) (*Configuration, error) {
+	portv := os.Getenv("PORT")
+	port, err := strconv.Atoi(portv)
+	if err != nil {
+		return nil, err
+	}
 	c := &Configuration{
-		host: "127.0.0.1",
-		port: 8080,
+		host: os.Getenv("HOST"),
+		port: port,
 	}
 	for _, option := range options {
 		err := option(c)

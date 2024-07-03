@@ -1,5 +1,5 @@
 import IconsProps from "./IconsProps";
-function StarIcon({ fill }: IconsProps) {
+function PlainStarIcon({ fill }: IconsProps) {
     return <svg
         xmlns="http://www.w3.org/2000/svg"
         height="24px"
@@ -11,4 +11,4 @@ function StarIcon({ fill }: IconsProps) {
     </svg>
 }
 
-export default StarIcon;
+export default PlainStarIcon;

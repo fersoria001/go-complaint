@@ -9,6 +9,15 @@ var ComplaintListArgument = graphql.FieldConfigArgument{
 	"status": &graphql.ArgumentConfig{
 		Type: graphql.String,
 	},
+	"term": &graphql.ArgumentConfig{
+		Type: graphql.String,
+	},
+	"afterDate": &graphql.ArgumentConfig{
+		Type: graphql.String,
+	},
+	"beforeDate": &graphql.ArgumentConfig{
+		Type: graphql.String,
+	},
 	"limit": &graphql.ArgumentConfig{
 		Type: graphql.Int,
 	},

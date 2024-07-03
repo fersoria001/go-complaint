@@ -11,7 +11,19 @@ var ComplaintType = graphql.NewObject(graphql.ObjectConfig{
 		"authorID": &graphql.Field{
 			Type: graphql.String,
 		},
+		"authorFullName": &graphql.Field{
+			Type: graphql.String,
+		},
+		"authorProfileIMG": &graphql.Field{
+			Type: graphql.String,
+		},
 		"receiverID": &graphql.Field{
+			Type: graphql.String,
+		},
+		"receiverFullName": &graphql.Field{
+			Type: graphql.String,
+		},
+		"receiverProfileIMG": &graphql.Field{
 			Type: graphql.String,
 		},
 		"status": &graphql.Field{

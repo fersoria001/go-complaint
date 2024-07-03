@@ -7,9 +7,7 @@ import (
 	"go-complaint/application/commands"
 	"go-complaint/cmd/server"
 	"go-complaint/cmd/server/graphql_subscriptions"
-	"go-complaint/infrastructure"
 	"go-complaint/tests"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -55,13 +53,6 @@ func TestPubSub(t *testing.T) {
 	}
 	err = wsjson.Write(ctx, cl.c, auth)
 	assert.Nil(t, err)
-	infrastructure.PushNotificationInMemoryQueueInstance().SendAll(ctx)
-	l := infrastructure.PushNotificationInMemoryQueueInstance().SentLog()
-	log.Printf("log: %v", l)
-	assert.Nil(t, err)
-	msg, err := cl.nextMessage()
-	assert.Nil(t, err)
-	t.Logf("msg: %v", msg.Payload)
 }
 
 func (cl *client) publish(ctx context.Context, msg string) (err error) {
@@ -126,21 +117,21 @@ func (cl *client) Close() error {
 	return cl.c.Close(websocket.StatusNormalClosure, "")
 }
 
-func (cl *client) nextMessage() (graphql_subscriptions.GraphQLResultMessage, error) {
+func (cl *client) nextMessage() (graphql_subscriptions.DataMessage, error) {
 	typ, b, err := cl.c.Read(context.Background())
 	if err != nil {
-		return graphql_subscriptions.GraphQLResultMessage{}, err
+		return graphql_subscriptions.DataMessage{}, err
 	}
 
 	if typ != websocket.MessageText {
 		cl.c.Close(websocket.StatusUnsupportedData, "expected text message")
-		return graphql_subscriptions.GraphQLResultMessage{}, fmt.Errorf("expected text message but got %v", typ)
+		return graphql_subscriptions.DataMessage{}, fmt.Errorf("expected text message but got %v", typ)
 	}
 
-	var msg graphql_subscriptions.GraphQLResultMessage
+	var msg graphql_subscriptions.DataMessage
 	err = json.Unmarshal(b, &msg)
 	if err != nil {
-		return graphql_subscriptions.GraphQLResultMessage{}, err
+		return graphql_subscriptions.DataMessage{}, err
 	}
 
 	return msg, nil

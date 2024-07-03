@@ -4,29 +4,36 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/complaint"
 	"go-complaint/dto"
-	"go-complaint/infrastructure"
-	"go-complaint/infrastructure/persistence/counters/count_complaints_where"
+	"math"
+
+	"go-complaint/infrastructure/persistence/counters/count_complaints"
 	"go-complaint/infrastructure/persistence/finders/find_all_complaints"
 	"go-complaint/infrastructure/persistence/finders/find_all_enterprises"
 	"go-complaint/infrastructure/persistence/finders/find_all_events"
 	"go-complaint/infrastructure/persistence/finders/find_all_users"
 	"go-complaint/infrastructure/persistence/repositories"
+	"go-complaint/infrastructure/trie"
 	"net/mail"
+	"slices"
 
 	"github.com/google/uuid"
 )
 
 type ComplaintQuery struct {
-	Term       string `json:"term"`
-	ID         string `json:"id"`
-	ReceiverID string `json:"receiver_id"`
-	AuthorID   string `json:"author_id"`
-	Limit      int    `json:"limit"`
-	Offset     int    `json:"offset"`
-	UserID     string `json:"user_id"`
-	Status     string `json:"status"`
+	Term         string `json:"term"`
+	ID           string `json:"id"`
+	ReceiverID   string `json:"receiver_id"`
+	ReceiverName string `json:"receiver_name"`
+	AuthorID     string `json:"author_id"`
+	Limit        int    `json:"limit"`
+	Offset       int    `json:"offset"`
+	UserID       string `json:"user_id"`
+	Status       string `json:"status"`
+	AfterDate    string `json:"after_date"`
+	BeforeDate   string `json:"before_date"`
 }
 
 /*
@@ -38,6 +45,9 @@ Package queries
 func (query ComplaintQuery) FindReceivers(
 	ctx context.Context,
 ) ([]dto.ComplaintReceiver, error) {
+	if query.ID == "" {
+		return nil, ErrBadRequest
+	}
 	enterpriseReceivers, err := repositories.MapperRegistryInstance().Get(
 		"Enterprise",
 	).(repositories.EnterpriseRepository).FindAll(
@@ -51,27 +61,86 @@ func (query ComplaintQuery) FindReceivers(
 		"User",
 	).(repositories.UserRepository).FindAll(
 		ctx,
-		find_all_users.NewByFirstNameOrLastNameLike(query.Term),
+		find_all_users.ByFullNameLike(query.Term),
 	)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]dto.ComplaintReceiver, 0, enterpriseReceivers.Cardinality()+userReceivers.Cardinality())
 	for enterpriseReceiver := range enterpriseReceivers.Iter() {
-		result = append(result, dto.ComplaintReceiver{
-			ID:        enterpriseReceiver.Name(),
-			FullName:  enterpriseReceiver.Name(),
-			Thumbnail: enterpriseReceiver.LogoIMG(),
-		})
+		if enterpriseReceiver.Name() != query.ID {
+			result = append(result, dto.ComplaintReceiver{
+				ID:        enterpriseReceiver.Name(),
+				FullName:  enterpriseReceiver.Name(),
+				Thumbnail: enterpriseReceiver.LogoIMG(),
+			})
+		}
 	}
 	for userReceiver := range userReceivers.Iter() {
-		result = append(result, dto.ComplaintReceiver{
+		if userReceiver.Email() != query.ID {
+			result = append(result, dto.ComplaintReceiver{
+				ID:        userReceiver.Email(),
+				FullName:  userReceiver.FullName(),
+				Thumbnail: userReceiver.ProfileIMG(),
+			})
+		}
+	}
+	return result, nil
+}
+
+func (query ComplaintQuery) FindAuthor(
+	ctx context.Context,
+) (dto.ComplaintReceiver, error) {
+	if query.AuthorID == "" {
+		return dto.ComplaintReceiver{}, ErrBadRequest
+	}
+	enterpriseReceiver, err := repositories.MapperRegistryInstance().Get(
+		"Enterprise",
+	).(repositories.EnterpriseRepository).Get(ctx, query.AuthorID)
+	if err != nil {
+		userReceiver, err := repositories.MapperRegistryInstance().Get(
+			"User",
+		).(repositories.UserRepository).Get(ctx, query.AuthorID)
+		if err != nil {
+			return dto.ComplaintReceiver{}, err
+		}
+		return dto.ComplaintReceiver{
 			ID:        userReceiver.Email(),
 			FullName:  userReceiver.FullName(),
 			Thumbnail: userReceiver.ProfileIMG(),
-		})
+		}, nil
 	}
-	return result, nil
+	return dto.ComplaintReceiver{
+		ID:        enterpriseReceiver.Name(),
+		FullName:  enterpriseReceiver.Name(),
+		Thumbnail: enterpriseReceiver.LogoIMG(),
+	}, nil
+}
+
+func (query ComplaintQuery) IsValidComplaintReceiver(
+	ctx context.Context,
+) bool {
+	if query.ReceiverID == "" {
+		return false
+	}
+	_, err := repositories.MapperRegistryInstance().Get(
+		"Enterprise",
+	).(repositories.EnterpriseRepository).Get(
+		ctx,
+		query.ReceiverID,
+	)
+	if err != nil {
+		_, err = repositories.MapperRegistryInstance().Get(
+			"User",
+		).(repositories.UserRepository).Get(
+			ctx,
+			query.ReceiverID,
+		)
+		if err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 /*
@@ -90,7 +159,7 @@ func (query ComplaintQuery) Inbox(
 		"Complaint",
 	).(repositories.ComplaintRepository).Count(
 		ctx,
-		count_complaints_where.NewReceiverID(query.ReceiverID),
+		count_complaints.WhereReceiverID(query.ReceiverID),
 	)
 	if err != nil {
 		return dto.ComplaintListDTO{}, err
@@ -114,19 +183,112 @@ func (query ComplaintQuery) Inbox(
 	complaints := make([]dto.ComplaintDTO, 0, received.Cardinality())
 	for c := range received.Iter() {
 		complaints = append(complaints, dto.NewComplaintDTO(c))
-		if _, err := mail.ParseAddress(c.AuthorID()); err == nil {
-			author, err := repositories.MapperRegistryInstance().Get(
-				"User",
-			).(repositories.UserRepository).Get(
-				ctx,
-				c.AuthorID(),
-			)
-			if err != nil {
-				return dto.ComplaintListDTO{}, err
-			}
-			complaints[len(complaints)-1].AuthorFullName = author.FullName()
+	}
+	return dto.ComplaintListDTO{
+		Complaints:    complaints,
+		Count:         count,
+		CurrentLimit:  query.Limit,
+		CurrentOffset: query.Offset,
+	}, nil
+}
+
+func (query ComplaintQuery) InboxSearch(
+	ctx context.Context,
+) (dto.ComplaintListDTO, error) {
+	if query.ReceiverID == "" {
+		return dto.ComplaintListDTO{}, ErrBadRequest
+	}
+	received, err := repositories.MapperRegistryInstance().Get(
+		"Complaint",
+	).(repositories.ComplaintRepository).FindAll(
+		ctx,
+		find_all_complaints.ByReceiverAndStatusIn(
+			query.ReceiverID,
+			[]string{
+				complaint.OPEN.String(),
+				complaint.STARTED.String(),
+				complaint.IN_DISCUSSION.String(),
+			},
+		),
+	)
+	if err != nil {
+		return dto.ComplaintListDTO{}, err
+	}
+
+	if query.AfterDate != "" && query.BeforeDate != "" {
+		after, err := common.NewDateFromString(query.AfterDate)
+		if err != nil {
+			return dto.ComplaintListDTO{}, err
 		}
-		complaints[len(complaints)-1].AuthorFullName = c.AuthorID()
+		before, err := common.NewDateFromString(query.BeforeDate)
+		if err != nil {
+			return dto.ComplaintListDTO{}, err
+		}
+		for c := range received.Iter() {
+			if !c.CreatedAt().Date().After(after.Date()) && !c.CreatedAt().Date().Before(before.Date()) {
+				received.Remove(c)
+			}
+		}
+	}
+
+	if query.Term != "" {
+		trie := trie.NewTrie()
+		for c := range received.Iter() {
+			trie.InsertText(c.ID().String(), c.AuthorFullName(), " ")
+			trie.InsertText(c.ID().String(), c.Message().Title(), " ")
+			trie.InsertText(c.ID().String(), c.Message().Description(), " ")
+			trie.InsertText(c.ID().String(), c.Message().Body(), " ")
+			trie.InsertText(c.ID().String(), c.Status().String(), "_")
+		}
+		ids := trie.Search(query.Term)
+		if ids == nil {
+			return dto.ComplaintListDTO{
+				Complaints:    []dto.ComplaintDTO{},
+				Count:         0,
+				CurrentLimit:  query.Limit,
+				CurrentOffset: query.Offset,
+			}, nil
+		}
+		slice := received.ToSlice()
+		for c := range slice {
+			if !ids.Contains(slice[c].ID().String()) {
+				received.Remove(slice[c])
+			}
+		}
+	}
+
+	count := received.Cardinality()
+	complaints := make([]dto.ComplaintDTO, 0, count)
+
+	receivedSlice := received.ToSlice()
+
+	slices.SortStableFunc(receivedSlice, func(i, j complaint.Complaint) int {
+		if i.CreatedAt().Date().After(j.CreatedAt().Date()) {
+			return -1
+		}
+		if i.CreatedAt().Date().Before(j.CreatedAt().Date()) {
+			return 1
+		}
+		return 0
+	})
+
+	for _, c := range receivedSlice {
+		complaints = append(complaints, dto.NewComplaintDTO(c))
+	}
+	if query.Limit != 0 {
+		offset := query.Offset
+		limit := query.Limit
+		length := len(complaints)
+		offsetLimit := offset + limit
+		//offset: 0 | < len | > len
+		//limit: 10 | < len | > len
+		if offset > length {
+			return dto.ComplaintListDTO{}, fmt.Errorf("offset is greater than the length of the list")
+		}
+		if offset+limit > length {
+			offsetLimit = offset + (length - offset)
+		}
+		complaints = complaints[offset:offsetLimit]
 	}
 	return dto.ComplaintListDTO{
 		Complaints:    complaints,
@@ -152,7 +314,7 @@ func (query ComplaintQuery) Sent(
 		"Complaint",
 	).(repositories.ComplaintRepository).Count(
 		ctx,
-		count_complaints_where.NewAuthorID(query.AuthorID),
+		count_complaints.WhereAuthorID(query.AuthorID),
 	)
 	if err != nil {
 		return dto.ComplaintListDTO{}, err
@@ -198,75 +360,206 @@ func (query ComplaintQuery) Sent(
 	}, nil
 }
 
-/*
-Package queries
-<< Query >>
-@params: context.Context, AuthorID, Limit, Offset
-@returns: dto.ComplaintListDTO, error
-*/
-func (query ComplaintQuery) History(
+func (query ComplaintQuery) SentSearch(
 	ctx context.Context,
 ) (dto.ComplaintListDTO, error) {
-	if query.Status == "" || query.UserID == "" {
+	if query.AuthorID == "" {
 		return dto.ComplaintListDTO{}, ErrBadRequest
-	}
-	count, err := repositories.MapperRegistryInstance().Get(
-		"Complaint",
-	).(repositories.ComplaintRepository).Count(
-		ctx,
-		count_complaints_where.StatusAndReceiverIDOrAuthorIDAre(complaint.IN_HISTORY.String(),
-			query.UserID),
-	)
-	if err != nil {
-		return dto.ComplaintListDTO{}, err
-	}
-	if count == 0 {
-		return dto.ComplaintListDTO{}, nil
 	}
 	received, err := repositories.MapperRegistryInstance().Get(
 		"Complaint",
 	).(repositories.ComplaintRepository).FindAll(
 		ctx,
-		find_all_complaints.ByStatusStatusAndReceiverIDOrAuthorIDWithLimitAndOffset(
-			complaint.IN_HISTORY.String(),
-			query.UserID,
-			query.Limit,
-			query.Offset,
+		find_all_complaints.ByAuthorAndStatusIn(
+			query.AuthorID,
+			[]string{
+				complaint.OPEN.String(),
+				complaint.STARTED.String(),
+				complaint.IN_DISCUSSION.String(),
+			},
 		),
 	)
 	if err != nil {
 		return dto.ComplaintListDTO{}, err
 	}
-	complaints := make([]dto.ComplaintDTO, 0, received.Cardinality())
-	for c := range received.Iter() {
-		complaints = append(complaints, dto.NewComplaintDTO(c))
-		complaints[len(complaints)-1].ReceiverFullName = c.ReceiverID()
-		complaints[len(complaints)-1].AuthorFullName = c.AuthorID()
-		if _, err := mail.ParseAddress(c.AuthorID()); err == nil {
-			author, err := repositories.MapperRegistryInstance().Get(
-				"User",
-			).(repositories.UserRepository).Get(
-				ctx,
-				c.AuthorID(),
-			)
-			if err != nil {
-				return dto.ComplaintListDTO{}, err
-			}
-			complaints[len(complaints)-1].ReceiverFullName = author.FullName()
+
+	if query.AfterDate != "" && query.BeforeDate != "" {
+
+		after, err := common.NewDateFromString(query.AfterDate)
+		if err != nil {
+			return dto.ComplaintListDTO{}, err
 		}
-		if _, err := mail.ParseAddress(c.ReceiverID()); err == nil {
-			receiver, err := repositories.MapperRegistryInstance().Get(
-				"User",
-			).(repositories.UserRepository).Get(
-				ctx,
-				c.ReceiverID(),
-			)
-			if err != nil {
-				return dto.ComplaintListDTO{}, err
+		before, err := common.NewDateFromString(query.BeforeDate)
+		if err != nil {
+			return dto.ComplaintListDTO{}, err
+		}
+		for c := range received.Iter() {
+			if !c.CreatedAt().Date().After(after.Date()) && !c.CreatedAt().Date().Before(before.Date()) {
+				received.Remove(c)
 			}
-			complaints[len(complaints)-1].ReceiverFullName = receiver.FullName()
 		}
 	}
+
+	if query.Term != "" {
+
+		trie := trie.NewTrie()
+		for c := range received.Iter() {
+			trie.InsertText(c.ID().String(), c.ReceiverFullName(), " ")
+			trie.InsertText(c.ID().String(), c.Message().Title(), " ")
+			trie.InsertText(c.ID().String(), c.Message().Description(), " ")
+			trie.InsertText(c.ID().String(), c.Message().Body(), " ")
+			trie.InsertText(c.ID().String(), c.Status().String(), "_")
+		}
+		ids := trie.Search(query.Term)
+		if ids == nil {
+			return dto.ComplaintListDTO{
+				Complaints:    []dto.ComplaintDTO{},
+				Count:         0,
+				CurrentLimit:  query.Limit,
+				CurrentOffset: query.Offset,
+			}, nil
+		}
+		slice := received.ToSlice()
+		for c := range slice {
+			if !ids.Contains(slice[c].ID().String()) {
+				received.Remove(slice[c])
+			}
+		}
+	}
+
+	count := received.Cardinality()
+	complaints := make([]dto.ComplaintDTO, 0, count)
+
+	receivedSlice := received.ToSlice()
+
+	slices.SortStableFunc(receivedSlice, func(i, j complaint.Complaint) int {
+		if i.CreatedAt().Date().After(j.CreatedAt().Date()) {
+			return -1
+		}
+		if i.CreatedAt().Date().Before(j.CreatedAt().Date()) {
+			return 1
+		}
+		return 0
+	})
+
+	for _, c := range receivedSlice {
+		complaints = append(complaints, dto.NewComplaintDTO(c))
+	}
+	if query.Limit != 0 {
+		offset := query.Offset
+		limit := query.Limit
+		length := len(complaints)
+		offsetLimit := offset + limit
+		//offset: 0 | < len | > len
+		//limit: 10 | < len | > len
+		if offset > length {
+			return dto.ComplaintListDTO{}, fmt.Errorf("offset is greater than the length of the list")
+		}
+		if offset+limit > length {
+			offsetLimit = offset + (length - offset)
+		}
+		complaints = complaints[offset:offsetLimit]
+	}
+	return dto.ComplaintListDTO{
+		Complaints:    complaints,
+		Count:         count,
+		CurrentLimit:  query.Limit,
+		CurrentOffset: query.Offset,
+	}, nil
+}
+
+func (query ComplaintQuery) History(
+	ctx context.Context,
+) (dto.ComplaintListDTO, error) {
+	if query.ReceiverID == "" {
+		return dto.ComplaintListDTO{}, ErrBadRequest
+	}
+	received, err := repositories.MapperRegistryInstance().Get(
+		"Complaint",
+	).(repositories.ComplaintRepository).FindAll(
+		ctx,
+		find_all_complaints.ByReceiverAndStatus(
+			query.ReceiverID,
+			complaint.IN_HISTORY.String(),
+		),
+	)
+	if err != nil {
+		return dto.ComplaintListDTO{}, err
+	}
+
+	if query.AfterDate != "" && query.BeforeDate != "" {
+		after, err := common.NewDateFromString(query.AfterDate)
+		if err != nil {
+			return dto.ComplaintListDTO{}, err
+		}
+		before, err := common.NewDateFromString(query.BeforeDate)
+		if err != nil {
+			return dto.ComplaintListDTO{}, err
+		}
+		for c := range received.Iter() {
+			if !c.CreatedAt().Date().After(after.Date()) && !c.CreatedAt().Date().Before(before.Date()) {
+				received.Remove(c)
+			}
+		}
+	}
+
+	if query.Term != "" {
+		trie := trie.NewTrie()
+		for c := range received.Iter() {
+			trie.InsertText(c.ID().String(), c.AuthorFullName(), " ")
+			trie.InsertText(c.ID().String(), c.Message().Title(), " ")
+			trie.InsertText(c.ID().String(), c.Message().Description(), " ")
+			trie.InsertText(c.ID().String(), c.Message().Body(), " ")
+			trie.InsertText(c.ID().String(), c.Status().String(), "_")
+		}
+		ids := trie.Search(query.Term)
+		if ids == nil {
+			return dto.ComplaintListDTO{
+				Complaints:    []dto.ComplaintDTO{},
+				Count:         0,
+				CurrentLimit:  query.Limit,
+				CurrentOffset: query.Offset,
+			}, nil
+		}
+		slice := received.ToSlice()
+		for c := range slice {
+			if !ids.Contains(slice[c].ID().String()) {
+				received.Remove(slice[c])
+			}
+		}
+	}
+
+	count := received.Cardinality()
+	complaints := make([]dto.ComplaintDTO, 0, count)
+
+	receivedSlice := received.ToSlice()
+
+	slices.SortStableFunc(receivedSlice, func(i, j complaint.Complaint) int {
+		if i.CreatedAt().Date().After(j.CreatedAt().Date()) {
+			return -1
+		}
+		if i.CreatedAt().Date().Before(j.CreatedAt().Date()) {
+			return 1
+		}
+		return 0
+	})
+
+	for _, c := range receivedSlice {
+		complaints = append(complaints, dto.NewComplaintDTO(c))
+	}
+	offset := query.Offset
+	limit := query.Limit
+	length := len(complaints)
+	offsetLimit := offset + limit
+	//offset: 0 | < len | > len
+	//limit: 10 | < len | > len
+	if offset > length {
+		return dto.ComplaintListDTO{}, fmt.Errorf("offset is greater than the length of the list")
+	}
+	if offset+limit > length {
+		offsetLimit = offset + (length - offset)
+	}
+	complaints = complaints[offset:offsetLimit]
 	return dto.ComplaintListDTO{
 		Complaints:    complaints,
 		Count:         count,
@@ -309,23 +602,6 @@ Package queries
 @params: context.Context, ID
 @returns: dto.ReplyDTO, error
 */
-func (query ComplaintQuery) ComplaintLastReply(
-	ctx context.Context,
-) (dto.ReplyDTO, error) {
-	if query.ID == "" {
-		return dto.ReplyDTO{}, ErrBadRequest
-	}
-	objectID := "complaintLastReply:" + query.ID
-	v, ok := infrastructure.InMemoryCacheInstance().Get(objectID)
-	if !ok {
-		return dto.ReplyDTO{}, fmt.Errorf("complaint not found in cache %v", objectID)
-	}
-	cachedComplaint, ok := v.(*complaint.Complaint)
-	if !ok {
-		return dto.ReplyDTO{}, fmt.Errorf("incorrect type of cached object %v", objectID)
-	}
-	return dto.NewReplyDTO(cachedComplaint.LastReply(), cachedComplaint.Status().String()), nil
-}
 
 /* */
 func (query ComplaintQuery) PendingComplaintReviews(
@@ -334,14 +610,15 @@ func (query ComplaintQuery) PendingComplaintReviews(
 	if query.UserID == "" {
 		return nil, ErrBadRequest
 	}
-	storedEvents, err := repositories.MapperRegistryInstance().Get("StoredEvent").(repositories.EventRepository).FindAll(
+	storedEvents, err := repositories.MapperRegistryInstance().Get("Event").(repositories.EventRepository).FindAll(
 		ctx,
 		find_all_events.By(),
 	)
 	if err != nil {
+
 		return nil, err
 	}
-	waitingForReview := make(map[string]map[string]complaint.ComplaintSentForReview, 0)
+	waitingForReview := make(map[string]*dto.PendingComplaintReview, 0)
 
 	for storedEvent := range storedEvents.Iter() {
 		if storedEvent.TypeName == "*complaint.ComplaintSentForReview" {
@@ -350,9 +627,44 @@ func (query ComplaintQuery) PendingComplaintReviews(
 			if err != nil {
 				return nil, err
 			}
-			if c.AuthorID() == query.UserID {
-				waitingForReview[c.ComplaintID().String()] = map[string]complaint.ComplaintSentForReview{
-					storedEvent.EventId.String(): c,
+			if c.AuthorID() == query.UserID || c.TriggeredBy() == query.UserID {
+				triggeredBy, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, c.TriggeredBy())
+				if err != nil {
+
+					return nil, err
+				}
+				dbComplaint, err := repositories.MapperRegistryInstance().Get("Complaint").(repositories.ComplaintRepository).Get(ctx,
+					c.ComplaintID())
+				if err != nil {
+
+					return nil, err
+				}
+				waitingForReview[c.ComplaintID().String()] = &dto.PendingComplaintReview{
+					EventID:     storedEvent.EventId.String(),
+					TriggeredBy: dto.NewUser(*triggeredBy),
+					Status:      dto.PENDING.String(),
+					Complaint:   dto.NewComplaintDTO(*dbComplaint),
+					OccurredOn:  common.StringDate(c.OccurredOn()),
+				}
+			}
+			if c.ReceiverID() == query.UserID {
+				triggeredBy, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, c.TriggeredBy())
+				if err != nil {
+
+					return nil, err
+				}
+				dbComplaint, err := repositories.MapperRegistryInstance().Get("Complaint").(repositories.ComplaintRepository).Get(ctx,
+					c.ComplaintID())
+				if err != nil {
+
+					return nil, err
+				}
+				waitingForReview[c.ComplaintID().String()] = &dto.PendingComplaintReview{
+					EventID:     storedEvent.EventId.String(),
+					TriggeredBy: dto.NewUser(*triggeredBy),
+					Status:      dto.WAITING.String(),
+					Complaint:   dto.NewComplaintDTO(*dbComplaint),
+					OccurredOn:  common.StringDate(c.OccurredOn()),
 				}
 			}
 		}
@@ -366,41 +678,114 @@ func (query ComplaintQuery) PendingComplaintReviews(
 			if err != nil {
 				return nil, err
 			}
-			delete(waitingForReview, c.ComplaintID().String())
-		case "*complaint.ComplaintClosed":
-			var c complaint.ComplaintClosed
-			err := json.Unmarshal(storedEvent.EventBody, &c)
-			if err != nil {
-				return nil, err
+			if v, ok := waitingForReview[c.ComplaintID().String()]; ok {
+				ratedBy, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, c.RatedBy())
+				if err != nil {
+
+					return nil, err
+				}
+				v.SetStatus(dto.RATED.String())
+				v.SetRatedBy(dto.NewUser(*ratedBy))
+				v.SetOccurredOn(common.StringDate(c.OccurredOn()))
 			}
-			delete(waitingForReview, c.ComplaintID().String())
-		case "*complaint.ComplaintSentToHistory":
-			var c complaint.ComplaintSentToHistory
-			err := json.Unmarshal(storedEvent.EventBody, &c)
-			if err != nil {
-				return nil, err
-			}
-			delete(waitingForReview, c.ComplaintID().String())
 		}
 	}
 
-	complaints := make([]dto.PendingComplaintReview, 0, len(waitingForReview))
-	for _, c := range waitingForReview {
-		for k, v := range c {
-			dbComplaint, err := repositories.MapperRegistryInstance().Get("Complaint").(repositories.ComplaintRepository).Get(ctx, v.ComplaintID())
-			if err != nil {
-				return nil, err
-			}
-			triggeredBy, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, v.TriggeredBy())
-			if err != nil {
-				return nil, err
-			}
-			complaints = append(complaints, dto.PendingComplaintReview{
-				EventID:     k,
-				Complaint:   dto.NewComplaintDTO(*dbComplaint),
-				TriggeredBy: dto.NewUser(*triggeredBy),
-			})
-		}
+	result := make([]dto.PendingComplaintReview, 0, len(waitingForReview))
+	for _, v := range waitingForReview {
+		result = append(result, *v)
 	}
-	return complaints, nil
+	slices.SortStableFunc(result, func(i, j dto.PendingComplaintReview) int {
+		dateI, _ := common.ParseDate(i.OccurredOn)
+		dateJ, _ := common.ParseDate(j.OccurredOn)
+		if dateI.After(dateJ) {
+			return -1
+		}
+		if dateI.Before(dateJ) {
+			return 1
+		}
+		return 0
+	})
+	return result, nil
+}
+
+func (query ComplaintQuery) ComplaintsReceivedInfo(
+	ctx context.Context,
+) (dto.ComplaintInfo, error) {
+	if query.ID == "" {
+		return dto.ComplaintInfo{}, ErrBadRequest
+	}
+	received, err := repositories.MapperRegistryInstance().Get("Complaint").(repositories.ComplaintRepository).Count(
+		ctx,
+		count_complaints.WhereReceiverID(
+			query.ID,
+		),
+	)
+	if err != nil {
+		return dto.ComplaintInfo{}, err
+	}
+	resolved, err := repositories.MapperRegistryInstance().Get("Complaint").(repositories.ComplaintRepository).Count(
+		ctx,
+		count_complaints.WhereReceiverIDAndStatusIN(
+			query.ID,
+			[]string{
+				complaint.IN_REVIEW.String(),
+				complaint.CLOSED.String(),
+				complaint.IN_HISTORY.String(),
+			},
+		),
+	)
+	if err != nil {
+		return dto.ComplaintInfo{}, err
+	}
+	reviewed, err := repositories.MapperRegistryInstance().Get("Complaint").(repositories.ComplaintRepository).Count(
+		ctx,
+		count_complaints.WhereReceiverIDAndStatusIN(
+			query.ID,
+			[]string{
+				complaint.CLOSED.String(),
+				complaint.IN_HISTORY.String(),
+			},
+		),
+	)
+	if err != nil {
+		return dto.ComplaintInfo{}, err
+	}
+
+	cPending, err := repositories.MapperRegistryInstance().Get("Complaint").(repositories.ComplaintRepository).Count(
+		ctx,
+		count_complaints.WhereReceiverIDAndStatusIN(
+			query.ID,
+			[]string{
+				complaint.OPEN.String(),
+				complaint.STARTED.String(),
+				complaint.IN_DISCUSSION.String(),
+			},
+		),
+	)
+	if err != nil {
+		return dto.ComplaintInfo{}, err
+	}
+	cs, err := repositories.MapperRegistryInstance().Get("Complaint").(repositories.ComplaintRepository).FindAll(
+		ctx,
+		find_all_complaints.ByReceiver(query.ID),
+	)
+	if err != nil {
+		return dto.ComplaintInfo{}, err
+	}
+	sum := 0
+	for c := range cs.Iter() {
+		sum += c.Rating().Rate()
+	}
+	average := float64(sum) / float64(reviewed)
+	if math.IsNaN(average) {
+		average = 0
+	}
+	return dto.ComplaintInfo{
+		ComplaintsReceived: received,
+		ComplaintsResolved: resolved,
+		ComplaintsReviewed: reviewed,
+		ComplaintsPending:  cPending,
+		AverageRating:      average,
+	}, nil
 }

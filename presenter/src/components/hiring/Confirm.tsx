@@ -1,15 +1,20 @@
-import { InviteToProject } from "../../lib/types";
 interface Props {
     id: string;
-    validatedObject: InviteToProject;
+    enterpriseName: string;
+    userFullName: string;
+    position: string;
+    proposedTo: string;
     show: boolean;
-    callbackFn: () => void;
+    callbackFn: (formData : FormData) => void;
     closeFn: () => void;
 }
-function ConfirmHiringModal({ id, closeFn, validatedObject, callbackFn }: Props) {
-    const { enterpriseName, userFullName, position } = validatedObject;
+function ConfirmHiringModal({ id, closeFn, enterpriseName, userFullName, position,proposedTo, callbackFn }: Props) {
     const handleAccept = () => {
-        callbackFn();
+        const formData = new FormData();
+        formData.append("enterpriseName", enterpriseName);
+        formData.append("proposedPosition", position);
+        formData.append("proposeTo", proposedTo);
+        callbackFn(formData);
         closeFn();
     }
     const handleClose = () => {

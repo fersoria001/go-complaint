@@ -12,6 +12,7 @@ import (
 )
 
 func TestFindAllByEnterpriseID(t *testing.T) {
+	setup()
 	// Arrange
 	ctx := context.Background()
 	employeeRepository := repositories.NewEmployeeRepository(

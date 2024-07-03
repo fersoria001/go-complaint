@@ -1,45 +1,45 @@
-import { Link } from "react-router-dom";
-import UpdateIcon from "../icons/UpdateIcon";
-import useOffices from "../../lib/hooks/useOffices";
+import { Enterprise, UserDescriptor } from "../../lib/types";
 import OfficeCard from "./OfficeCard";
+import { Link } from "@tanstack/react-router";
 
 interface Props {
-    title: string;
-    description: string;
+    enterprises: Enterprise[];
+    descriptor: UserDescriptor;
 }
-function OfficesList({ title, description }: Props) {
-    const offices = useOffices();
-    console.log("officeS", offices)
+function OfficesList({ enterprises, descriptor }: Props) {
     return (
         <>
             <div
                 className="block p-6
         bg-white border
         border-gray-200 rounded-lg
-        shadow
-        hover:bg-gray-100"
+        shadow"
             >
                 <h5
                     className="mb-2
         text-2xl font-bold tracking-tight text-gray-900"
                 >
-                    {title}
+                    Offices
                 </h5>
                 <div className="flex">
-                    <UpdateIcon fill="#374151" />
                     <p className="font-normal text-gray-700">
-                        {description}
+                        {"Here's a list of enterprises you have a position in"}
                     </p>
                 </div>
             </div>
             <div>
-                {offices.length < 1 ?
-                    <div>
-                        <h5>You are not currently at any enterprises</h5>
+                {enterprises.length < 1 ?
+                    <div className="bg-white border mt-2
+                     border-gray-200 rounded-lg shadow">
+                        <h5
+                            className="text-sm md:text-xl text-gray-700 p-4 mb-4">
+                            You are not currently working at any enterprises</h5>
                     </div> :
-                    offices.map((office) => (
-                        <Link to={`/office/${office.employeeID.split("-")[0]}`} key={office.employeeID}>
-                            <OfficeCard {...office} />
+                    enterprises.map((enterprise) => (
+                        <Link to={`/${enterprise.name}`} key={enterprise.name}>
+                            <OfficeCard
+                                enterprise={enterprise}
+                                authority={descriptor.grantedAuthorities.find((ga) => ga.enterpriseID === enterprise.name)!} />
                         </Link>
                     ))}
             </div>

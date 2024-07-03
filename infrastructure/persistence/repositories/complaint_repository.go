@@ -6,6 +6,8 @@ import (
 	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/complaint"
 	"go-complaint/infrastructure/persistence/datasource"
+	"go-complaint/infrastructure/persistence/finders/find_all_complaint_replies"
+	"net/mail"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -32,20 +34,20 @@ func (pr ComplaintRepository) Get(
 	}
 	selectQuery := string(`
 	SELECT
-	"complaint".id,
-	"complaint".author_id,
-	"complaint".receiver_id,
-	"complaint".complaint_status,
-	"complaint".title,
-	"complaint".complaint_description,
-	"complaint".body,
-	"complaint".rating_rate,
-	"complaint".rating_comment,
-	"complaint".created_at,
-	"complaint".updated_at
+	id,
+	author_id,
+	receiver_id,
+	complaint_status,
+	title,
+	complaint_description,
+	body,
+	rating_rate,
+	rating_comment,
+	created_at,
+	updated_at
 	FROM 
-	public."complaint"
-	WHERE "complaint".id = $1
+	complaint
+	WHERE id = $1
 	`)
 	row := conn.QueryRow(ctx, selectQuery, complaintID)
 	complaint, err := pr.load(ctx, row)
@@ -117,17 +119,21 @@ func (pr ComplaintRepository) load(
 	row pgx.Row,
 ) (*complaint.Complaint, error) {
 	var (
-		id            uuid.UUID
-		authorID      string
-		receiverID    string
-		status        string
-		title         string
-		description   string
-		body          string
-		ratingRate    int
-		ratingComment string
-		createdAt     string
-		updatedAt     string
+		id                 uuid.UUID
+		authorID           string
+		authorFullName     string
+		authorProfileIMG   string
+		receiverID         string
+		receiverFullName   string
+		receiverProfileIMG string
+		status             string
+		title              string
+		description        string
+		body               string
+		ratingRate         int
+		ratingComment      string
+		createdAt          string
+		updatedAt          string
 	)
 	err := row.Scan(
 		&id,
@@ -142,7 +148,10 @@ func (pr ComplaintRepository) load(
 		&createdAt,
 		&updatedAt,
 	)
+	if err != nil {
 
+		return nil, err
+	}
 	mapper := MapperRegistryInstance().Get("Reply")
 	if mapper == nil {
 		return nil, ErrMapperNotRegistered
@@ -183,7 +192,46 @@ func (pr ComplaintRepository) load(
 		return nil, err
 	}
 
-	replies, err := complaintRepliesRepository.FindAllByComplaintID(ctx, id)
+	if _, err := mail.ParseAddress(authorID); err != nil {
+		//user id is not an email address
+		author, err := MapperRegistryInstance().Get("Enterprise").(EnterpriseRepository).Get(ctx, authorID)
+		if err != nil {
+
+			return nil, err
+		}
+		authorFullName = author.Name()
+		authorProfileIMG = author.LogoIMG()
+	} else {
+		author, err := MapperRegistryInstance().Get("User").(UserRepository).Get(ctx, authorID)
+		if err != nil {
+
+			return nil, err
+		}
+		authorFullName = author.FullName()
+		authorProfileIMG = author.ProfileIMG()
+	}
+	if _, err := mail.ParseAddress(receiverID); err != nil {
+		//user id is not an email address
+		receiver, err := MapperRegistryInstance().Get("Enterprise").(EnterpriseRepository).Get(ctx, receiverID)
+		if err != nil {
+
+			return nil, err
+		}
+		receiverFullName = receiver.Name()
+		receiverProfileIMG = receiver.LogoIMG()
+	} else {
+		receiver, err := MapperRegistryInstance().Get("User").(UserRepository).Get(ctx, receiverID)
+		if err != nil {
+
+			return nil, err
+		}
+		receiverFullName = receiver.FullName()
+		receiverProfileIMG = receiver.ProfileIMG()
+	}
+	replies, err := complaintRepliesRepository.FindAll(
+		ctx,
+		find_all_complaint_replies.ByComplaintID(id),
+	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			replies = mapset.NewSet[*complaint.Reply]()
@@ -194,7 +242,11 @@ func (pr ComplaintRepository) load(
 	return complaint.NewComplaint(
 		id,
 		authorID,
+		authorFullName,
+		authorProfileIMG,
 		receiverID,
+		receiverFullName,
+		receiverProfileIMG,
 		parsedStatus,
 		message,
 		commonCreatedAt,
@@ -299,7 +351,7 @@ func (pr ComplaintRepository) Update(
 		updatedAt     string    = updatedComplaint.UpdatedAt().StringRepresentation()
 	)
 	updateCommand := string(`
-	UPDATE public."complaint"
+	UPDATE complaint
 		SET
 		id=$1,
 		author_id=$2,

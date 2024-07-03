@@ -1,7 +1,9 @@
 package dto
 
 import (
+	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/complaint"
+	"slices"
 
 	"github.com/google/uuid"
 )
@@ -49,18 +51,18 @@ type RatingDTO struct {
 }
 type ReplyDTO struct {
 	ID              string `json:"id"`
-	ComplaintID     string `json:"complaint_id"`
-	SenderID        string `json:"sender_id"`
-	SenderIMG       string `json:"sender_img"`
-	SenderName      string `json:"sender_name"`
+	ComplaintID     string `json:"complaintID"`
+	SenderID        string `json:"senderID"`
+	SenderIMG       string `json:"senderIMG"`
+	SenderName      string `json:"senderName"`
 	Body            string `json:"body"`
-	CreatedAt       string `json:"created_at"`
+	CreatedAt       string `json:"createdAt"`
 	Read            bool   `json:"read"`
-	ReadAt          string `json:"read_at"`
-	UpdatedAt       string `json:"updated_at"`
-	IsEnterprise    bool   `json:"is_enterprise"`
-	EnterpriseID    string `json:"enterprise_id"`
-	ComplaintStatus string `json:"complaint_status"`
+	ReadAt          string `json:"readAt"`
+	UpdatedAt       string `json:"updatedAt"`
+	IsEnterprise    bool   `json:"isEnterprise"`
+	EnterpriseID    string `json:"enterpriseID"`
+	ComplaintStatus string `json:"complaintStatus"`
 }
 
 func NewComplaintDTO(
@@ -70,11 +72,26 @@ func NewComplaintDTO(
 	for reply := range domainComplaint.Replies().Iter() {
 		replyDTOSlice = append(replyDTOSlice, NewReplyDTO(reply, domainComplaint.Status().String()))
 	}
+	slices.SortStableFunc(replyDTOSlice, func(i, j ReplyDTO) int {
+		iCreatedAt, _ := common.ParseDate(i.CreatedAt)
+		jCreatedAt, _ := common.ParseDate(j.CreatedAt)
+		if iCreatedAt.Before(jCreatedAt) {
+			return -1
+		}
+		if iCreatedAt.After(jCreatedAt) {
+			return 1
+		}
+		return 0
+	})
 	return ComplaintDTO{
-		ID:         domainComplaint.ID(),
-		AuthorID:   domainComplaint.AuthorID(),
-		ReceiverID: domainComplaint.ReceiverID(),
-		Status:     domainComplaint.Status().String(),
+		ID:                 domainComplaint.ID(),
+		AuthorID:           domainComplaint.AuthorID(),
+		AuthorFullName:     domainComplaint.AuthorFullName(),
+		AuthorProfileIMG:   domainComplaint.AuthorProfileIMG(),
+		ReceiverID:         domainComplaint.ReceiverID(),
+		ReceiverFullName:   domainComplaint.ReceiverFullName(),
+		ReceiverProfileIMG: domainComplaint.ReceiverProfileIMG(),
+		Status:             domainComplaint.Status().String(),
 		Message: MessageDTO{
 			Title:       domainComplaint.Message().Title(),
 			Description: domainComplaint.Message().Description(),
@@ -109,4 +126,11 @@ func NewReplyDTO(
 		EnterpriseID:    domainReply.EnterpriseID(),
 		ComplaintStatus: complaintStatus,
 	}
+}
+
+type NewUnreadReply struct {
+	ComplaintID string `json:"complaint_id"`
+	ReplyID     string `json:"reply_id"`
+	SenderID    string `json:"sender_id"`
+	ReceiverID  string `json:"receiver_id"`
 }

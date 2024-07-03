@@ -2,13 +2,12 @@ package repositories
 
 import (
 	"context"
+	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/complaint"
 	"go-complaint/domain/model/feedback"
 	"go-complaint/infrastructure/persistence/datasource"
 	"go-complaint/infrastructure/persistence/finders/find_all_feedback_replies"
 	"go-complaint/infrastructure/persistence/finders/find_all_feedback_review"
-
-	"log"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -33,21 +32,24 @@ func (fr FeedbackReplyReviewRepository) DeleteAll(
 	if err != nil {
 		return err
 	}
-	deleteCommand := string(`
-	DELETE FROM feedback_reply_review
-	WHERE feedback_id = $1`)
-	_, err = conn.Exec(ctx, deleteCommand, &feedbackID)
+	err = MapperRegistryInstance().Get("Review").(FeedbackReviewRepository).DeleteAll(ctx, feedbackID)
 	if err != nil {
 		return err
 	}
+	deleteCommand := string(`DELETE FROM feedback_reply_review WHERE feedback_id = $1`)
+	_, err = conn.Exec(ctx, deleteCommand, feedbackID)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		conn.Release()
+	}()
 
-	defer conn.Release()
 	return nil
 }
 
 func (fr FeedbackReplyReviewRepository) SaveAll(
 	ctx context.Context,
-	feedbackID uuid.UUID,
 	replyReviews mapset.Set[feedback.ReplyReview],
 ) error {
 	conn, err := fr.schema.Acquire(ctx)
@@ -75,16 +77,20 @@ func (fr FeedbackReplyReviewRepository) SaveAll(
 		(
 			id,
 			feedback_id,
+			reviewer_id,
 			review_ID,
-			color
+			color,
+			created_at
 		)
-		VALUES ($1, $2, $3, $4)`)
+		VALUES ($1, $2, $3, $4, $5,$6)`)
 	for replyReview := range replyReviews.Iter() {
 		var (
 			ID         = replyReview.ID()
 			feedbackId = replyReview.FeedbackID()
-			reviewID   = replyReview.Review().ReplyReviewID()
+			reviewerID = replyReview.Reviewer().Email()
+			reviewID   = replyReview.ID()
 			color      = replyReview.Color()
+			createdAt  = common.StringDate(replyReview.CreatedAt())
 		)
 		replyReview := replyReview
 		_, err = conn.Exec(
@@ -92,8 +98,10 @@ func (fr FeedbackReplyReviewRepository) SaveAll(
 			insertCommand,
 			&ID,
 			&feedbackId,
+			&reviewerID,
 			&reviewID,
 			&color,
+			&createdAt,
 		)
 		if err != nil {
 			return err
@@ -105,9 +113,11 @@ func (fr FeedbackReplyReviewRepository) SaveAll(
 		if err != nil {
 			return err
 		}
-		err = feedbackReviewRepository.Save(ctx, replyReview.Review())
-		if err != nil {
-			return err
+		if replyReview.Review() != (feedback.Review{}) {
+			err = feedbackReviewRepository.Save(ctx, replyReview.Review())
+			if err != nil {
+				return err
+			}
 		}
 	}
 	defer conn.Release()
@@ -179,11 +189,14 @@ func (fr FeedbackReplyReviewRepository) load(
 	var (
 		ID         uuid.UUID
 		feedbackID uuid.UUID
+		reviewerID string
 		reviewID   string
 		color      string
+		createdAt  string
 	)
-	err := row.Scan(&ID, &feedbackID, &reviewID, &color)
+	err := row.Scan(&ID, &feedbackID, &reviewerID, &reviewID, &color, &createdAt)
 	if err != nil {
+
 		return nil, err
 	}
 	replies, err := feedbackRepliesRepository.FindAll(
@@ -191,26 +204,38 @@ func (fr FeedbackReplyReviewRepository) load(
 		find_all_feedback_replies.ByReplyReviewID(ID),
 	)
 	if err != nil {
+
 		return nil, err
 	}
-	review, err := feedbackReviewRepository.Find(
+	review, _ := feedbackReviewRepository.Find(
 		ctx,
 		find_all_feedback_review.ByReplyReviewID(ID),
 	)
-	if err != nil {
-		log.Println("review find", err, ID)
-		return nil, err
-	}
+
 	repliesValueCopy := mapset.NewSet[complaint.Reply]()
 	for reply := range replies.Iter() {
 		repliesValueCopy.Add(*reply)
+	}
+	reviewer, err := MapperRegistryInstance().Get("User").(UserRepository).Get(
+		ctx,
+		reviewerID,
+	)
+	if err != nil {
+
+		return nil, err
+	}
+	d, err := common.ParseDate(createdAt)
+	if err != nil {
+		return nil, err
 	}
 	replyReview, err := feedback.NewReplyReview(
 		ID,
 		feedbackID,
 		repliesValueCopy,
+		*reviewer,
 		review,
 		color,
+		d,
 	)
 	if err != nil {
 		return nil, err

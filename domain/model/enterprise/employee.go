@@ -17,4 +17,5 @@ type Employee interface {
 	ApprovedHiringAt() common.Date
 	GetUser() *identity.User
 	SetPosition(position Position) error
+	SetApprovedHiring(approvedHiring bool)
 }

@@ -26,7 +26,7 @@ func (ar AddressRepository) Update(
 		return err
 	}
 	updateQuery := string(`
-		UPDATE public."address"
+		UPDATE address
 		SET
 			country_id = $2,
 			country_state_id = $3,
@@ -101,11 +101,11 @@ func (ar AddressRepository) Get(
 	}
 	selectQuery := string(`
 		SELECT
-		"address".id,
-		"address".country_id,
-		"address".country_state_id,
-		"address".state_city_id
-		FROM public."address"
+		id,
+		country_id,
+		country_state_id,
+		state_city_id
+		FROM address
 		WHERE id = $1`,
 	)
 	row := conn.QueryRow(

@@ -11,6 +11,7 @@ import (
 )
 
 func TestComplaintSave(t *testing.T) {
+	setup()
 	// Arrange
 	complaintRepository := repositories.NewComplaintRepository(
 		datasource.PublicSchema(),
@@ -26,6 +27,7 @@ func TestComplaintSave(t *testing.T) {
 }
 
 func TestComplaintGet(t *testing.T) {
+	setup()
 	// Arrange
 	complaintRepository := repositories.NewComplaintRepository(
 		datasource.PublicSchema(),
@@ -49,6 +51,7 @@ func TestComplaintGet(t *testing.T) {
 }
 
 func TestComplaintUpdate(t *testing.T) {
+	setup()
 	// Arrange
 	ctx := context.Background()
 	complaintRepository := repositories.NewComplaintRepository(
@@ -65,6 +68,34 @@ func TestComplaintUpdate(t *testing.T) {
 		dbComplaint,
 	)
 	dbComplaint.AddReply(tests.AuthorReply1)
+	err2 := complaintRepository.Update(
+		ctx,
+		dbComplaint,
+	)
+	// Assert
+	assert.Nil(t, err)
+	assert.Nil(t, err1)
+	assert.Nil(t, err2)
+}
+
+func TestComplaintAddReply(t *testing.T) {
+	setup()
+	// Arrange
+	ctx := context.Background()
+	complaintRepository := repositories.NewComplaintRepository(
+		datasource.PublicSchema(),
+	)
+	// Act
+	dbComplaint, err := complaintRepository.Get(
+		ctx,
+		tests.ComplaintID,
+	)
+	dbComplaint.AddReply(tests.ReceiverReply2)
+	err1 := complaintRepository.Update(
+		ctx,
+		dbComplaint,
+	)
+	dbComplaint.AddReply(tests.AuthorReply2)
 	err2 := complaintRepository.Update(
 		ctx,
 		dbComplaint,

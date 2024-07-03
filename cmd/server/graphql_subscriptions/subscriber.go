@@ -2,18 +2,17 @@ package graphql_subscriptions
 
 import (
 	"context"
-	"go-complaint/cmd/api/graphql_"
-	"log"
+	"go-complaint/domain/model/enterprise"
+	"strings"
 	"sync"
 
-	"github.com/graphql-go/graphql"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
 
 type Subscriber struct {
 	ID            int
-	Send          chan string
+	Send          chan DataMessage
 	Conn          *websocket.Conn
 	Authenticated bool
 	Mutex         sync.Mutex
@@ -30,35 +29,42 @@ func NewSubscriber(
 	return &Subscriber{
 		ID:        id,
 		Conn:      conn,
-		Send:      make(chan string),
+		Send:      make(chan DataMessage),
 		CloseFunc: closeFunc,
 	}
 }
 
+// sub.OperationID?sub.OperationID?
 func (sub *Subscriber) SubscribedToOperationType(operationID string) bool {
-	log.Printf("sub.OperationID: %v, operationID: %v == %v", sub.OperationID, operationID, sub.OperationID == operationID)
-	return sub.OperationID == operationID
+	s := strings.Split(sub.OperationID, "?")
+	if chatId, err := enterprise.NewChatID(operationID); err == nil {
+		for i := range s {
+			if s[i] == chatId.String() || s[i] == chatId.Reverse().String() ||
+				s[i] == chatId.Partial() || s[i] == chatId.ReversePartial() {
+				return true
+			}
+		}
+	}
+	for i := range s {
+		if s[i] == operationID {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (sub *Subscriber) SetSubscription(operationID string) {
+
 	sub.OperationID = operationID
 }
 
 func (client *Subscriber) Listen(ctx context.Context) error {
 	for {
+
 		select {
-		case <-client.Send:
-			log.Printf("client.Send: ")
-			gqlResult := graphql.Do(graphql.Params{
-				Context:       ctx,
-				Schema:        graphql_.Schema,
-				RequestString: client.RequestString,
-			})
-			result := GraphQLResultMessage{
-				Type:    DATA.String(),
-				Payload: gqlResult,
-			}
-			err := wsjson.Write(ctx, client.Conn, result)
+		case msg := <-client.Send:
+			err := wsjson.Write(ctx, client.Conn, msg)
 			if err != nil {
 				return err
 			}

@@ -1,5 +1,6 @@
 import { User } from "../../lib/types";
 import ContactMailIcon from "../icons/ContactMailIcon";
+import FemaleFaceIcon from "../icons/FemaleFaceIcon";
 import MaleFaceIcon from "../icons/MaleFaceIcon";
 
 interface Props {
@@ -21,13 +22,18 @@ function UserForHiring({ user }: Props) {
                 <div className="flex flex-col self-center">
                     <div className="self-start mb-3 ">
                         <div className="flex mb-3">
-                            <MaleFaceIcon fill="#374151" />
+                            {
+                                user.gender == "female" ?
+                                    <FemaleFaceIcon fill="#5f6368" /> :
+                                    <MaleFaceIcon fill="#5f6368" />
+                            }
+
                             <p className="pl-2 font-normal text-gray-700 underline underline-offset-8">Age: {user.age}</p>
                         </div>
                     </div>
                     <div className="self-start mb-3 ">
                         <div className="flex mb-3">
-                            <ContactMailIcon fill="#374151" />
+                            <ContactMailIcon fill="#5f6368" />
                             <p className="pl-2 font-normal text-gray-700 underline underline-offset-8">{user.email}</p>
                         </div>
                     </div>

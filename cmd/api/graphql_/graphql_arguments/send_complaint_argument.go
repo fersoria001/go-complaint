@@ -9,6 +9,12 @@ var SendComplaintArgument = graphql.FieldConfigArgument{
 	"receiverID": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
+	"receiverFullName": &graphql.ArgumentConfig{
+		Type: graphql.NewNonNull(graphql.String),
+	},
+	"receiverProfileIMG": &graphql.ArgumentConfig{
+		Type: graphql.NewNonNull(graphql.String),
+	},
 	"title": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},

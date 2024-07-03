@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"go-complaint/domain/model/email"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -57,7 +56,7 @@ func (es *EmailService) SendAll(ctx context.Context) {
 			return
 		case email := <-es.emailQueueInstance:
 			msgID, err := es.Send(ctx, *email)
-			log.Println("Email sent with message ID: ", msgID, "Error: ", err)
+
 			es.queued--
 			es.sentLog[msgID] = struct {
 				Error      error
@@ -90,12 +89,12 @@ func (es *EmailService) Send(ctx context.Context, email email.Email) (string, er
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer mlsn.0557f4217143328c73149ad91c7455121924f188c63af0fe093b42feb3fa1de1")
-	log.Println("Headers set")
+
 	body, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Email sent with status code: %d", body.StatusCode)
+
 	msgID := body.Header.Get("X-Message-Id")
 	var responseBody []byte
 	_, err = body.Body.Read(responseBody)

@@ -25,7 +25,7 @@ func (uur UserRoleRepository) RemoveAll(
 		return err
 	}
 	deleteCommand := string(`
-	DELETE FROM public."user_role"
+	DELETE FROM user_role
 	WHERE user_id = $1
 	  `)
 	_, err = conn.Exec(ctx, deleteCommand, userID)
@@ -44,7 +44,7 @@ func (uur UserRoleRepository) SaveAll(
 		return err
 	}
 	insertCommand := string(`
-	INSERT INTO public."user_role"
+	INSERT INTO user_role
 	(user_id, role_id, enterprise_id) VALUES ($1, $2, $3)`)
 	tx, err := conn.Begin(ctx)
 	if err != nil {

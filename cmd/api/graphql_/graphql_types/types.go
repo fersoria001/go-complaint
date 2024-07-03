@@ -93,6 +93,12 @@ var UserType = graphql.NewObject(graphql.ObjectConfig{
 		"lastName": &graphql.Field{
 			Type: graphql.String,
 		},
+		"gender": &graphql.Field{
+			Type: graphql.String,
+		},
+		"pronoun": &graphql.Field{
+			Type: graphql.String,
+		},
 		"age": &graphql.Field{
 			Type: graphql.Int,
 		},
@@ -101,6 +107,9 @@ var UserType = graphql.NewObject(graphql.ObjectConfig{
 		},
 		"address": &graphql.Field{
 			Type: AddressType,
+		},
+		"status": &graphql.Field{
+			Type: graphql.String,
 		},
 	},
 })
@@ -242,7 +251,7 @@ var IndustryType = graphql.NewObject(graphql.ObjectConfig{
 var EmployeeType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Employee",
 	Fields: graphql.Fields{
-		"ID": &graphql.Field{
+		"id": &graphql.Field{
 			Type: graphql.String,
 		},
 		"profileIMG": &graphql.Field{
@@ -278,8 +287,35 @@ var EmployeeType = graphql.NewObject(graphql.ObjectConfig{
 		"complaintsSolved": &graphql.Field{
 			Type: graphql.Int,
 		},
-		"complaintsSolvedIDs": &graphql.Field{
+		"complaintsSolvedIds": &graphql.Field{
 			Type: graphql.NewList(graphql.String),
+		},
+		"complaintsRated": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"complaintsRatedIDs": &graphql.Field{
+			Type: graphql.NewList(graphql.String),
+		},
+		"complaintsFeedbacked": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"complaintsFeedbackedIDs": &graphql.Field{
+			Type: graphql.NewList(graphql.String),
+		},
+		"feedbackReceived": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"feedbackReceivedIDs": &graphql.Field{
+			Type: graphql.NewList(graphql.String),
+		},
+		"hireInvitationsSent": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"employeesHired": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"employeesFired": &graphql.Field{
+			Type: graphql.Int,
 		},
 	},
 })

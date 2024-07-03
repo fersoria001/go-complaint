@@ -6,7 +6,6 @@ import (
 	"go-complaint/domain/model/common"
 	"go-complaint/infrastructure/persistence/repositories"
 	"go-complaint/tests"
-	"log"
 	"testing"
 	"time"
 
@@ -35,7 +34,7 @@ func TestNotificationRepository_Create(t *testing.T) {
 	}
 	n, err := repositories.MapperRegistryInstance().Get("Notification").(repositories.NotificationRepository).Get(ctx, newNotification.ID())
 	if err != nil {
-		log.Println(newNotification.ID())
+
 		t.Fatalf("Error: %v", err)
 	}
 	if n.ID() != newNotification.ID() {
@@ -45,7 +44,7 @@ func TestNotificationRepository_Create(t *testing.T) {
 		t.Fatalf("Error: OwnerID not match")
 	}
 	if n.Thumbnail() != "/default.jpg" {
-		log.Println(n.Thumbnail())
+
 		t.Fatalf("Error: Thumbnail not match")
 	}
 	if n.Title() != newNotification.Title() {

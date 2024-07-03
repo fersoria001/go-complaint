@@ -1,18 +1,24 @@
 package dto
 
-import "go-complaint/domain/model/feedback"
+import (
+	"go-complaint/domain/model/common"
+	"go-complaint/domain/model/feedback"
+)
 
 type Feedback struct {
 	ID             string           `json:"id"`
-	ComplaintID    string           `json:"complaint_id"`
-	ReviewedID     string           `json:"reviewed_id"`
-	ReplyReview    []ReplyReview    `json:"reply_review"`
-	FeedbackAnswer []FeedbackAnswer `json:"feedback_answer"`
+	ComplaintID    string           `json:"complaintID"`
+	EnterpriseID   string           `json:"enterpriseID"`
+	ReplyReview    []ReplyReview    `json:"replyReview"`
+	FeedbackAnswer []FeedbackAnswer `json:"feedbackAnswers"`
+	ReviewedAt     string           `json:"reviewedAt"`
+	UpdatedAt      string           `json:"updatedAt"`
+	IsDone         bool             `json:"isDone"`
 }
 
 func NewFeedbackDTO(domainObject feedback.Feedback) Feedback {
 	var replyReviews []ReplyReview
-	for _, replyReview := range domainObject.ReplyReview().ToSlice() {
+	for _, replyReview := range domainObject.ReplyReviews().ToSlice() {
 		replyReviews = append(replyReviews, NewReplyReviewDTO(replyReview))
 	}
 	var feedbackAnswers []FeedbackAnswer
@@ -22,25 +28,28 @@ func NewFeedbackDTO(domainObject feedback.Feedback) Feedback {
 	return Feedback{
 		ID:             domainObject.ID().String(),
 		ComplaintID:    domainObject.ComplaintID().String(),
-		ReviewedID:     domainObject.ReviewedID(),
+		EnterpriseID:   domainObject.EnterpriseID(),
 		ReplyReview:    replyReviews,
 		FeedbackAnswer: feedbackAnswers,
+		ReviewedAt:     common.StringDate(domainObject.ReviewedAt()),
+		UpdatedAt:      common.StringDate(domainObject.UpdatedAt()),
+		IsDone:         domainObject.IsDone(),
 	}
 }
 
 type FeedbackAnswer struct {
 	ID           string `json:"id"`
-	FeedbackID   string `json:"feedback_id"`
-	SenderID     string `json:"sender_id"`
-	SenderIMG    string `json:"sender_img"`
-	SenderName   string `json:"sender_name"`
+	FeedbackID   string `json:"feedbackID"`
+	SenderID     string `json:"senderID"`
+	SenderIMG    string `json:"senderIMG"`
+	SenderName   string `json:"senderName"`
 	Body         string `json:"body"`
-	CreatedAt    string `json:"created_at"`
+	CreatedAt    string `json:"createdAt"`
 	Read         bool   `json:"read"`
-	ReadAt       string `json:"read_at"`
-	UpdatedAt    string `json:"updated_at"`
-	IsEnterprise bool   `json:"is_enterprise"`
-	EnterpriseID string `json:"enterprise_id"`
+	ReadAt       string `json:"readAt"`
+	UpdatedAt    string `json:"updatedAt"`
+	IsEnterprise bool   `json:"isEnterprise"`
+	EnterpriseID string `json:"enterpriseID"`
 }
 
 func NewFeedbackAnswerDTO(domainObject feedback.Answer) FeedbackAnswer {
@@ -62,10 +71,12 @@ func NewFeedbackAnswerDTO(domainObject feedback.Answer) FeedbackAnswer {
 
 type ReplyReview struct {
 	ID         string     `json:"id"`
-	FeedbackID string     `json:"feedback_id"`
+	FeedbackID string     `json:"feedbackID"`
+	Reviewer   User       `json:"reviewer"`
 	Replies    []ReplyDTO `json:"replies"`
 	Review     ReviewDTO  `json:"review"`
 	Color      string     `json:"color"`
+	CreatedAt  string     `json:"createdAt"`
 }
 
 func NewReplyReviewDTO(domainObject feedback.ReplyReview) ReplyReview {
@@ -76,24 +87,22 @@ func NewReplyReviewDTO(domainObject feedback.ReplyReview) ReplyReview {
 	return ReplyReview{
 		ID:         domainObject.ID().String(),
 		FeedbackID: domainObject.FeedbackID().String(),
+		Reviewer:   NewUser(domainObject.Reviewer()),
 		Replies:    replies,
 		Review:     NewReviewDto(domainObject.Review()),
 		Color:      domainObject.Color(),
+		CreatedAt:  common.StringDate(domainObject.CreatedAt()),
 	}
 }
 
 type ReviewDTO struct {
-	ReplyReviewID string `json:"reply_review_id"`
-	ReviewerID    string `json:"reviewer_id"`
-	ReviewedAt    string `json:"reviewed_at"`
+	ReplyReviewID string `json:"replyReviewID"`
 	Comment       string `json:"comment"`
 }
 
 func NewReviewDto(domainObject feedback.Review) ReviewDTO {
 	return ReviewDTO{
 		ReplyReviewID: domainObject.ReplyReviewID().String(),
-		ReviewerID:    domainObject.ReviewerID(),
-		ReviewedAt:    domainObject.ReviewedAt().StringRepresentation(),
 		Comment:       domainObject.Comment(),
 	}
 }

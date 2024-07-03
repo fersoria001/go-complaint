@@ -11,20 +11,34 @@ import (
 type HiringProccessCanceled struct {
 	enterpriseID string
 	candidateID  string
+	emitedBy     string
+	reason       string
 	position     Position
 	occurredOn   time.Time
 }
 
 func NewHiringProccessCanceled(enterpriseID string,
 	candidateID string,
+	emitedBy string,
+	reason string,
 	position Position,
 ) *HiringProccessCanceled {
 	return &HiringProccessCanceled{
 		enterpriseID: enterpriseID,
 		candidateID:  candidateID,
+		emitedBy:     emitedBy,
+		reason:       reason,
 		position:     position,
 		occurredOn:   time.Now(),
 	}
+}
+
+func (h HiringProccessCanceled) Reason() string {
+	return h.reason
+}
+
+func (h HiringProccessCanceled) EmitedBy() string {
+	return h.emitedBy
 }
 
 func (h HiringProccessCanceled) EnterpriseID() string {
@@ -48,7 +62,9 @@ func (h *HiringProccessCanceled) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"enterprise_id": h.enterpriseID,
 		"candidate_id":  h.candidateID,
-		"position":      h.position,
+		"emited_by":     h.emitedBy,
+		"reason":        h.reason,
+		"position":      h.position.String(),
 		"occurred_on":   ms,
 	})
 }
@@ -62,9 +78,12 @@ func (h *HiringProccessCanceled) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	h.reason = v["reason"].(string)
 	h.enterpriseID = v["enterprise_id"].(string)
 	h.candidateID = v["candidate_id"].(string)
-	h.position = v["position"].(Position)
+	position := v["position"].(string)
+	h.position = ParsePosition(position)
+	h.emitedBy = v["emited_by"].(string)
 	h.occurredOn = occurredOn
 	return nil
 }

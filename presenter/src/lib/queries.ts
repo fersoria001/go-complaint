@@ -1,17 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
+import UnauthorizedError from "../components/error/UnauthorizedError";
+import PasswordNotMatchError from "../components/sign-in/PasswordNotMatchError";
+import UserNotFoundError from "../components/sign-in/UserNotFoundError";
+import { csrf } from "./csrf";
+import { deleteLinebreaks } from "./delete_line_breaks";
 import {
   City,
-  Complaint,
+  ComplaintInfo,
+  ComplaintReviewType,
+  ComplaintType,
   ComplaintTypeList,
   Country,
-  County,
-  Employee,
+  CountryState,
+  EmployeeType,
   Enterprise,
+  FeedbackType,
+  HiringInvitationType,
+  HiringProccessList,
   Industry,
-  InfoForReview,
+  Notifications,
   Office,
-  PhoneCode,
   Receiver,
   SolvedReview,
   User,
@@ -20,78 +28,118 @@ import {
 } from "./types";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const CountriesQuery = (): string => `
-    {
-        Countries {
-        id
-        name
-        }
-    }
-`;
+export const CountriesQuery = (): string => "{Countries {id name phoneCode}}";
 export const CountryListType = (data: any): Country[] => {
-  return data.Countries as Country[];
+  return data.data.Countries as Country[];
 };
-export const CountiesQuery = (id: number): string => `
+export const CountryStatesQuery = (id: number): string => `
   {
-    Counties(ID: ${id}) {
+    CountryStates(ID: ${id}) {
       id
       name
     }
   }    
 `;
-export const CountyListType = (data: any): County[] => {
-  return data.Counties as County[];
+export const CountryStateListType = (data: any): CountryState[] => {
+  return data.data.CountryStates as CountryState[];
 };
 export const CitiesQuery = (id: number): string => `
   {
     Cities(ID: ${id}) {
       id
       name
+      countryCode
+      latitude
+      longitude
     }
   }
 `;
 export const CityListType = (data: any): City[] => {
-  return data.Cities as City[];
+  return data.data.Cities as City[];
 };
-export const PhoneCodeQuery = (id: number): string => `
-  {
-    PhoneCode(ID: ${id}) {
-      id
-      code
-    }
-  }
-`;
-export const PhoneCodeType = (data: any): PhoneCode => {
-  return data.PhoneCode as PhoneCode;
-};
+
 export const SignInQuery = (
   email: string,
   password: string,
   rememberMe: boolean
 ): string => `
    {
-    Login(email: "${email}", password: "${password}", rememberMe: ${rememberMe}) {
+    SignIn(email: "${email}", password: "${password}", rememberMe: ${rememberMe}) {
       token
     }
   }
 `;
-export const SignIn = (data: any): string => {
-  console.log(data);
-  return data.Login.token;
+export const SignInType = (data: any): string => {
+  if (data.errors) {
+    switch (data.errors[0].message) {
+      case "crypto/bcrypt: hashedPassword is not the hash of the given password":
+        throw new PasswordNotMatchError();
+      case "no rows in result set":
+        throw new UserNotFoundError();
+    }
+  }
+  return data.data.SignIn.token;
 };
+export const LoginQuery = (confirmationCode: string): string => `
+{
+  Login(confirmationCode: ${confirmationCode}) {
+  token
+  }
+}
+`;
+export const LoginType = (data: any): string => {
+  return data.data.Login.token;
+};
+
 export const UserDescriptorQuery = (): string => `
   {
     UserDescriptor {
       email
       fullName
       profileIMG
+      gender
+      pronoun
+      loginDate
       ip
+      device
+      geolocation { latitude longitude }
+      grantedAuthorities { enterpriseID authority }
     }
   }
 `;
 export const UserDescriptorType = (data: any): UserDescriptor => {
-  return data.UserDescriptor as UserDescriptor;
+  if (data.errors) {
+    switch (data.errors[0].message) {
+      case "Unauthorized: User not found in context":
+        throw new UnauthorizedError();
+      default:
+        throw new Error(data.errors[0].message);
+    }
+  }
+  return data.data.UserDescriptor as UserDescriptor;
 };
+
+export const NotificationQuery = (id: string): string => `
+subscription {
+  notifications(id:"${id}") {
+    id
+    title
+    content
+    thumbnail
+    occurredOn
+    seen
+    link
+  }
+}
+`;
+
+export const NotificationTypeList = (data: any): Notifications[] => {
+  if (data.errors) {
+    console.error("NotificationTypeList err ", data.errors[0].message);
+  }
+  return data.data.notifications;
+};
+
 export const IndustriesQuery = (): string => `
   {
     Industries {
@@ -101,47 +149,38 @@ export const IndustriesQuery = (): string => `
   }
 `;
 export const IndustryListType = (data: any): Industry[] => {
-  return data.Industries as Industry[];
+  if (data.errors) {
+    console.error("IndustryListType err ", data.errors[0].message);
+  }
+  return data.data.Industries as Industry[];
 };
 export const IsEnterpriseNameAvailableQuery = (name: string): string => `
   {
-    IsEnterpriseNameAvailable(ID: "${name}")
+    IsEnterpriseNameAvailable(id: "${name}")
   }
 `;
 export const IsEnterpriseNameAvailable = (data: any): boolean => {
-  return data.IsEnterpriseNameAvailable;
+  if (data.errors) {
+    console.error("IsEnterpriseNameAvailable err ", data.errors[0].message);
+  }
+  return data.data.IsEnterpriseNameAvailable;
 };
 
-export const OwnerEnterprisesQuery = (): string => `
+export const FindComplaintReceiversQuery = (
+  id: string,
+  name: string
+): string => `
   {
-    OwnerEnterprises {
-      name
-      bannerIMG
-      logoIMG
-      email
-      website
-      phone
-      industry
-      address { country county city }
-      foundationDate
-    }
-  }
-`;
-export const OwnerEnterprisesTypeList = (data: any): Enterprise[] => {
-  return data.OwnerEnterprises;
-};
-export const FindReceiverQuery = (name: string): string => `
-  {
-    FindReceiver(term: "${name}") {
-      ID
+    FindComplaintReceivers(id:"${id}", term: "${name}") {
+      id
       fullName
-      IMG
+      thumbnail
     }
   }
 `;
 
-export const ReceiverTypeList = (data: any): Receiver[] => {
-  return data.FindReceiver;
+export const FindComplaintReceiversTypeList = (data: any): Receiver[] => {
+  return data.data.FindComplaintReceivers;
 };
 
 export const IsValidReceiverQuery = (name: string): string => `
@@ -153,19 +192,112 @@ export const IsValidReceiver = (data: any): boolean => {
   return data.IsValidReceiver;
 };
 
+export const FindAuthorByIDQuery = (id: string): string => `
+  {
+    FindAuthorByID(id: "${id}") {
+      fullName
+      thumbnail
+    }
+  }
+`;
+export const FindAuthorByIDType = (data: any): Receiver => {
+  if (data.errors) {
+    console.error("FindAuthorByIDType err ", data.errors[0].message);
+  }
+  return data.data.FindAuthorByID;
+};
 export const DraftQuery = (
   id: string,
   limit: number,
   offset: number
 ): string => `
   {
-    Draft(ID: "${id}", limit:${limit}, offset:${offset}) {
+    ComplaintInbox(id: "${id}", limit:${limit}, offset:${offset}) {
       complaints {
       id
       authorFullName
       authorProfileIMG
-      receiverFullName
-      receiverProfileIMG
+      status
+      message { title description body }
+      createdAt
+      updatedAt
+
+      }
+      count
+      currentLimit
+      currentOffset
+    }
+  }
+`;
+
+export const DraftTypeList = (data: any): ComplaintTypeList => {
+  if (data.errors) {
+    console.error("DraftTypeList err ", data.errors[0].message);
+  }
+  return data.data.ComplaintInbox as ComplaintTypeList;
+};
+
+export const SearchInDraftQuery = (
+  id: string,
+  term: string,
+  after: string,
+  before: string,
+  limit: number,
+  offset: number
+): string => `
+  {
+    ComplaintInboxSearch(id: "${id}", afterDate: "${after}",
+     beforeDate: "${before}", term: "${term}",
+     limit:${limit}, offset:${offset}) {
+      complaints {
+      id
+      authorFullName
+      authorProfileIMG
+      status
+      message { title description body }
+      replies {
+        id
+        complaintID
+        senderID
+        createdAt
+        read
+        readAt
+        isEnterprise
+        enterpriseID
+        }
+      createdAt
+      updatedAt
+      }
+      count
+      currentLimit
+      currentOffset
+    }
+  }
+`;
+
+export const SearchInDraftTypeList = (data: any): ComplaintTypeList => {
+  if (data.errors) {
+    console.error("DraftTypeList err ", data.errors[0].message);
+  }
+  return data.data.ComplaintInboxSearch as ComplaintTypeList;
+};
+
+export const ComplaintHistoryQuery = (
+  id: string,
+  term: string,
+  after: string,
+  before: string,
+  limit: number,
+  offset: number
+): string => `
+  {
+    ComplaintHistory(id: "${id}", afterDate: "${after}",
+     beforeDate: "${before}", term: "${term}",
+     limit:${limit}, offset:${offset}) {
+      complaints {
+      id
+      authorFullName
+      authorProfileIMG
       status
       message { title description body }
       createdAt
@@ -178,8 +310,11 @@ export const DraftQuery = (
   }
 `;
 
-export const DraftTypeList = (data: any): ComplaintTypeList => {
-  return data.Draft as ComplaintTypeList;
+export const ComplaintHistoryTypeList = (data: any): ComplaintTypeList => {
+  if (data.errors) {
+    console.error("DraftTypeList err ", data.errors[0].message);
+  }
+  return data.data.ComplaintHistory as ComplaintTypeList;
 };
 
 export const SentQuery = (
@@ -188,7 +323,7 @@ export const SentQuery = (
   offset: number
 ): string => `
   {
-    Sent(ID: "${id}", limit:${limit}, offset:${offset}) {
+    ComplaintsSent(id: "${id}", limit:${limit}, offset:${offset}) {
       complaints {
       id
       authorFullName
@@ -207,11 +342,60 @@ export const SentQuery = (
   }
 `;
 export const SentTypeList = (data: any): ComplaintTypeList => {
-  return data.Sent as ComplaintTypeList;
+  if (data.errors) {
+    console.error("SentTypeList err ", data.errors[0].message);
+  }
+  return data.data.ComplaintsSent as ComplaintTypeList;
+};
+export const SentSearchQuery = (
+  id: string,
+  term: string,
+  after: string,
+  before: string,
+  limit: number,
+  offset: number
+): string => `
+  {
+    ComplaintsSentSearch(id: "${id}", afterDate: "${after}",
+     beforeDate: "${before}", term: "${term}",
+     limit:${limit}, offset:${offset}) {
+      complaints {
+      id
+      authorFullName
+      authorProfileIMG
+      receiverFullName
+      receiverProfileIMG
+      status
+      message { title description body }
+      createdAt
+      updatedAt
+      replies {
+        id
+        complaintID
+        senderID
+        createdAt
+        read
+        readAt
+        isEnterprise
+        enterpriseID
+        }
+      }
+      count
+      currentLimit
+      currentOffset
+    }
+  }
+`;
+export const SentSearchTypeList = (data: any): ComplaintTypeList => {
+  if (data.errors) {
+    console.error("SentTypeList err ", data.errors[0].message);
+  }
+  console.error("daata", data);
+  return data.data.ComplaintsSentSearch as ComplaintTypeList;
 };
 export const ComplaintQuery = (id: string): string => `
   {
-    Complaint(ID: "${id}") {
+    Complaint(id: "${id}") {
       id
       authorID
       authorFullName
@@ -242,13 +426,64 @@ export const ComplaintQuery = (id: string): string => `
   }
 `;
 
-export const ComplaintType = (data: any): Complaint => {
-  return data.Complaint as Complaint;
+export const ComplaintQueryType = (data: any): ComplaintType => {
+  if (data.errors) {
+    console.error("complainttype err ", data.errors[0].message);
+  }
+  return data.data.Complaint as ComplaintType;
 };
+
+export const ComplaintsReceivedInfoQuery = (id: string) => `
+{
+  ComplaintsReceivedInfo(id: "${id}") {
+    complaintsReceived
+    complaintsResolved
+    complaintsReviewed
+    complaintsPending
+    averageRating
+  }
+}
+`;
+
+export const ComplaintReceivedInfoType = (data: any): ComplaintInfo => {
+  if (data.errors) {
+    console.error("complaintReceivedInfoType err ", data.errors[0].message);
+  }
+  return data.data.ComplaintsReceivedInfo as ComplaintInfo;
+};
+
+export const CompleteEnterpriseQuery = (id: string): string => `
+{
+  Enterprise(id: "${id}") {
+    name
+    bannerIMG
+    logoIMG
+    email
+    website
+    phone
+    industry
+    address { country county city }
+    foundationDate
+    employees {
+    id
+    profileIMG
+    firstName
+    lastName
+    age
+    email
+    phone
+    hiringDate
+    approvedHiring
+    approvedHiringAt
+    position
+    }
+  }
+}
+`;
 
 export const EnterpriseQuery = (id: string): string => `
   {
-    Enterprise(ID: "${id}") {
+    Enterprise(id: "${id}") {
       name
       bannerIMG
       logoIMG
@@ -263,7 +498,10 @@ export const EnterpriseQuery = (id: string): string => `
 `;
 
 export const EnterpriseType = (data: any): Enterprise => {
-  return data.Enterprise as Enterprise;
+  if (data.errors) {
+    console.error("enterprisetype err ", data.errors[0].message);
+  }
+  return data.data.Enterprise as Enterprise;
 };
 
 export const UsersForHiringQuery = (
@@ -273,12 +511,15 @@ export const UsersForHiringQuery = (
   query: string
 ): string => `
   {
-    UsersForHiring(ID: "${id}", limit:${limit}, offset:${offset}, query: "${query}") {
+    UsersForHiring(id: "${id}", limit:${limit},
+     offset:${offset}, query: "${query}") {
       users{
       profileIMG
       email
       firstName
       lastName
+      gender
+      pronoun
       age
       phone
       address { country county city } 
@@ -291,16 +532,119 @@ export const UsersForHiringQuery = (
 `;
 
 export const UsersForHiringType = (data: any): UsersForHiring => {
-  return data.UsersForHiring as UsersForHiring;
+  if (data.errors) {
+    console.error("UsersForHiringType err ", data.errors[0].message);
+  }
+  return data.data.UsersForHiring as UsersForHiring;
 };
 
-export const UserQuery = (id: string): string => `
-  {
-    User(ID: "${id}") {
+export const HiringProccessesQuery = (
+  id: string,
+  term: string,
+  offset: string,
+  limit: string
+): string => `
+{
+  HiringProcceses(id: "${id}", query: "${term}", offset: ${offset}, limit: ${limit}) {
+  hiringProccesses{
+    eventID
+    user {
       profileIMG
       email
       firstName
       lastName
+      gender
+      pronoun
+      age
+      phone
+      address { country county city } }
+    position
+    status
+    occurredOn
+    reason
+    lastUpdate
+    emitedBy {
+      profileIMG
+      email
+      firstName
+      lastName
+        }
+      }
+    count
+    currentLimit
+    currentOffset
+  }
+}
+`;
+
+export const HiringProccessesTypeList = (data: any): HiringProccessList => {
+  if (data.errors) {
+    console.error("HiringProccessesType err ", data.errors[0].message);
+  }
+  return data.data.HiringProcceses;
+};
+
+export const OnlineUsersQuery = (id: string): string => ` 
+{
+  OnlineUsers(id: "${id}") {
+      profileIMG
+      email
+      firstName
+      lastName
+      gender
+      pronoun
+      age
+      status
+  }
+}
+`;
+
+export const OnlineUsersType = (data: any): User[] => {
+  if (data.errors) {
+    console.error("OnlineUsersType err ", data.errors[0].message);
+  }
+  return data.data.OnlineUsers as User[];
+};
+
+export const EnterpriseChatQuery = (
+  enterpriseID: string,
+  chatID: string
+): string => `
+{
+  EnterpriseChat(enterpriseID: "${enterpriseID}", chatID: "${chatID}") {
+    id
+    replies {
+      id
+      chatID
+      user {
+        email
+        firstName
+        lastName
+      }
+      content
+      seen
+      createdAt
+      updatedAt
+    }
+  }
+}
+`;
+
+export const EnterpriseChatTypeCast = (data: any): any => {
+  if (data.errors) {
+    console.error("EnterpriseChatTypeCast err ", data.errors[0].message);
+  }
+  return data.data.EnterpriseChat;
+};
+export const UserQuery = (id: string): string => `
+  {
+    User(id: "${id}") {
+      profileIMG
+      email
+      firstName
+      lastName
+      gender
+      pronoun
       age
       phone
       address { country county city }
@@ -309,13 +653,45 @@ export const UserQuery = (id: string): string => `
 `;
 
 export const UserType = (data: any): User => {
-  return data.User as User;
+  if (data.errors) {
+    console.error("UserType err ", data.errors[0].message);
+  }
+  return data.data.User as User;
 };
+export const HiringInvitationsQuery = (): string =>
+  `
+{
+  HiringInvitations {
+  eventID
+  ownerID
+  enterpriseID
+  proposedPosition
+  fullName
+  enterpriseEmail
+  enterprisePhone
+  enterpriseLogoIMG
+  occurredOn
+  seen
+  status
+  }
+  }
+`;
 
-export const EmployeeQuery = (id: string): string => `
+export const HiringInvitationsTypeList = (
+  data: any
+): HiringInvitationType[] => {
+  if (data.errors) {
+    console.error("HiringInvitationsTypeList err ", data.errors);
+  }
+  return data.data.HiringInvitations;
+};
+export const EmployeeQuery = (
+  enterpriseName: string,
+  employeeId: string
+): string => `
   {
-    Employee(ID: "${id}") {
-      ID
+    Employee(enterpriseName: "${enterpriseName}", employeeID: "${employeeId}") {
+      id
       profileIMG
       firstName
       lastName
@@ -327,19 +703,31 @@ export const EmployeeQuery = (id: string): string => `
       approvedHiringAt
       position
       complaintsSolved
-      complaintsSolvedIDs
+      complaintsSolvedIds
+      complaintsRated
+      complaintsRatedIDs
+      complaintsFeedbacked
+      complaintsFeedbackedIDs
+      feedbackReceived
+      feedbackReceivedIDs
+      hireInvitationsSent
+      employeesHired
+      employeesFired
     }
   }
 `;
 
-export const EmployeeType = (data: any): Employee => {
-  return data.Employee as Employee;
+export const EmployeeQueryType = (data: any): EmployeeType => {
+  if (data.errors) {
+    console.error("EmployeeType err ", data.errors[0].message);
+  }
+  return data.data.Employee as EmployeeType;
 };
 
 export const EmployeesQuery = (id: string): string => `
   {
-    Employees(ID: "${id}") {
-      ID
+    Employees(enterpriseName: "${id}") {
+      id
       profileIMG
       firstName
       lastName
@@ -351,13 +739,25 @@ export const EmployeesQuery = (id: string): string => `
       approvedHiringAt
       position
       complaintsSolved
-      complaintsSolvedIDs
+      complaintsSolvedIds
+      complaintsRated
+      complaintsRatedIDs
+      complaintsFeedbacked
+      complaintsFeedbackedIDs
+      feedbackReceived
+      feedbackReceivedIDs
+      hireInvitationsSent
+      employeesHired
+      employeesFired
     }
   }
 `;
 
-export const EmployeesTypeList = (data: any): Employee[] => {
-  return data.Employees as Employee[];
+export const EmployeesTypeList = (data: any): EmployeeType[] => {
+  if (data.errors) {
+    console.error("EmployeesTypeList err ", data.errors[0].message);
+  }
+  return data.data.Employees as EmployeeType[];
 };
 
 export const OfficesQuery = (): string => `
@@ -382,23 +782,44 @@ export const OfficeTypeList = (data: any): Office[] => {
   return data.Offices as Office[];
 };
 
-export const InfoForReviewQuery = (
-  triggeredBy: string,
-  complaintID: string
-): string => `
+export const ComplaintReviews = (id: string): string => `
 {
-  User(ID: "${triggeredBy}") {
+  PendingComplaintReviews(id: "${id}") {
+    eventID
+    triggeredBy {
+      email
+      firstName
+      lastName
+      pronoun
+    }
+    complaint {
+      id
+      message { title description body  }
+      receiverFullName
+      receiverID
+      authorFullName
+      authorID
+      status 
+      createdAt
+      rating { rate comment }
+      replies { senderID senderName isEnterprise enterpriseID}
+    }
+    ratedBy {
+    email
     firstName
     lastName
-  }
-  Complaint(ID: "${complaintID}") {
-    id
-    receiverFullName
-    message { title  }
+    pronoun
+    }
+    status
   }
 }
 `;
-
+export const ComplaintReviewsTypeList = (data: any): ComplaintReviewType[] => {
+  if (data.errors) {
+    console.error("ComplaintReviewsTypeList err ", data.errors[0]);
+  }
+  return data.data.PendingComplaintReviews as ComplaintReviewType[];
+};
 export const SolvedReviewQuery = (
   complaintID: string,
   assistantUserID: string
@@ -419,30 +840,219 @@ export const SolvedReviewQuery = (
 export const SolvedReviewType = (data: any): SolvedReview => {
   return data as SolvedReview;
 };
-export const InfoForReviewType = (data: any): InfoForReview => {
-  return data as InfoForReview;
+
+export const FeedbackByComplaintIDQuery = (id: string): string => `
+{
+  FeedbackByComplaintID(id: "${id}"){
+    id
+    complaintID
+    enterpriseID
+    replyReview {
+      id
+      feedbackID
+        replies {
+          id
+          complaintID
+          senderID
+          senderIMG
+          senderName
+          body 
+          createdAt
+          read 
+          readAt 
+          updatedAt 
+          isEnterprise 
+          enterpriseID 
+          complaintStatus
+        }
+        reviewer {
+          profileIMG
+          email
+          firstName
+          lastName
+          gender
+          pronoun
+          }
+        review {
+          replyReviewID 
+          comment
+        }
+        color
+        createdAt
+      }
+      feedbackAnswer {
+        id
+        feedbackID
+        senderID
+        senderIMG
+        senderName
+        body 
+        createdAt
+        read
+        readAt
+        updatedAt
+        isEnterprise
+        enterpriseID
+      }
+      isDone
+  }
+}
+`;
+export const FeedbackByComplaintIDType = (data: any): FeedbackType => {
+  if (data.errors) {
+    console.error("FeedbackByComplaintIDType err ", data.errors[0].message);
+  }
+  return data.data.FeedbackByComplaintID;
+};
+
+export const FeedbackByRevieweeIDQuery = (id: string): string => `
+  {
+  FeedbackByRevieweeID(id: "${id}"){
+    id
+    complaintID
+    enterpriseID
+    updatedAt
+    replyReview {
+      id
+      feedbackID
+        replies {
+          id
+          complaintID
+          senderID
+          senderIMG
+          senderName
+          body 
+          createdAt
+          read 
+          readAt 
+          updatedAt 
+          isEnterprise 
+          enterpriseID 
+          complaintStatus
+        }
+        reviewer {
+          profileIMG
+          email
+          firstName
+          lastName
+          gender
+          pronoun
+          }
+        review {
+          replyReviewID 
+          comment
+        }
+        color
+        createdAt
+      }
+      feedbackAnswer {
+        id
+        feedbackID
+        senderID
+        senderIMG
+        senderName
+        body 
+        createdAt
+        read
+        readAt
+        updatedAt
+        isEnterprise
+        enterpriseID
+      }
+      isDone
+  }
+}
+`;
+export const FeedbackByRevieweeIDType = (data: any): FeedbackType[] => {
+  if (data.errors) {
+    console.error("FeedbackByRevieweeIDType err ", data.errors[0].message);
+  }
+  return data.data.FeedbackByRevieweeID;
+};
+export const FeedbackByIDQuery = (id: string): string => `
+{
+  FeedbackByID(id: "${id}"){
+    id
+    complaintID
+    enterpriseID
+    replyReview {
+      id
+      feedbackID
+        replies {
+          id
+          complaintID
+          senderID
+          senderIMG
+          senderName
+          body 
+          createdAt
+          read 
+          readAt 
+          updatedAt 
+          isEnterprise 
+          enterpriseID 
+          complaintStatus
+        }
+        reviewer {
+          profileIMG
+          email
+          firstName
+          lastName
+          gender
+          pronoun
+          }
+        review {
+          replyReviewID 
+          comment
+        }
+        color
+        createdAt
+      }
+      feedbackAnswer {
+        id
+        feedbackID
+        senderID
+        senderIMG
+        senderName
+        body 
+        createdAt
+        read
+        readAt
+        updatedAt
+        isEnterprise
+        enterpriseID
+      }
+      isDone
+  }
+}
+`;
+export const FeedbackByIDType = (data: any): FeedbackType => {
+  if (data.errors) {
+    console.error("FeedbackByIDType err ", data.errors[0].message);
+  }
+  return data.data.FeedbackByID;
 };
 export async function Query<T>(
   queryFn: (...args: any[]) => string,
   castToFn: (data: any) => T,
   args: any[] = []
 ): Promise<T> {
-  console.log(queryFn(...args));
-  const query = await fetch(import.meta.env.VITE_GRAPHQL_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({ query: deleteLinebreaks(queryFn(...args)) }),
-  });
-  const data = await query.json();
-  if (!data) {
-    console.error(data);
+  const token = await csrf();
+  if (token != "") {
+    const strBody = JSON.stringify({
+      query: deleteLinebreaks(queryFn(...args)),
+    });
+    const response = await fetch("http://localhost:5170/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-csrf-token": token,
+      },
+      credentials: "include",
+      body: strBody,
+    });
+    const data = await response.json();
+    return castToFn(data);
   }
-  return castToFn(data.data);
+  throw new Error("No CSRF token");
 }
-
-const deleteLinebreaks = (str: string): string => {
-  return str.replace(/\n/g, "");
-};

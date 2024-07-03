@@ -17,7 +17,7 @@ func NewByOwnerID(ownerID string) *ByOwnerID {
 			link,
 			occurred_on,
 			seen
-		FROM public."notification"
+		FROM notification
 		WHERE owner_id = $1
 		`),
 		args: []interface{}{ownerID},

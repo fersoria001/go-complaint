@@ -5,7 +5,6 @@ import (
 	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/complaint"
 	"go-complaint/infrastructure/persistence/datasource"
-	"log"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -32,39 +31,6 @@ func (rr ComplaintRepliesRepository) Get(
 	}
 	selectQuery := string(`
 	SELECT
-	"complaint_replies".id,
-	"complaint_replies".complaint_id,
-	"complaint_replies".author_id,
-	"complaint_replies".body,
-	"complaint_replies".read_status,
-	"complaint_replies".read_at,
-	"complaint_replies".created_at,
-	"complaint_replies".updated_at,
-	"complaint_replies".is_enterprise,
-	"complaint_replies".enterprise_id
-	FROM
-	public."complaint_replies"
-	WHERE id = $1
-	`)
-	row := conn.QueryRow(ctx, selectQuery, replyID)
-	reply, err := rr.load(ctx, row)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Release()
-	return reply, nil
-}
-
-func (rr ComplaintRepliesRepository) FindAllByComplaintID(
-	ctx context.Context,
-	complaintID uuid.UUID,
-) (mapset.Set[*complaint.Reply], error) {
-	conn, err := rr.complaintSchema.Acquire(ctx)
-	if err != nil {
-		return nil, err
-	}
-	selectQuery := string(`
-	SELECT
 	id,
 	complaint_id,
 	author_id,
@@ -76,13 +42,44 @@ func (rr ComplaintRepliesRepository) FindAllByComplaintID(
 	is_enterprise,
 	enterprise_id
 	FROM
-	public."complaint_replies"
-	WHERE complaint_id = $1
+	complaint_replies
+	WHERE id = $1
 	`)
-	rows, err := conn.Query(ctx, selectQuery, complaintID)
+	row := conn.QueryRow(ctx, selectQuery, replyID)
+	reply, err := rr.load(ctx, row)
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
+	return reply, nil
+}
+
+func (rr ComplaintRepliesRepository) FindAll(
+	ctx context.Context,
+	source StatementSource,
+) (mapset.Set[*complaint.Reply], error) {
+	conn, err := rr.complaintSchema.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := conn.Query(ctx, source.Query(), source.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	replies, err := rr.loadAll(ctx, rows)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		rows.Close()
+		conn.Release()
+	}()
+	return replies, nil
+}
+func (rr ComplaintRepliesRepository) loadAll(
+	ctx context.Context,
+	rows pgx.Rows,
+) (mapset.Set[*complaint.Reply], error) {
 	replies := mapset.NewSet[*complaint.Reply]()
 	for rows.Next() {
 		reply, err := rr.load(ctx, rows)
@@ -91,10 +88,6 @@ func (rr ComplaintRepliesRepository) FindAllByComplaintID(
 		}
 		replies.Add(reply)
 	}
-	defer func() {
-		rows.Close()
-		conn.Release()
-	}()
 	return replies, nil
 }
 
@@ -111,7 +104,7 @@ func (rr ComplaintRepliesRepository) DeleteAll(
 		return err
 	}
 	deleteCommand := string(`
-	DELETE FROM public."complaint_replies"
+	DELETE FROM complaint_replies
 	WHERE id = $1;
 	`)
 	for reply := range replies.Iter() {
@@ -142,7 +135,7 @@ func (rr ComplaintRepliesRepository) SaveAll(
 		return nil
 	}
 	insertCommand := string(`
-	INSERT INTO public."complaint_replies" (
+	INSERT INTO complaint_replies (
 		id,
 		complaint_id,
 		author_id,
@@ -206,11 +199,8 @@ func (rr ComplaintRepliesRepository) UpdateAll(
 		return err
 	}
 	insertCommand := string(`
-	UPDATE public."complaint_replies"
+	UPDATE complaint_replies
 	SET
-		id=$1,
-		complaint_id=$2,
-		author_id=$3,
 		body=$4,
 		read_status=$5,
 		read_at=$6,
@@ -318,7 +308,7 @@ func (rr ComplaintRepliesRepository) load(ctx context.Context, row pgx.Row) (*co
 	if isEnterprise {
 		dbEnterprise, err := enterpriseRepository.Get(ctx, enterpriseID)
 		if err != nil {
-			log.Printf("Error: %v", err)
+
 			return nil, err
 		}
 		authorIMG = dbEnterprise.LogoIMG()

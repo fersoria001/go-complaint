@@ -13,13 +13,13 @@ function EnterpriseCard({
 }: Enterprise) {
     return (
         <div className=" bg-white border border-gray-200 rounded-lg shadow  hover:bg-gray-100">
-            <div className="flex flex-col p-5">
-                <div className="flex self-center md:self-auto flex-col md:flex-row  md:justify-around">
-                    <h5 className="pb-2 mb-2 text-2xl text-center font-bold tracking-tight text-gray-900">
+            <div className="flex flex-col py-3 md:p-5">
+                <div className="flex self-start flex-col md:flex-row  md:justify-between w-full px-5">
+                    <h5 className="pb-2 mb-2 text-2xl  text-center  font-bold tracking-tight text-gray-900">
                         {name}
                     </h5>
 
-                    <div>
+                    <div className="">
                         <div className="flex mb-3">
                             <ContactMailIcon fill="#374151" />
                             <p className="pl-2 font-normal text-gray-700">{email}</p>

@@ -47,6 +47,15 @@ func (aas AuthorizationApplicationService) Credentials(ctx context.Context) (dto
 	if !ok {
 		return dto.UserDescriptor{}, &erros.UnauthorizedError{}
 	}
+	user, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, credentials.Email)
+	if err != nil {
+		return credentials, err
+	}
+	credentials = dto.NewUserDescriptor(
+		aas.ClientData(ctx),
+		*user,
+		false,
+	)
 	return credentials, nil
 }
 
@@ -64,7 +73,13 @@ func (aas AuthorizationApplicationService) Authorize(
 ) (context.Context, error) {
 	claims, err := JWTApplicationServiceInstance().ParseUserDescriptor(jwtToken)
 	if err != nil {
-		return nil, err
+		claims, err := JWTApplicationServiceInstance().ParseConfirmationCode(jwtToken)
+		if err != nil {
+			return nil, err
+		}
+		authorizedCtx := context.WithValue(ctx, aas.authCtxKey, claims)
+		authorizedCtx = context.WithValue(authorizedCtx, aas.tokenCtxKey, jwtToken)
+		return authorizedCtx, nil
 	}
 	authorizedCtx := context.WithValue(ctx, aas.authCtxKey, claims)
 	authorizedCtx = context.WithValue(authorizedCtx, aas.tokenCtxKey, jwtToken)
@@ -136,25 +151,34 @@ func (aas AuthorizationApplicationService) ResourceAccess(
 		}
 		switch accessLevel {
 		case WRITE:
-			if dbComplaint.ReceiverID() != credentials.Email {
+			if dbComplaint.ReceiverID() != credentials.Email && dbComplaint.AuthorID() != credentials.Email {
 				for _, v := range credentials.GrantedAuthorities {
-					if v.EnterpriseID == dbComplaint.ReceiverID() && requiredAuthoritiesSet.Contains(v.Authority) {
+					if (v.EnterpriseID == dbComplaint.ReceiverID() && requiredAuthoritiesSet.Contains(v.Authority)) ||
+						(v.EnterpriseID == dbComplaint.AuthorID() && requiredAuthoritiesSet.Contains(v.Authority)) {
 						return credentials, nil
 					}
 				}
 			} else {
 				return credentials, nil
 			}
-		case READ:
-			if dbComplaint.AuthorID() != credentials.Email {
-				for _, v := range credentials.GrantedAuthorities {
-					if v.EnterpriseID == dbComplaint.AuthorID() && requiredAuthoritiesSet.Contains(v.Authority) {
-						return credentials, nil
-					}
+		}
+	case "Feedback":
+		parsedID, err := uuid.Parse(resourceID)
+		if err != nil {
+			return credentials, ErrBadRequest
+		}
+		dbFeedback, err := repositories.MapperRegistryInstance().Get("Feedback").(repositories.FeedbackRepository).Get(ctx, parsedID)
+		if err != nil {
+			return credentials, err
+		}
+		switch accessLevel {
+		case WRITE:
+			for _, v := range credentials.GrantedAuthorities {
+				if v.EnterpriseID == dbFeedback.EnterpriseID() && requiredAuthoritiesSet.Contains(v.Authority) {
+					return credentials, nil
 				}
-			} else {
-				return credentials, nil
 			}
+			return credentials, ErrUnauthorized
 		}
 	case "Enterprise":
 		enterprise, err := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository).Get(ctx, resourceID)
@@ -164,15 +188,24 @@ func (aas AuthorizationApplicationService) ResourceAccess(
 		if enterprise.Owner() != credentials.Email {
 			for _, v := range credentials.GrantedAuthorities {
 				if v.EnterpriseID == resourceID && requiredAuthoritiesSet.Contains(v.Authority) {
-					return credentials, nil
+					for emp := range enterprise.Employees().Iter() {
+						if emp.Email() == credentials.Email && emp.Position().String() == v.Authority {
+							return credentials, nil
+						}
+					}
 				}
 			}
 		} else {
 			return credentials, nil
 		}
 	default:
+		if resourceID == "" {
+			return credentials, nil
+		}
+
 		if resourceID != credentials.Email {
 			for _, v := range credentials.GrantedAuthorities {
+
 				if v.EnterpriseID == resourceID && requiredAuthoritiesSet.Contains(v.Authority) {
 					return credentials, nil
 				}

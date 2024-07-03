@@ -68,7 +68,7 @@ func (addressQuery AddressQuery) ProvideStateCitiesByStateID(
 	}
 	stateCities, err := stateCitiesRepository.FindAll(
 		ctx,
-		statecitiesfindall.NewByStateID(addressQuery.CountryID),
+		statecitiesfindall.NewByStateID(addressQuery.CountryStateID),
 	)
 	if err != nil {
 		return nil, err

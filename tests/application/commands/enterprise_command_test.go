@@ -2,7 +2,6 @@ package commands_test
 
 import (
 	"context"
-	"go-complaint/application"
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
 	"go-complaint/application/queries"
@@ -157,7 +156,6 @@ func TestEnterpriseCommandCommand_UpdateProfile(t *testing.T) {
 func TestEnterpriseCommandCommand_InviteToProject(t *testing.T) {
 	// Arrange
 	ctx, err := loginUser()
-	application.EventProcessorInstance().ResetDomainEventPublisher()
 	assert.Nil(t, err)
 	enterpriseCommand := commands.EnterpriseCommand{
 		Name:      tests.CreateEnterpriseCommands["Spoon company"].Name,

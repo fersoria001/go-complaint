@@ -2,8 +2,12 @@ package graphql_subscriptions
 
 import (
 	"context"
+	"fmt"
 	"go-complaint/application/application_services"
+	"go-complaint/dto"
+	"go-complaint/infrastructure/cache"
 	"log"
+
 	"sync"
 	"time"
 
@@ -27,8 +31,23 @@ type SubscriptionsPublisher struct {
 	publishing  bool
 }
 
+func (p *SubscriptionsPublisher) Background(ch chan cache.Request) {
+	for {
+		req := <-ch
+
+		dataMessage := DataMessage{
+			Type:        DATA.String(),
+			OperationID: req.Key,
+			Payload:     req.Payload,
+		}
+		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*1))
+		p.Publish(ctx, dataMessage)
+		cancel()
+	}
+}
+
 func (p *SubscriptionsPublisher) Publish(
-	ctx context.Context, operationID string) error {
+	ctx context.Context, data DataMessage) error {
 	if p.publishing {
 		return nil
 	}
@@ -43,13 +62,13 @@ func (p *SubscriptionsPublisher) Publish(
 
 	p.subscribers.Range(func(key, value interface{}) bool {
 		client := value.(*Subscriber)
-		log.Printf("clientOperationType: %v", client.OperationID)
-		if client.SubscribedToOperationType(operationID) {
-			log.Printf("sent one: %v", operationID)
-			client.Send <- operationID
+		if client.SubscribedToOperationType(data.OperationID) {
+			log.Println("is subscribed send to", data.OperationID)
+			client.Send <- data
 		}
 		return true
 	})
+
 	return nil
 }
 
@@ -76,110 +95,40 @@ func (p *SubscriptionsPublisher) Subscribe(ctx context.Context, subscriber *Subs
 			subscriber.SetSubscription(msg.Payload.SubscriptionID)
 			subscriber.RequestString = msg.Payload.Query
 			p.subscribers.Store(subscriber.ID, subscriber)
+			if pair := cache.RecognizeId(subscriber.OperationID); pair != nil {
+				cache.RequestChannel2 <- cache.Request{
+					Type:    cache.WRITE,
+					Payload: pair,
+					Key:     "ENTERPRISE_USER",
+				}
+				cache.RequestChannel <- cache.Request{
+					Type: cache.WRITE,
+					Payload: &cache.Pair{
+						One: pair.Two,
+						Two: dto.ONLINE.String(),
+					},
+					Key: fmt.Sprintf("chat:%s", pair.One),
+				}
+			}
 			return nil
 		}
 	}
 }
 func (p *SubscriptionsPublisher) Unsubscribe(subscriber *Subscriber) {
+	if pair := cache.RecognizeId(subscriber.OperationID); pair != nil {
+		cache.RequestChannel2 <- cache.Request{
+			Type:    cache.DELETE,
+			Key:     "ENTERPRISE_USER",
+			Payload: pair,
+		}
+		cache.RequestChannel <- cache.Request{
+			Type: cache.WRITE,
+			Payload: &cache.Pair{
+				One: pair.Two,
+				Two: dto.OFFLINE.String(),
+			},
+			Key: fmt.Sprintf("chat:%s", pair.One),
+		}
+	}
 	p.subscribers.Delete(subscriber.ID)
 }
-
-// func (p *SubscriptionsPublisher) ProccessFile(client *Subscriber,
-// 	msg SubmitFileMessage) (Message, error) {
-// 	var response = FileSubmittedMessage{
-// 		Email:        client.User.Email,
-// 		EnterpriseID: client.Enterprise.Name,
-// 		File:         msg.File,
-// 		Success:      false,
-// 		TriesLeft:    msg.Try,
-// 	}
-// 	fileName := client.User.Email + "_" + msg.FileName
-// 	filePayload, err := infrastructure.NewFilePayload(
-// 		fileName,
-// 		msg.FileType,
-// 		msg.File,
-// 	)
-// 	if err != nil {
-// 		return Message{}, err
-// 	}
-// 	err = filePayload.Save()
-// 	if err != nil {
-// 		if errors.Is(err, infrastructure.ErrFileAlreadyExists) {
-// 			response.Success = false
-// 		} else {
-// 			return Message{}, err
-// 		}
-// 	} else {
-// 		response.FileName = fileName
-// 		response.Success = true
-// 	}
-// 	if msg.Try != UNLIMITED_TRIES {
-// 		response.TriesLeft--
-// 	}
-// 	j, err := json.Marshal(response)
-// 	if err != nil {
-// 		return Message{}, err
-// 	}
-// 	return Message{
-// 		Type:    FileSubmited.String(),
-// 		Payload: j,
-// 	}, nil
-// }
-
-// case NewMessage.String():
-// 	p.subscribers.Range(func(key, value interface{}) bool {
-// 		client := value.(*Subscriber)
-// 		client.Send <- message
-// 		return true
-// 	})
-// case SubmitFile.String():
-// 	var msg SubmitFileMessage
-// 	err := json.Unmarshal(message.Payload, &msg)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	subscriber, err := p.GetSubscriber(message.SubscriptionID)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	result, err := p.ProccessFile(subscriber, msg)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	p.subscribers.Range(func(key, value interface{}) bool {
-// 		client := value.(*Subscriber)
-// 		client.Send <- result
-// 		return true
-// 	})
-// case CloseRoom.String():
-// 	var msg CloseRoomMessage
-// 	err := json.Unmarshal(message.Payload, &msg)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	subscriber, err := p.GetSubscriber(message.SubscriptionID)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if subscriber.Authenticated && subscriber.Enterprise.Name == msg.EnterpriseID && subscriber.User.Email == msg.Email {
-// 		response := RoomClosedMessage{
-// 			Email:        subscriber.User.Email,
-// 			EnterpriseID: subscriber.Enterprise.Name,
-// 			RoomID:       msg.RoomID,
-// 		}
-// 		j, err := json.Marshal(response)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		result := Message{
-// 			Type:    RoomClosed.String(),
-// 			Payload: j,
-// 		}
-// 		p.subscribers.Range(func(key, value interface{}) bool {
-// 			client := value.(*Subscriber)
-// 			client.Send <- result
-// 			return true
-// 		})
-// 	}
-
-// }

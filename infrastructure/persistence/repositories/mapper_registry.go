@@ -66,6 +66,12 @@ var staticMap = map[string]func() func(schema datasource.Schema) interface{}{
 	"Event": func() func(schema datasource.Schema) interface{} {
 		return func(schema datasource.Schema) interface{} { return NewEventRepository(schema) }
 	},
+	"Chat": func() func(schema datasource.Schema) interface{} {
+		return func(schema datasource.Schema) interface{} { return NewChatRepository(schema) }
+	},
+	"enterprise.Reply": func() func(schema datasource.Schema) interface{} {
+		return func(schema datasource.Schema) interface{} { return NewChatRepliesRepository(schema) }
+	},
 }
 
 func MapperRegistryInstance() *MapperRegistry {

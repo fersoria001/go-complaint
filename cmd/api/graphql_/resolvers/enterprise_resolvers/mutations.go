@@ -3,6 +3,7 @@ package enterprise_resolvers
 import (
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
+	"strings"
 
 	"github.com/graphql-go/graphql"
 )
@@ -17,6 +18,7 @@ func CreateEnterpriseResolver(params graphql.ResolveParams) (interface{}, error)
 		Name:           params.Args["name"].(string),
 		Website:        params.Args["website"].(string),
 		Email:          params.Args["email"].(string),
+		PhoneCode:      params.Args["phoneCode"].(string),
 		Phone:          params.Args["phone"].(string),
 		CountryID:      params.Args["countryID"].(int),
 		CountryStateID: params.Args["countryStateID"].(int),
@@ -32,7 +34,13 @@ func CreateEnterpriseResolver(params graphql.ResolveParams) (interface{}, error)
 }
 
 func UpdateEnterpriseResolver(params graphql.ResolveParams) (interface{}, error) {
-	currentUser, err := application_services.AuthorizationApplicationServiceInstance().Credentials(params.Context)
+	currentUser, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		params.Context,
+		"Enterprise",
+		params.Args["enterpriseID"].(string),
+		application_services.WRITE,
+		"OWNER",
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -43,21 +51,21 @@ func UpdateEnterpriseResolver(params graphql.ResolveParams) (interface{}, error)
 	}
 	switch command.UpdateType {
 	case "logoIMG":
-		command.LogoIMG = params.Args["logoIMG"].(string)
+		command.LogoIMG = params.Args["value"].(string)
 	case "bannerIMG":
-		command.BannerIMG = params.Args["bannerIMG"].(string)
+		command.BannerIMG = params.Args["value"].(string)
 	case "website":
-		command.Website = params.Args["website"].(string)
+		command.Website = params.Args["value"].(string)
 	case "email":
-		command.Email = params.Args["email"].(string)
+		command.Email = params.Args["value"].(string)
 	case "phone":
-		command.Phone = params.Args["phone"].(string)
+		command.Phone = params.Args["value"].(string)
 	case "country":
-		command.CountryID = params.Args["countryID"].(int)
+		command.CountryID = params.Args["numberValue"].(int)
 	case "countryState":
-		command.CountryStateID = params.Args["countryStateID"].(int)
+		command.CountryStateID = params.Args["numberValue"].(int)
 	case "city":
-		command.CityID = params.Args["cityID"].(int)
+		command.CityID = params.Args["numberValue"].(int)
 	default:
 		return false, command.UpdateEnterprise(params.Context)
 	}
@@ -69,9 +77,15 @@ func UpdateEnterpriseResolver(params graphql.ResolveParams) (interface{}, error)
 }
 
 func InviteToEnterpriseResolver(params graphql.ResolveParams) (interface{}, error) {
-	currentUser, err := application_services.AuthorizationApplicationServiceInstance().Credentials(params.Context)
+	currentUser, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		params.Context,
+		"Enterprise",
+		params.Args["enterpriseName"].(string),
+		application_services.WRITE,
+		"OWNER", "MANAGER",
+	)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	command := commands.EnterpriseCommand{
 		OwnerID:   currentUser.Email,
@@ -89,7 +103,13 @@ func InviteToEnterpriseResolver(params graphql.ResolveParams) (interface{}, erro
 }
 
 func HireEmployeeResolver(params graphql.ResolveParams) (interface{}, error) {
-	currentUser, err := application_services.AuthorizationApplicationServiceInstance().Credentials(params.Context)
+	currentUser, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		params.Context,
+		"Enterprise",
+		params.Args["enterpriseName"].(string),
+		application_services.WRITE,
+		"OWNER", "MANAGER",
+	)
 	if err != nil {
 		return false, err
 	}
@@ -106,14 +126,26 @@ func HireEmployeeResolver(params graphql.ResolveParams) (interface{}, error) {
 }
 
 func CancelHiringProccessResolver(params graphql.ResolveParams) (interface{}, error) {
-	currentUser, err := application_services.AuthorizationApplicationServiceInstance().Credentials(params.Context)
+	currentUser, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		params.Context,
+		"Enterprise",
+		params.Args["enterpriseName"].(string),
+		application_services.WRITE,
+		"OWNER", "MANAGER",
+	)
 	if err != nil {
 		return false, err
 	}
+	reason := ""
+	if params.Args["reason"] != nil {
+		reason = params.Args["reason"].(string)
+	}
+
 	command := commands.EnterpriseCommand{
-		OwnerID: currentUser.Email,
-		Name:    params.Args["enterpriseName"].(string),
-		EventID: params.Args["eventID"].(string),
+		OwnerID:      currentUser.Email,
+		Name:         params.Args["enterpriseName"].(string),
+		EventID:      params.Args["eventID"].(string),
+		CancelReason: reason,
 	}
 	err = command.CancelHiringProccess(params.Context)
 	if err != nil {
@@ -128,15 +160,15 @@ func FireEmployeeResolver(params graphql.ResolveParams) (interface{}, error) {
 		"Enterprise",
 		params.Args["enterpriseName"].(string),
 		application_services.WRITE,
-		"OWNER",
+		"OWNER", "MANAGER",
 	)
 	if err != nil {
 		return false, err
 	}
 	command := commands.EnterpriseCommand{
-		OwnerID: currentUser.Email,
-		Name:    params.Args["enterpriseName"].(string),
-		EventID: params.Args["employeeID"].(string),
+		OwnerID:    currentUser.Email,
+		Name:       params.Args["enterpriseName"].(string),
+		EmployeeID: params.Args["employeeID"].(string),
 	}
 	err = command.FireEmployee(params.Context)
 	if err != nil {
@@ -153,16 +185,65 @@ func PromoteEmployeeResolver(params graphql.ResolveParams) (interface{}, error) 
 		application_services.WRITE,
 		"OWNER", "MANAGER",
 	)
+
 	if err != nil {
 		return false, err
 	}
 	command := commands.EnterpriseCommand{
-		OwnerID:  currentUser.Email,
-		Name:     params.Args["enterpriseName"].(string),
-		EventID:  params.Args["employeeID"].(string),
-		Position: params.Args["position"].(string),
+		OwnerID:    currentUser.Email,
+		Name:       params.Args["enterpriseName"].(string),
+		EmployeeID: params.Args["employeeID"].(string),
+		Position:   params.Args["position"].(string),
 	}
 	err = command.PromoteEmployee(params.Context)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func ChatReplyResolver(params graphql.ResolveParams) (interface{}, error) {
+	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		params.Context,
+		"Enterprise",
+		params.Args["enterpriseName"].(string),
+		application_services.WRITE,
+		"ASSISTANT", "OWNER", "MANAGER",
+	)
+	if err != nil {
+		return false, err
+	}
+	command := commands.EnterpriseCommand{
+		ID:       params.Args["id"].(string),
+		SenderID: params.Args["senderID"].(string),
+		Content:  params.Args["content"].(string),
+	}
+	err = command.ReplyChat(params.Context)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func MarkChatReplyAsSeenResolver(params graphql.ResolveParams) (interface{}, error) {
+	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		params.Context,
+		"Enterprise",
+		params.Args["enterpriseName"].(string),
+		application_services.WRITE,
+		"ASSISTANT", "OWNER", "MANAGER",
+	)
+	if err != nil {
+		return false, err
+	}
+	ids := params.Args["repliesID"].(string)
+	s := strings.Split(ids, ",")
+
+	command := commands.EnterpriseCommand{
+		ID:        params.Args["chatID"].(string),
+		RepliesID: s,
+	}
+	err = command.MarkAsSeen(params.Context)
 	if err != nil {
 		return false, err
 	}

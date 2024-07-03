@@ -29,6 +29,11 @@ func NewEnterprise(domainObj *enterprise.Enterprise) Enterprise {
 			casted.Add(*cast)
 		}
 	}
+	list := NewEmployeeList(casted)
+	dereferencedList := make([]Employee, 0)
+	for _, emp := range list {
+		dereferencedList = append(dereferencedList, *emp)
+	}
 	return Enterprise{
 		Name:      domainObj.Name(),
 		LogoIMG:   domainObj.LogoIMG(),
@@ -44,6 +49,6 @@ func NewEnterprise(domainObj *enterprise.Enterprise) Enterprise {
 		Industry:       domainObj.Industry().Name(),
 		FoundationDate: domainObj.FoundationDate().StringRepresentation(),
 		OwnerID:        domainObj.Owner(),
-		Employees:      NewEmployeeList(casted),
+		Employees:      dereferencedList,
 	}
 }

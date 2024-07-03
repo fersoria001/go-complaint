@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"go-complaint/domain/model/complaint"
+	"go-complaint/domain/model/enterprise"
+	"go-complaint/domain/model/feedback"
 	"go-complaint/dto"
 	employeefindall "go-complaint/infrastructure/persistence/finders/employee_findall"
 	"go-complaint/infrastructure/persistence/finders/find_all_events"
 	"go-complaint/infrastructure/persistence/repositories"
+	"net/mail"
 
 	"github.com/google/uuid"
 )
@@ -26,7 +29,90 @@ func (query EmployeeQuery) Employee(ctx context.Context) (dto.Employee, error) {
 	if err != nil {
 		return dto.Employee{}, err
 	}
-	return dto.NewEmployee(*emp), nil
+	employeeDto := dto.NewEmployee(*emp)
+	storedEvents, err := repositories.MapperRegistryInstance().Get("Event").(repositories.EventRepository).FindAll(
+		ctx,
+		find_all_events.By(),
+	)
+	if err != nil {
+		return dto.Employee{}, err
+	}
+	ratedsMap := make(map[string]bool)
+	for e := range storedEvents.Iter() {
+		if e.TypeName == "*complaint.ComplaintRated" {
+			var event complaint.ComplaintRated
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+
+				return dto.Employee{}, err
+			}
+			ratedsMap[event.ComplaintID().String()] = true
+		}
+	}
+	for e := range storedEvents.Iter() {
+		switch e.TypeName {
+		case "*complaint.ComplaintSentForReview":
+			var event complaint.ComplaintSentForReview
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return dto.Employee{}, err
+			}
+
+			if _, err := mail.ParseAddress(event.ReceiverID()); err != nil {
+
+				if employeeDto.Email == event.TriggeredBy() {
+					if _, ok := ratedsMap[event.ComplaintID().String()]; ok {
+						employeeDto.SetComplaintsSolved(employeeDto.ComplaintsSolved + 1)
+						employeeDto.AppendComplaintsSolvedIds(event.ComplaintID().String())
+					}
+				}
+
+			}
+		case "*complaint.ComplaintRated":
+			var event complaint.ComplaintRated
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return dto.Employee{}, err
+			}
+			if employeeDto.Email == event.RatedBy() {
+				employeeDto.SetComplaintsRated(employeeDto.ComplaintsRated + 1)
+				employeeDto.AppendComplaintsRatedIDs(event.ComplaintID().String())
+			}
+		case "*enterprise.HiringInvitationSent":
+			var event enterprise.HiringInvitationSent
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return dto.Employee{}, err
+			}
+			if employeeDto.Email == event.UserID() {
+				employeeDto.SetHireInvitationsSent(employeeDto.HireInvitationsSent + 1)
+			}
+
+		case "*enterprise.EmployeeHired":
+			var event enterprise.EmployeeHired
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return dto.Employee{}, err
+			}
+			if employeeDto.Email == event.EmitedBy() {
+				employeeDto.SetEmployeesHired(employeeDto.EmployeesHired + 1)
+			}
+		case "*feedback.AddedFeedback":
+			var event feedback.AddedFeedback
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return dto.Employee{}, err
+			}
+			if employeeDto.Email == event.ReviewedID() {
+				employeeDto.SetFeedbackReceived(employeeDto.FeedbackReceived + 1)
+				employeeDto.AppendFeedbackReceivedIDs(event.FeedbackID().String())
+			} else if employeeDto.Email == event.ReviewerID() {
+				employeeDto.SetComplaintsFeedbacked(employeeDto.ComplaintsFeedbacked + 1)
+				employeeDto.AppendComplaintsFeedbackedIDs(event.ComplaintID().String())
+			}
+		}
+	}
+	return *employeeDto, nil
 }
 
 func (query EmployeeQuery) Employees(ctx context.Context) ([]dto.Employee, error) {
@@ -37,11 +123,106 @@ func (query EmployeeQuery) Employees(ctx context.Context) ([]dto.Employee, error
 	if err != nil {
 		return nil, err
 	}
-	var employees []dto.Employee
-	for e := range emp.Iter() {
-		employees = append(employees, dto.NewEmployee(*e))
+	employees := make(map[string]*dto.Employee, 0)
+	for i := range emp.Iter() {
+		employees[i.Email()] = dto.NewEmployee(*i)
 	}
-	return employees, nil
+
+	storedEvents, err := repositories.MapperRegistryInstance().Get("Event").(repositories.EventRepository).FindAll(
+		ctx,
+		find_all_events.By(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	ratedsMap := make(map[string]bool)
+	for e := range storedEvents.Iter() {
+		if e.TypeName == "*complaint.ComplaintRated" {
+			var event complaint.ComplaintRated
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return nil, err
+			}
+
+			ratedsMap[event.ComplaintID().String()] = true
+		}
+	}
+	for e := range storedEvents.Iter() {
+		switch e.TypeName {
+		case "*complaint.ComplaintSentForReview":
+			var event complaint.ComplaintSentForReview
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := mail.ParseAddress(event.ReceiverID()); err != nil {
+				if v, ok := employees[event.TriggeredBy()]; ok {
+
+					if _, ok := ratedsMap[event.ComplaintID().String()]; ok {
+
+						v.SetComplaintsSolved(v.ComplaintsSolved + 1)
+						v.AppendComplaintsSolvedIds(event.ComplaintID().String())
+					}
+
+				}
+			}
+		case "*complaint.ComplaintRated":
+			var event complaint.ComplaintRated
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return nil, err
+			}
+			if v, ok := employees[event.RatedBy()]; ok {
+				v.SetComplaintsRated(v.ComplaintsRated + 1)
+				v.AppendComplaintsRatedIDs(event.ComplaintID().String())
+			}
+		case "*enterprise.HiringInvitationSent":
+			var event enterprise.HiringInvitationSent
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return nil, err
+			}
+			if v, ok := employees[event.UserID()]; ok {
+				v.SetHireInvitationsSent(v.HireInvitationsSent + 1)
+			}
+		case "*enterprise.EmployeeHired":
+			var event enterprise.EmployeeHired
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return nil, err
+			}
+			if v, ok := employees[event.EmitedBy()]; ok {
+				v.SetEmployeesHired(v.EmployeesHired + 1)
+			}
+		case "*enterprise.EmployeeFired":
+			var event enterprise.EmployeeFired
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return nil, err
+			}
+			if v, ok := employees[event.EmitedBy()]; ok {
+				v.SetEmployeesFired(v.EmployeesFired + 1)
+			}
+		case "*feedback.AddedFeedback":
+			var event feedback.AddedFeedback
+			err := json.Unmarshal(e.EventBody, &event)
+			if err != nil {
+				return nil, err
+			}
+			if v, ok := employees[event.ReviewedID()]; ok {
+				v.SetFeedbackReceived(v.FeedbackReceived + 1)
+				v.AppendFeedbackReceivedIDs(event.FeedbackID().String())
+			} else if v, ok := employees[event.ReviewerID()]; ok {
+				v.SetComplaintsFeedbacked(v.ComplaintsFeedbacked + 1)
+				v.AppendComplaintsFeedbackedIDs(event.ComplaintID().String())
+			}
+		}
+	}
+	result := make([]dto.Employee, 0)
+	for _, v := range employees {
+		result = append(result, *v)
+	}
+	return result, nil
 }
 
 func (query EmployeeQuery) SolvedComplaints(

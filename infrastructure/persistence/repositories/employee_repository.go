@@ -24,7 +24,7 @@ func NewEmployeeRepository(enterpriseSchema datasource.Schema) EmployeeRepositor
 
 func (er EmployeeRepository) DeleteAll(
 	ctx context.Context,
-	employees mapset.Set[employee.Employee],
+	id string,
 ) error {
 	conn, err := er.schema.Acquire(ctx)
 	if err != nil {
@@ -32,28 +32,19 @@ func (er EmployeeRepository) DeleteAll(
 	}
 	deleteCommand := string(`
 	DELETE FROM employee
-	WHERE employee.employee_id = $1
+	WHERE employee.enterprise_id = $1
 	`)
-	tx, err := conn.Begin(ctx)
+
+	_, err = conn.Exec(
+		ctx,
+		deleteCommand,
+		&id,
+	)
 	if err != nil {
+
 		return err
 	}
-	for employee := range employees.Iter() {
-		var employeeID = employee.ID()
-		_, err = tx.Exec(
-			ctx,
-			deleteCommand,
-			employeeID,
-		)
-		if err != nil {
-			tx.Rollback(ctx)
-			return err
-		}
-	}
-	err = tx.Commit(ctx)
-	if err != nil {
-		return err
-	}
+
 	defer conn.Release()
 	return nil
 }

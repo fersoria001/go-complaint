@@ -9,10 +9,10 @@ func NewCountries() *Countries {
 	return &Countries{
 		query: string(`
 		SELECT
-		"country".id,
-		"country".name,
-		"country".phonecode
-		FROM public."country"
+		id,
+		name,
+		phonecode
+		FROM country
 		`),
 		args: []interface{}{},
 	}

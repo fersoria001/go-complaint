@@ -7,7 +7,6 @@ import (
 	"go-complaint/domain/model/enterprise"
 	"go-complaint/infrastructure/persistence/datasource"
 	employeefindall "go-complaint/infrastructure/persistence/finders/employee_findall"
-	"log"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -53,7 +52,6 @@ func (er EnterpriseRepository) Update(
 		updatedEnterprise.Address(),
 	)
 	if err != nil {
-		log.Printf("err att update address %v", err)
 		return err
 	}
 	castedEmployees := mapset.NewSet[employee.Employee]()
@@ -64,7 +62,7 @@ func (er EnterpriseRepository) Update(
 		}
 		castedEmployees.Add(*cast)
 	}
-	err = employeeRepository.DeleteAll(ctx, castedEmployees)
+	err = employeeRepository.DeleteAll(ctx, updatedEnterprise.Name())
 	if err != nil {
 		return err
 	}
@@ -263,6 +261,7 @@ func (er EnterpriseRepository) loadAll(
 	for rows.Next() {
 		enterprise, err := er.load(ctx, rows)
 		if err != nil {
+
 			return nil, err
 		}
 		enterprises.Add(*enterprise)
@@ -326,6 +325,7 @@ func (er EnterpriseRepository) load(
 		&foundation,
 	)
 	if err != nil {
+
 		return nil, err
 	}
 	commonCreatedAt, err := common.NewDateFromString(createdAt)
@@ -342,9 +342,10 @@ func (er EnterpriseRepository) load(
 	}
 	employees, err := employeeRepository.FindAll(
 		ctx,
-		employeefindall.NewByUserID(ownerUserID),
+		employeefindall.NewByEnterpriseID(enterpriseId),
 	)
 	if err != nil {
+
 		return nil, err
 	}
 	castToEmployeeInterface := mapset.NewSet[enterprise.Employee]()
@@ -353,6 +354,7 @@ func (er EnterpriseRepository) load(
 	}
 	address, err := addressRepository.Get(ctx, addressID)
 	if err != nil {
+
 		return nil, err
 	}
 	industry, err := industryRepository.Get(ctx, industryID)

@@ -1,13 +1,20 @@
-import { useParams } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
+import { Route } from "../routes/$enterpriseID/success";
+
 
 function SuccessPage() {
-  const { subject } = useParams() ;
-  return (
-    <div className="flex flex-col justify-center align-middle"> 
-      <h1>Success</h1>
-      <p>Your {subject} was successful!</p>
-    </div>
-  );
+    const { message, link, to } = Route.useLoaderData();
+    return (
+        <div className="flex flex-col rounded-md w-full shadow border mb-[190px] md:mb-[371px]">
+            <p className="text-sm md:text-xl text-gray-700 p-4">
+                {message}
+            </p>
+            <span className="self-center hover:underline hover:underline-offset-8 text-sm md:text-xl text-gray-700 p-4">
+                <Link
+                    to={link}
+                >Return to {to}</Link>
+            </span>
+        </div>
+    )
 }
-
 export default SuccessPage;

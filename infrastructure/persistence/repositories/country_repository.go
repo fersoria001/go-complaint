@@ -27,10 +27,10 @@ func (cr CountryRepository) Get(
 	}
 	selectQuery := string(`
 		SELECT
-		"country".id,
-		"country".name,
-		"country".phonecode
-		FROM public."country"
+		id,
+		name,
+		phonecode
+		FROM country
 		WHERE id = $1
 		`)
 	row := conn.QueryRow(

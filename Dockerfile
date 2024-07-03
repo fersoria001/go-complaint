@@ -9,7 +9,11 @@
 ARG GO_VERSION=1.22
 FROM golang:${GO_VERSION} AS build
 WORKDIR /src
-
+ENV DATABASE_URL="postgres://tsdbadmin:bmdm3mlfc7ecyp7s@geihb2czn0.p645sjjzv1.tsdb.cloud.timescale.com:32541/tsdb?sslmode=require"
+ENV JWT_SECRET="supersecret123$%^&*"
+ENV CSRF-KEY="csrf-key!@#1KJH"
+ENV HOST="localhost"
+ENV PORT=5170
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /go/pkg/mod/ to speed up subsequent builds.
 # Leverage bind mounts to go.sum and go.mod to avoid having to copy them into
@@ -18,14 +22,13 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
     --mount=type=bind,source=go.sum,target=go.sum \
     --mount=type=bind,source=go.mod,target=go.mod \
     go mod download -x
-
 # Build the application.
 # Leverage a cache mount to /go/pkg/mod/ to speed up subsequent builds.
 # Leverage a bind mount to the current directory to avoid having to copy the
 # source code into the container.
 RUN --mount=type=cache,target=/go/pkg/mod/ \
     --mount=type=bind,target=. \
-    CGO_ENABLED=0 go build -o /bin/server .
+    CGO_ENABLED=0 go build -o /bin/server ./cmd/
 
 ################################################################################
 # Create a new stage for running the application that contains the minimal

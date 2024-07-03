@@ -2,23 +2,26 @@ package graphql_arguments
 
 import "github.com/graphql-go/graphql"
 
-var AddReplyReviewArgument = graphql.FieldConfigArgument{
-	"id": &graphql.ArgumentConfig{
-		Type: graphql.NewNonNull(graphql.String),
+var FeedbackArgument = graphql.FieldConfigArgument{
+	"complaintID": &graphql.ArgumentConfig{
+		Type: graphql.String,
 	},
-	"reviewedID": &graphql.ArgumentConfig{
+	"feedbackID": &graphql.ArgumentConfig{
+		Type: graphql.String,
+	},
+	"enterpriseID": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
 	"reviewerID": &graphql.ArgumentConfig{
-		Type: graphql.NewNonNull(graphql.String),
+		Type: graphql.String,
 	},
-	"reviewComment": &graphql.ArgumentConfig{
-		Type: graphql.NewNonNull(graphql.String),
+	"comment": &graphql.ArgumentConfig{
+		Type: graphql.String,
 	},
-	"replyReviewColor": &graphql.ArgumentConfig{
-		Type: graphql.NewNonNull(graphql.String),
+	"color": &graphql.ArgumentConfig{
+		Type: graphql.String,
 	},
 	"repliesID": &graphql.ArgumentConfig{
-		Type: graphql.NewNonNull(graphql.NewList(graphql.String)),
+		Type: graphql.NewList(graphql.String),
 	},
 }

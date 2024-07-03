@@ -51,7 +51,11 @@ func TestComplaint(t *testing.T) {
 	newComplaint, err := complaint.NewComplaint(
 		id,
 		author.Email(),
+		author.FullName(),
+		author.ProfileIMG(),
 		receiver.Email(),
+		receiver.Name(),
+		receiver.LogoIMG(),
 		status,
 		msg,
 		commonDate,

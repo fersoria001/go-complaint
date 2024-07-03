@@ -11,6 +11,7 @@ import (
 // Package enterprise
 // <<Domain event>> implements domain.DomainEvent
 type EmployeeFired struct {
+	emitedBy         string
 	id               uuid.UUID
 	enterpriseID     string
 	userID           string
@@ -21,8 +22,9 @@ type EmployeeFired struct {
 	occurredOn       time.Time
 }
 
-func NewEmployeeFired(employee Employee) *EmployeeFired {
+func NewEmployeeFired(emitedBy string, employee Employee) *EmployeeFired {
 	return &EmployeeFired{
+		emitedBy:         emitedBy,
 		id:               employee.ID(),
 		enterpriseID:     employee.EnterpriseID(),
 		userID:           employee.Email(),
@@ -32,6 +34,10 @@ func NewEmployeeFired(employee Employee) *EmployeeFired {
 		position:         employee.Position(),
 		occurredOn:       time.Now(),
 	}
+}
+
+func (ef *EmployeeFired) EmitedBy() string {
+	return ef.emitedBy
 }
 
 func (ef *EmployeeFired) ID() uuid.UUID {
@@ -69,6 +75,7 @@ func (ef *EmployeeFired) OccurredOn() time.Time {
 func (ef *EmployeeFired) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
 		ID               string `json:"id"`
+		EmitedBy         string `json:"emited_by"`
 		EnterpriseID     string `json:"enterprise_id"`
 		UserID           string `json:"user_id"`
 		HiringDate       string `json:"hiring_date"`
@@ -78,6 +85,7 @@ func (ef *EmployeeFired) MarshalJSON() ([]byte, error) {
 		OccurredOn       string `json:"occurred_on"`
 	}{
 		ID:               ef.id.String(),
+		EmitedBy:         ef.emitedBy,
 		EnterpriseID:     ef.enterpriseID,
 		UserID:           ef.userID,
 		HiringDate:       common.StringDate(ef.hiringDate),
@@ -95,6 +103,7 @@ func (ef *EmployeeFired) MarshalJSON() ([]byte, error) {
 func (ef *EmployeeFired) UnmarshalJSON(data []byte) error {
 	aux := struct {
 		ID               string `json:"id"`
+		EmitedBy         string `json:"emited_by"`
 		EnterpriseID     string `json:"enterprise_id"`
 		UserID           string `json:"user_id"`
 		HiringDate       string `json:"hiring_date"`
@@ -111,7 +120,9 @@ func (ef *EmployeeFired) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	ef.emitedBy = aux.EmitedBy
 	ef.enterpriseID = aux.EnterpriseID
+	ef.userID = aux.UserID
 
 	ef.hiringDate, err = common.ParseDate(aux.HiringDate)
 	if err != nil {

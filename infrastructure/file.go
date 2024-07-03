@@ -5,7 +5,6 @@ import (
 	"fmt"
 	projectpath "go-complaint/project_path"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -43,12 +42,10 @@ func (fc FileContent) Save() error {
 	}
 	defer f.Close()
 	buf := bytes.NewBuffer(fc.file)
-	log.Printf("file size %d", len(fc.file))
 	written, err := io.Copy(f, buf)
 	if err != nil {
 		return err
 	}
-	log.Printf("written %d", written)
 	if written != int64(len(fc.file)) {
 		return ErrFileTooBig
 	}

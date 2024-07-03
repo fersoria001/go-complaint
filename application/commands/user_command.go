@@ -11,6 +11,7 @@ import (
 	"go-complaint/domain/model/identity"
 	"go-complaint/erros"
 	"go-complaint/infrastructure"
+	"go-complaint/infrastructure/cache"
 	"go-complaint/infrastructure/persistence/repositories"
 	"reflect"
 	"strings"
@@ -28,6 +29,7 @@ type UserCommand struct {
 	Gender                 string `json:"gender"`
 	Pronoun                string `json:"pronoun"`
 	BirthDate              string `json:"birthDate"`
+	PhoneCode              string `json:"phoneCode"`
 	Phone                  string `json:"phone"`
 	CountryID              int    `json:"country"`
 	CountryStateID         int    `json:"county"`
@@ -37,6 +39,7 @@ type UserCommand struct {
 	UpdateType             string `json:"updateType"`
 	EmailVerificationToken string `json:"emailVerificationToken"`
 	EventID                string `json:"eventID"`
+	RejectedReason         string `json:"rejected_reason"`
 }
 
 func (userCommand UserCommand) Register(ctx context.Context) error {
@@ -45,6 +48,7 @@ func (userCommand UserCommand) Register(ctx context.Context) error {
 		userCommand.FirstName == "" ||
 		userCommand.LastName == "" ||
 		userCommand.BirthDate == "" ||
+		userCommand.PhoneCode == "" ||
 		userCommand.Phone == "" {
 		return ErrBadRequest
 	}
@@ -95,7 +99,13 @@ func (userCommand UserCommand) Register(ctx context.Context) error {
 		0,
 		0,
 	)
-
+	var phoneCode string
+	if strings.HasPrefix(userCommand.PhoneCode, "+") {
+		phoneCode = userCommand.PhoneCode
+	} else {
+		phoneCode = "+" + userCommand.PhoneCode
+	}
+	phone := phoneCode + userCommand.Phone
 	address := common.NewAddress(
 		uuid.New(),
 		country,
@@ -109,7 +119,7 @@ func (userCommand UserCommand) Register(ctx context.Context) error {
 		userCommand.Pronoun,
 		userCommand.FirstName,
 		userCommand.LastName,
-		userCommand.Phone,
+		phone,
 		commonBirthDate,
 		address,
 	)
@@ -138,7 +148,7 @@ func (userCommand UserCommand) Register(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	infrastructure.InMemoryCacheInstance().Set(token.Token(), false)
+	cache.InMemoryCacheInstance().Set(token.Token(), false)
 	userCommand.FullName = newUser.FullName()
 	err = userMapper.Save(ctx, newUser)
 	if err != nil {
@@ -151,7 +161,7 @@ func (userCommand UserCommand) VerifyEmail(ctx context.Context) error {
 	if userCommand.EmailVerificationToken == "" {
 		return ErrBadRequest
 	}
-	token, ok := infrastructure.InMemoryCacheInstance().Get(
+	token, ok := cache.InMemoryCacheInstance().Get(
 		userCommand.EmailVerificationToken)
 	if !ok {
 		return ErrConfirmationNotFound
@@ -202,7 +212,7 @@ func (userCommand UserCommand) VerifyEmail(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	infrastructure.InMemoryCacheInstance().Delete(userCommand.EmailVerificationToken)
+	cache.InMemoryCacheInstance().Delete(userCommand.EmailVerificationToken)
 	return nil
 }
 
@@ -394,7 +404,7 @@ func (userCommand UserCommand) AcceptHiringInvitation(
 	if err != nil {
 		return err
 	}
-	storedEvent, err := repositories.MapperRegistryInstance().Get("StoredEvent").(repositories.EventRepository).Get(
+	storedEvent, err := repositories.MapperRegistryInstance().Get("Event").(repositories.EventRepository).Get(
 		ctx,
 		parsedID,
 	)
@@ -414,15 +424,18 @@ func (userCommand UserCommand) AcceptHiringInvitation(
 	if err != nil {
 		return err
 	}
+	param := fmt.Sprintf("id=%s", storedEvent.EventId.String())
+	replaced := application_services.EncodingApplicationServiceInstance().SafeUtf16Encode(param)
 	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
 		HandleEvent: func(event domain.DomainEvent) error {
-			if _, ok := event.(*identity.HiringInvitationAccepted); ok {
+			if event, ok := event.(*identity.HiringInvitationAccepted); ok {
 				NotificationCommand{
-					OwnerID:   invitation.EnterpriseID(),
-					Thumbnail: user.Email(),
-					Title:     fmt.Sprintf(`%s accepted your invitation"`, user.FullName()),
-					Content:   fmt.Sprintf("User %s accepted your invitation to join %s", user.FullName(), ep.Name()),
-					Link:      storedEvent.EventId.String(),
+					OwnerID:     invitation.EnterpriseID(),
+					ThumbnailID: user.Email(),
+					Thumbnail:   ep.LogoIMG(),
+					Title:       fmt.Sprintf(`%s accepted your invitation"`, user.FullName()),
+					Content:     fmt.Sprintf("User %s accepted your invitation to join %s", user.FullName(), ep.Name()),
+					Link:        fmt.Sprintf("/%s/hiring-procceses?%s", event.EnterpriseID(), replaced),
 				}.SaveNew(ctx)
 				return nil
 			}
@@ -435,6 +448,77 @@ func (userCommand UserCommand) AcceptHiringInvitation(
 	err = user.AcceptHiringInvitation(
 		ctx,
 		invitation.EnterpriseID(),
+		role,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (command UserCommand) RejectHiringInvitation(
+	ctx context.Context,
+) error {
+	if command.Email == "" || command.EventID == "" {
+		return ErrBadRequest
+	}
+	user, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, command.Email)
+	if err != nil {
+		return err
+	}
+	parsedID, err := uuid.Parse(command.EventID)
+	if err != nil {
+		return err
+	}
+	storedEvent, err := repositories.MapperRegistryInstance().Get("Event").(repositories.EventRepository).Get(
+		ctx,
+		parsedID,
+	)
+	if err != nil {
+		return err
+	}
+	var invitation enterprise.HiringInvitationSent
+	err = json.Unmarshal(storedEvent.EventBody, &invitation)
+	if err != nil {
+		return err
+	}
+	role, err := identity.ParseRole(invitation.ProposalPosition().String())
+	if err != nil {
+		return err
+	}
+	ep, err := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository).Get(
+		ctx, invitation.EnterpriseID())
+	if err != nil {
+		return err
+	}
+	param := fmt.Sprintf("id=%s", storedEvent.EventId.String())
+	replaced := application_services.EncodingApplicationServiceInstance().SafeUtf16Encode(param)
+	if command.RejectedReason == "" {
+		command.RejectedReason = "No reason provided"
+	}
+	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
+		HandleEvent: func(event domain.DomainEvent) error {
+			if event, ok := event.(*identity.HiringInvitationRejected); ok {
+				NotificationCommand{
+					OwnerID:   invitation.EnterpriseID(),
+					Thumbnail: user.Email(),
+					Title:     fmt.Sprintf(`%s rejected your invitation"`, user.FullName()),
+					Content:   fmt.Sprintf("User %s rejected your invitation to join %s : %s", user.FullName(), ep.Name(), command.RejectedReason),
+					Link:      fmt.Sprintf("/%s/hiring-procceses?%s", event.EnterpriseID(), replaced),
+				}.SaveNew(ctx)
+				return nil
+			}
+			return &erros.ValueNotFoundError{}
+		},
+		SubscribedToEventType: func() reflect.Type {
+			return reflect.TypeOf(&identity.HiringInvitationRejected{})
+		},
+	})
+	err = user.RejectHiringInvitation(
+		ctx,
+		invitation.EnterpriseID(),
+		command.RejectedReason,
 		role,
 	)
 	if err != nil {

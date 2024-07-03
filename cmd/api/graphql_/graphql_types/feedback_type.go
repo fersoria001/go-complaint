@@ -11,7 +11,7 @@ var FeedbackType = graphql.NewObject(graphql.ObjectConfig{
 		"complaintID": &graphql.Field{
 			Type: graphql.String,
 		},
-		"reviewedID": &graphql.Field{
+		"enterpriseID": &graphql.Field{
 			Type: graphql.String,
 		},
 		"replyReview": &graphql.Field{
@@ -19,6 +19,15 @@ var FeedbackType = graphql.NewObject(graphql.ObjectConfig{
 		},
 		"feedbackAnswer": &graphql.Field{
 			Type: graphql.NewList(FeedbackAnswerType),
+		},
+		"reviewedAt": &graphql.Field{
+			Type: graphql.String,
+		},
+		"updatedAt": &graphql.Field{
+			Type: graphql.String,
+		},
+		"isDone": &graphql.Field{
+			Type: graphql.Boolean,
 		},
 	},
 })

@@ -1,20 +1,100 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from "zod";
 import {
   Query,
   IsEnterpriseNameAvailableQuery,
   IsEnterpriseNameAvailable,
-  IsValidReceiverQuery,
-  IsValidReceiver,
 } from "./queries";
+
+export type ContactType = {
+  email: string;
+  text: string;
+};
+export const contactSchema = z.object({
+  email: z.string().email({ message: "enter a valid email" }),
+  text: z.string().min(20).email({ message: "write at least 20 characters" }),
+});
+
+export type MarkReplyChatAsSeenType = {
+  chatID: string;
+  enterpriseName: string;
+  repliesID: string[];
+};
+
+export type MarkComplaintRepliesAsSeenType = {
+  complaintID: string;
+  repliesID: string[];
+};
+
+export type PromoteEmployeeType = {
+  enterpriseName: string;
+  employeeID: string;
+  position: string;
+};
+export type FireEmployeeType = {
+  enterpriseName: string;
+  employeeID: string;
+};
+
+export type SideBarOptionsType = {
+  link: string;
+  icon: React.ReactNode;
+  title: string;
+  unread?: number;
+};
+export type Subscription<T> = {
+  connection_ack: ConnectionACK;
+  subscription: string;
+  subscriptionID: string;
+  subscriptionReturnType: (data: any) => T;
+};
+export type UpdateUserType = {
+  updateType: string;
+  value?: string;
+  numberValue?: number;
+};
+export type UpdateEnterpriseType = {
+  updateType: string;
+  enterpriseID: string;
+  value?: string;
+  numberValue?: number;
+};
+export type ConnectionACK = {
+  type: string;
+  payload: {
+    query: string;
+    subscription_id: string;
+    token: string;
+  };
+};
+
 export type StringID = {
   id: string;
+};
+export type DeclineHiringInvitation = {
+  id: string;
+  reason: string;
 };
 export type UserDescriptor = {
   email: string;
   fullName: string;
   profileIMG: string;
+  gender: string;
+  pronoun: string;
+  loginDate: string;
   ip: string;
+  device: string;
+  geolocation: {
+    latitude: number;
+    longitude: number;
+  };
+  grantedAuthorities: GrantedAuthority[];
 };
+export type GrantedAuthority = {
+  enterpriseID: string;
+  authority: string;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isUserDescriptor(obj: any): obj is UserDescriptor {
   return (
@@ -33,9 +113,10 @@ export type Address = {
 export type Country = {
   id: number;
   name: string;
+  phoneCode: string;
 };
 
-export type County = {
+export type CountryState = {
   id: number;
   name: string;
 };
@@ -49,26 +130,37 @@ export type PhoneCode = {
   id: number;
   code: string;
 };
-
-export type CreateUser = {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  birthDate: string;
-  phone: string;
-  country: number;
-  county: number;
-  city: number;
+export type EnterpriseChatType = {
+  id: string;
+  replies: EnterpriseChatReplyType[];
+};
+export type ReplyEnterpriseChatType = {
+  id: string;
+  enterpriseName: string;
+  senderID: string;
+  content: string;
+};
+export type EnterpriseChatReplyType = {
+  id: string;
+  chatID: string;
+  user: User;
+  content: string;
+  seen: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 export type User = {
   profileIMG: string;
   email: string;
   firstName: string;
   lastName: string;
+  gender: string;
+  pronoun: string;
   age: number;
   phone: string;
   address: Address;
+  status: string;
+  msgs: number | 0;
 };
 export type UsersForHiring = {
   users: User[];
@@ -76,22 +168,27 @@ export type UsersForHiring = {
   currentLimit: number;
   currentOffset: number;
 };
-
+export type HiringProccessList = {
+  hiringProccesses: HiringProccessType[];
+  count: number;
+  currentLimit: number;
+  currentOffset: number;
+};
+export type HiringProccessType = {
+  eventID: string;
+  user: User;
+  position: string;
+  status: string;
+  reason: string;
+  lastUpdate: string;
+  emitedBy: User;
+  occurredOn: string;
+};
 export type Industry = {
   id: number;
   name: string;
 };
-export type CreateEnterprise = {
-  name: string;
-  email: string;
-  website: string;
-  phone: string;
-  industry: string;
-  country: number;
-  county: number;
-  city: number;
-  foundationDate: string;
-};
+
 export type Enterprise = {
   name: string;
   logoIMG: string;
@@ -103,9 +200,31 @@ export type Enterprise = {
   address: Address;
   foundationDate: string;
   ownerID?: string;
+  employees?: EmployeeType[];
 };
-export type Employee = {
-  ID: string;
+
+export type HiringInvitationType = {
+  eventID: string;
+  enterpriseID: string;
+  ownerID: string;
+  proposedPosition: string;
+  fullName: string;
+  enterpriseEmail: string;
+  enterprisePhone: string;
+  enterpriseLogoIMG: string;
+  occurredOn: string;
+  seen: boolean;
+  status: string;
+  reason: string;
+};
+export type EnterpriseEventType = {
+  enterpriseName: string;
+  eventID: string;
+  reason?: string;
+};
+
+export type EmployeeType = {
+  id: string;
   profileIMG: string;
   firstName: string;
   lastName: string;
@@ -116,19 +235,23 @@ export type Employee = {
   approvedHiring: boolean;
   approvedHiringAt: string;
   position: string;
-  complaintsSolved: string;
-  complaintsSolvedIDs: string[];
+  complaintsSolved: number;
+  complaintsSolvedIds: string[];
+  complaintsRated: number;
+  complaintsRatedIDs: string[];
+  complaintsFeedbacked: number;
+  complaintsFeedbackedIDs: string[];
+  feedbackReceived: number;
+  feedbackReceivedIDs: string[];
+  hireInvitationsSent: number;
+  employeesHired: number;
+  employeesFired: number;
 };
-export type InviteToProject = {
-  enterpriseName: string;
-  userEmail: string;
-  userFullName: string;
-  position: string;
-};
+
 export type Receiver = {
-  ID: string;
+  id: string;
   fullName: string;
-  IMG: string;
+  thumbnail: string;
 };
 export type UserLog = {
   count: number;
@@ -141,6 +264,7 @@ export type ComplaintRated = {
   assistant_user_id: string;
   occurred_on: string;
 };
+
 export type SolvedReview = {
   User: {
     firstName: string;
@@ -155,10 +279,15 @@ export type SolvedReview = {
     };
   };
 };
-export type UserNotifications = {
-  count: number;
-  hiring_invitation: HiringInvitation[];
-  waiting_for_review: WaitingForReview[];
+export type Notifications = {
+  id: string;
+  ownerID: string;
+  thumbnail: string;
+  title: string;
+  content: string;
+  link: string;
+  seen: boolean;
+  occurredOn: string;
 };
 export type UserNotificationType = "waiting_for_review" | "hiring_invitation";
 export type EnterpriseNotificationType =
@@ -173,34 +302,17 @@ export type WaitingForReview = {
   occurred_on: string;
   seen: boolean;
 };
-export type HiringInvitation = {
-  event_id: string;
-  enterprise_id: string;
-  position_proposal: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  age: number;
-  occurred_on: string;
-  seen: boolean;
-};
-export type InfoForReview = {
-  User: {
-    firstName: string;
-    lastName: string;
-  };
-  Complaint: {
-    id: string;
-    receiverFullName: string;
-    message: {
-      title: string;
-    };
-  };
+
+export type ComplaintReviewType = {
+  eventID: string;
+  triggeredBy: User;
+  complaint: ComplaintType;
+  ratedBy: User;
+  status: string;
 };
 export type RateComplaint = {
-  notificationID: string;
-  complaintID: string;
+  complaintId: string;
+  eventId: string;
   rate: number;
   comment: string;
 };
@@ -225,38 +337,14 @@ export type EndHiringProcess = {
   accepted: boolean;
 };
 
-export type SendComplaint = {
-  fullName: string;
-  senderID: string;
-  receiverID: string;
-  reason: string;
-  description: string;
-  body: string;
-};
 export type ComplaintTypeList = {
-  complaints: Complaint[];
+  complaints: ComplaintType[];
   count: number;
   currentLimit: number;
   currentOffset: number;
 };
-export type DeserializedComplaint = {
-  id: string;
-  authorID: string;
-  authorFullName: string;
-  authorProfileIMG: string;
-  receiverID: string;
-  receiverFullName: string;
-  receiverProfileIMG: string;
-  status: string;
-  message: Message;
-  rating?: Rating;
-  createdAt: string;
-  updatedAt: string;
-  replies?: DeserializedReply[];
-  industry?: string;
-};
 
-export type Complaint = {
+export type ComplaintType = {
   id: string;
   authorID: string;
   authorFullName: string;
@@ -269,7 +357,7 @@ export type Complaint = {
   rating?: Rating;
   createdAt: string;
   updatedAt: string;
-  replies?: DeserializedReply[];
+  replies?: Reply[];
   industry?: string;
 };
 export type Message = {
@@ -281,21 +369,8 @@ export type Rating = {
   rate: number;
   comment: string;
 };
+
 export type Reply = {
-  id: string;
-  complaint_id: string;
-  sender_id: string;
-  sender_img: string;
-  sender_name: string;
-  body: string;
-  created_at: string;
-  read: boolean;
-  read_at: string;
-  updated_at: string;
-  is_enterprise: boolean;
-  enterprise_id: string;
-};
-export type DeserializedReply = {
   id: string;
   complaintID: string;
   senderID: string;
@@ -308,14 +383,37 @@ export type DeserializedReply = {
   updatedAt: string;
   isEnterprise: boolean;
   enterpriseID: string;
+  complaintStatus: string;
 };
-
+export type ComplaintInfo = {
+  complaintsReceived: number;
+  complaintsResolved: number;
+  complaintsReviewed: number;
+  complaintsPending: number;
+  averageRating: number;
+};
 export type CreateAFeedback = {
+  enterpriseID: string;
+  complaintID?: string;
+  feedbackID?: string;
+  reviewerID?: string;
+  comment?: string;
+  color?: string;
+  repliesID?: string[];
+};
+export type FeedbackType = {
+  id: string;
   complaintID: string;
-  reviewerID: string;
-  reviewedID: string;
-  reviewerIMG: string;
-  reviewerName: string;
+  enterpriseID: string;
+  replyReview: ReplyReviewType[];
+  feedbackAnswers: FeedbackAnswerType[];
+  reviewedAt: string;
+  updatedAt: string;
+  isDone: boolean;
+};
+export type FeedbackAnswerType = {
+  id: string;
+  feedbackID: string;
   senderID: string;
   senderIMG: string;
   senderName: string;
@@ -324,9 +422,22 @@ export type CreateAFeedback = {
   read: boolean;
   readAt: string;
   updatedAt: string;
+  isEnterprise: boolean;
+  enterpriseID: string;
+};
+export type ReplyReviewType = {
+  id: string;
+  feedbackID: string;
+  replies: Reply[];
+  review: ReviewType;
+  reviewer: User;
+  color: string;
+  createdAt: string;
+};
+export type ReviewType = {
+  replyRevieweID: string;
   comment: string;
 };
-
 export type AuthMsg = {
   content: "auth";
   jwt_token: string;
@@ -371,17 +482,18 @@ export function newReply(
 ): Reply {
   return {
     id: "",
-    complaint_id: "",
-    sender_id: "",
-    sender_img: senderIMG,
-    sender_name: senderName,
+    complaintID: "",
+    senderID: "",
+    senderIMG: senderIMG,
+    senderName: senderName,
     body: body,
-    created_at: "",
+    createdAt: "",
     read: false,
-    read_at: "",
-    updated_at: "",
-    is_enterprise: isEnterprise,
-    enterprise_id: enterpriseID,
+    readAt: "",
+    updatedAt: "",
+    isEnterprise: isEnterprise,
+    enterpriseID: enterpriseID,
+    complaintStatus: "",
   };
 }
 export type ErrorType = {
@@ -402,17 +514,20 @@ export type Office = {
   ownerFullName: string;
 };
 //REACT CONTEXT TYPES
-export type ComplaintState = {
-  complaintData?: SendComplaint;
-  updateState: (newState: Partial<ComplaintState>) => void;
-};
-export type UserState = {
-  userSession: UserDescriptor | null;
-  userNotifications: UserNotifications | null;
-  updateState: (newState?: Partial<UserState>) => void;
-};
+
 //FORM VALIDATION TYPES
-const passwordRegex = new RegExp(/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).{8,}$/);
+export const passwordRegex = new RegExp(
+  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).{8,}$/
+);
+
+export const InviteToProjectSchema = z.object({
+  enterpriseName: z.string(),
+  proposedPosition: z.enum(["Assistant", "Manager"]),
+  proposeTo: z.string(),
+});
+
+export type InviteToProject = z.infer<typeof InviteToProjectSchema>;
+
 export const SignUpSchema = z
   .object({
     email: z.string().email({ message: "Please enter a valid email" }),
@@ -436,13 +551,32 @@ export const SignUpSchema = z
       .string()
       .min(2, { message: "Last name must be at least 2 characters long" })
       .max(50, { message: "Last name must be at most 50 characters long" }),
-    birthDate: z.coerce.date(),
+    gender: z.enum(["male", "female", "non-declared"], {
+      message: "Please select a gender from the list provided",
+    }),
+    pronoun: z.enum(["he", "she", "they"], {
+      message: "Please select a pronoun from the list provided",
+    }),
+    birthDate: z
+      .string()
+      .date()
+      .transform((val, ctx) => {
+        const stringDate = Date.parse(val).toString();
+        if (isNaN(parseInt(stringDate))) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Please select a valid date",
+          });
+          return z.NEVER;
+        }
+        return stringDate;
+      }),
     phoneCode: z.string().min(1, {
       message: "Select a country and the phonecode will be automatically added",
     }),
     phone: z
       .string({ message: "We could not validate your phone number" })
-      .min(6, { message: "We could not validate your phone number" })
+      .min(8, { message: "We could not validate your phone number" })
       .transform((val, ctx) => {
         const parsed = parseInt(val);
         if (isNaN(parsed)) {
@@ -500,16 +634,13 @@ export const SignUpSchema = z
       });
     }
   });
-
+export type CreateUser = z.infer<typeof SignUpSchema>;
 export const SignInSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email" }),
   password: z.string().min(1, { message: "Please enter your password" }),
-  rememberMe: z
-    .enum(["true", "false", "on", "off", "1", "0"])
-    .default("off")
-    .transform((val) => val === "true" || val === "on" || val === "1"),
+  rememberMe: z.boolean(),
 });
-
+export type SignIn = z.infer<typeof SignInSchema>;
 export const RegisterEnterpriseSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email" }),
   name: z
@@ -540,7 +671,7 @@ export const RegisterEnterpriseSchema = z.object({
   }),
   phone: z
     .string({ message: "We could not validate your phone number" })
-    .min(6, { message: "We could not validate your phone number" })
+    .min(8, { message: "We could not validate your phone number" })
     .transform((val, ctx) => {
       const parsed = parseInt(val);
       if (isNaN(parsed)) {
@@ -552,73 +683,92 @@ export const RegisterEnterpriseSchema = z.object({
       }
       return parsed;
     }),
-  industry: z.string().min(1, { message: "Please select an industry" }),
-  country: z.string().transform((val, ctx) => {
-    const parsed = parseInt(val);
-    if (isNaN(parsed) || parsed === 0) {
+  industryID: z
+    .string()
+    .min(1, { message: "Please select an industry" })
+    .transform((val, ctx) => {
+      const parsed = parseInt(val);
+      if (isNaN(parsed) || parsed === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please select an industry",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+  countryID: z
+    .string()
+    .min(1, { message: "Please select a country" })
+    .transform((val, ctx) => {
+      const parsed = parseInt(val);
+      if (isNaN(parsed) || parsed === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please select a country",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+  countryStateID: z
+    .string()
+    .min(1, { message: "Please select a state" })
+    .transform((val, ctx) => {
+      const parsed = parseInt(val);
+      if (isNaN(parsed) || parsed === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please select a state",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+  cityID: z
+    .string()
+    .min(1, { message: "Please select a city" })
+    .transform((val, ctx) => {
+      const parsed = parseInt(val);
+      if (isNaN(parsed) || parsed === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please select a city",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+  foundationDate: z.coerce.date().transform((val, ctx) => {
+    const stringDate = val.getMilliseconds().toString();
+    if (isNaN(parseInt(stringDate))) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "You must select a country",
+        message: "Please select a valid date",
       });
       return z.NEVER;
     }
-    return parsed;
+    return stringDate;
   }),
-  county: z.string().transform((val, ctx) => {
-    const parsed = parseInt(val);
-    if (isNaN(parsed) || parsed === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "You must select a county",
-      });
-      return z.NEVER;
-    }
-    return parsed;
-  }),
-  city: z.string().transform((val, ctx) => {
-    const parsed = parseInt(val);
-    if (isNaN(parsed) || parsed === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "You must select a city",
-      });
-      return z.NEVER;
-    }
-    return parsed;
-  }),
-  foundationDate: z.coerce.date(),
   terms: z.enum(["true", "on", "1"], {
     message: "You must accept the terms and conditions",
   }),
 });
+export type RegisterEnterprise = z.infer<typeof RegisterEnterpriseSchema>;
 
-export const ReceiverValidationSchema = z.object({
-  term: z
-    .string()
-    .min(1, { message: "Please select a receiver" })
-    .transform(async (val, ctx) => {
-      const receivers = await Query<boolean>(
-        IsValidReceiverQuery,
-        IsValidReceiver,
-        [val]
-      );
-      if (!receivers) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `The receiver does not exist, please select a valid one or write the exact full name`,
-        });
-      }
-      return val;
-    }),
-});
-
-export const DescriptionValidationSchema = z.object({
-  reason: z
-    .string()
+export const SendComplaintValidationSchema = z.object({
+  authorID: z.string(),
+  receiverID: z.string({
+    message: "Please select a receiver from the list and click it.",
+  }),
+  receiverFullName: z.string(),
+  receiverProfileIMG: z.string(),
+  title: z
+    .string({ message: "Please provide a reason for the complaint" })
     .min(10, { message: "Reason must be at least 10 characters long" })
     .max(80, { message: "Reason must be at most 80 characters long" }),
   description: z
-    .string()
+    .string({ message: "Please provide a description" })
     .min(30, {
       message: "Please describe the problem with at least 30 characters",
     })
@@ -626,20 +776,31 @@ export const DescriptionValidationSchema = z.object({
       message:
         "Problem description must be at most 120 characters long, later you can tell us more about it",
     }),
-});
-
-export const ComplaintBodyValidationSchema = z.object({
-  body: z
+  content: z
     .string()
     .min(50, {
       message:
-        "If you reached this point complain about the problem with at least 50 characters",
+        "If you reached this point complain about the problem in at least 50 characters",
     })
     .max(250, {
       message:
         "Hold on! 250 characters is the limit, you can still chat with him later",
     }),
 });
+
+export type SendComplaintType = z.infer<typeof SendComplaintValidationSchema>;
+
+export const ReplyComplaintValidationSchema = z.object({
+  complaintID: z.string(),
+  replyAuthorID: z.string(),
+  replyBody: z
+    .string()
+    .min(1, { message: "Please write at least 10 characters" })
+    .max(120, { message: "Reply must be at most 250 characters long" }),
+  replyEnterpriseID: z.string().optional(),
+});
+
+export type ReplyComplaintType = z.infer<typeof ReplyComplaintValidationSchema>;
 
 export const RateValidationSchema = z.object({
   rate: z
@@ -651,3 +812,32 @@ export const RateValidationSchema = z.object({
     .min(3, { message: "Please write at least one word about the attention" })
     .max(250, { message: "Comment must be at most 250 characters long" }),
 });
+
+export const ConfirmationCodeValidationSchema = z.object({
+  confirmationCode: z
+    .string()
+    .length(7, { message: "Please enter a valid confirmation code" })
+    .transform((val, ctx) => {
+      const segments = val.split("");
+      for (const segment of segments) {
+        if (!segment.match(/^[0-9]+$/)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Please enter a valid confirmation code",
+          });
+          return z.NEVER;
+        }
+      }
+      const parsed = parseInt(val);
+      if (isNaN(parsed)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please enter a valid confirmation code",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+});
+
+export type ConfirmationCode = z.infer<typeof ConfirmationCodeValidationSchema>;

@@ -14,5 +14,14 @@ var PendingReviewType = graphql.NewObject(graphql.ObjectConfig{
 		"triggeredBy": &graphql.Field{
 			Type: UserType,
 		},
+		"status": &graphql.Field{
+			Type: graphql.String,
+		},
+		"ratedBy": &graphql.Field{
+			Type: UserType,
+		},
+		"occurredOn": &graphql.Field{
+			Type: graphql.String,
+		},
 	},
 })

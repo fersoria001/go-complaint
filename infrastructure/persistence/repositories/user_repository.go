@@ -31,13 +31,16 @@ func (ur UserRepository) Update(
 		return err
 	}
 	insertCommand := string(`
-		UPDATE public."user"
+		UPDATE public.user
 		SET
 			password = $2,
 			register_date = $3,
 			is_confirmed = $4
 		WHERE email = $1
 		`)
+	if user == nil {
+		return errors.New("user is nil")
+	}
 	var (
 		email        string = user.Email()
 		password     string = user.Password()
@@ -98,7 +101,7 @@ func (ur UserRepository) Save(
 	//
 	insertCommand := string(`
 		INSERT INTO 
-		public."user" (
+		public.user (
 			email,
 			password,
 			register_date,
@@ -165,7 +168,7 @@ func (ur UserRepository) Get(
 		password,
 		register_date,
 		is_confirmed
-		FROM public."user"
+		FROM public.user
 		WHERE email = $1
 		`)
 

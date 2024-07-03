@@ -4,6 +4,7 @@ import (
 	"context"
 	"go-complaint/domain"
 	"go-complaint/domain/model/common"
+	"go-complaint/domain/model/identity"
 	"go-complaint/erros"
 	"net/mail"
 	"slices"
@@ -30,15 +31,19 @@ Relationships:
 - Complaint 1..* Reply  trough ID
 */
 type Complaint struct {
-	id         uuid.UUID
-	authorID   string
-	receiverID string
-	status     Status
-	message    Message
-	rating     Rating
-	createdAt  common.Date
-	updatedAt  common.Date
-	replies    mapset.Set[*Reply]
+	id                 uuid.UUID
+	authorID           string
+	authorFullName     string
+	authorProfileIMG   string
+	receiverID         string
+	receiverFullName   string
+	receiverProfileIMG string
+	status             Status
+	message            Message
+	rating             Rating
+	createdAt          common.Date
+	updatedAt          common.Date
+	replies            mapset.Set[*Reply]
 }
 
 /*
@@ -104,7 +109,7 @@ func (complaintt *Complaint) Rate(
 			triggeredBy,
 		),
 	)
-	if _, err = mail.ParseAddress(complaintt.authorID); err == nil {
+	if _, err = mail.ParseAddress(complaintt.receiverID); err == nil {
 		err = complaintt.setStatus(IN_HISTORY)
 		if err != nil {
 			return err
@@ -113,16 +118,17 @@ func (complaintt *Complaint) Rate(
 			ctx,
 			NewComplaintSentToHistory(
 				complaintt.id,
-				complaintt.authorID,
+				triggeredBy,
 			),
 		)
 	}
+	lastReply := complaintt.LastReply()
 	domain.DomainEventPublisherInstance().Publish(
 		ctx,
 		NewComplaintRated(
 			complaintt.ID(),
-			complaintt.AuthorID(),
-			complaintt.ReceiverID(),
+			triggeredBy,
+			lastReply.senderID,
 			time.Now(),
 		),
 	)
@@ -136,7 +142,7 @@ Publish a new event of type WaitingForReview
 */
 func (complaint *Complaint) MarkAsReviewable(
 	ctx context.Context,
-	userID string,
+	triggeredBy identity.User,
 ) error {
 	if complaint.status >= IN_REVIEW {
 		return &erros.ComplaintClosedError{}
@@ -145,13 +151,38 @@ func (complaint *Complaint) MarkAsReviewable(
 	if err != nil {
 		return err
 	}
+	commonDate := common.NewDate(time.Now())
+	isEnterprise := false
+	enterpriseID := ""
+	if _, err = mail.ParseAddress(complaint.receiverID); err != nil {
+		isEnterprise = true
+		enterpriseID = complaint.receiverID
+	}
+	lastReply, err := NewReply(
+		uuid.New(),
+		complaint.id,
+		triggeredBy.Email(),
+		triggeredBy.Email(),
+		triggeredBy.FullName(),
+		"Marked as reviewable",
+		true,
+		commonDate,
+		commonDate,
+		commonDate,
+		isEnterprise,
+		enterpriseID,
+	)
+	if err != nil {
+		return err
+	}
+	complaint.replies.Add(lastReply)
 	return domain.DomainEventPublisherInstance().Publish(
 		ctx,
 		NewComplaintSentForReview(
 			complaint.id,
 			complaint.receiverID,
 			complaint.authorID,
-			userID,
+			triggeredBy.Email(),
 		),
 	)
 }
@@ -182,6 +213,8 @@ func (c *Complaint) Reply(
 	ctx context.Context,
 	newReplyID uuid.UUID,
 	authorID,
+	authorIMG,
+	authorName,
 	body string,
 	enterpriseID string,
 ) (*Reply, error) {
@@ -195,6 +228,8 @@ func (c *Complaint) Reply(
 		newReplyID,
 		c.id,
 		authorID,
+		authorIMG,
+		authorName,
 		body,
 		enterpriseID,
 	)
@@ -219,10 +254,10 @@ func (c *Complaint) Reply(
 			return nil, err
 		}
 	}
-	err := publisher.Publish(ctx, NewComplaintReplied(c.id, newReplyID, thisTime))
-	if err != nil {
-		return nil, err
-	}
+	// err := publisher.Publish(ctx, NewComplaintReplied(c.id, newReplyID, thisTime))
+	// if err != nil {
+	// 	return nil, err
+	// }
 	c.replies.Add(newReply)
 	return newReply, nil
 }
@@ -237,7 +272,11 @@ func Send(
 	ctx context.Context,
 	id uuid.UUID,
 	authorID,
+	authorFullName,
+	authorProfileIMG,
 	receiverID,
+	receiverFullName,
+	receiverProfileIMG,
 	title,
 	description,
 	body string) (*Complaint, error) {
@@ -258,7 +297,11 @@ func Send(
 	newComplaint, err = NewComplaint(
 		id,
 		authorID,
+		authorFullName,
+		authorProfileIMG,
 		receiverID,
+		receiverFullName,
+		receiverProfileIMG,
 		status,
 		message,
 		thisDate,
@@ -272,6 +315,7 @@ func Send(
 	event = NewComplaintSent(id, authorID, receiverID, thisDate.Date())
 	err = publisher.Publish(ctx, event)
 	if err != nil {
+
 		return nil, err
 	}
 	return newComplaint, nil
@@ -280,7 +324,11 @@ func Send(
 func NewComplaint(
 	ID uuid.UUID,
 	authorID string,
+	authorFullName string,
+	authorProfileIMG string,
 	receiverID string,
+	receiverFullName string,
+	receiverProfileIMG string,
 	status Status,
 	message Message,
 	createdAt,
@@ -305,7 +353,23 @@ func NewComplaint(
 	if err != nil {
 		return nil, err
 	}
+	err = c.setAuthorFullName(authorFullName)
+	if err != nil {
+		return nil, err
+	}
+	err = c.setAuthorProfileIMG(authorProfileIMG)
+	if err != nil {
+		return nil, err
+	}
 	err = c.setReceiverID(receiverID)
+	if err != nil {
+		return nil, err
+	}
+	err = c.setReceiverFullName(receiverFullName)
+	if err != nil {
+		return nil, err
+	}
+	err = c.setReceiverProfileIMG(receiverProfileIMG)
 	if err != nil {
 		return nil, err
 	}
@@ -341,11 +405,43 @@ func (c *Complaint) setAuthorID(author string) error {
 	return nil
 }
 
+func (c *Complaint) setAuthorFullName(authorFullName string) error {
+	if authorFullName == "" {
+		return &erros.NullValueError{}
+	}
+	c.authorFullName = authorFullName
+	return nil
+}
+
+func (c *Complaint) setAuthorProfileIMG(authorProfileIMG string) error {
+	if authorProfileIMG == "" {
+		return &erros.NullValueError{}
+	}
+	c.authorProfileIMG = authorProfileIMG
+	return nil
+}
+
 func (c *Complaint) setReceiverID(receiverID string) error {
 	if receiverID == "" {
 		return &erros.NullValueError{}
 	}
 	c.receiverID = receiverID
+	return nil
+}
+
+func (c *Complaint) setReceiverFullName(receiverFullName string) error {
+	if receiverFullName == "" {
+		return &erros.NullValueError{}
+	}
+	c.receiverFullName = receiverFullName
+	return nil
+}
+
+func (c *Complaint) setReceiverProfileIMG(receiverProfileIMG string) error {
+	if receiverProfileIMG == "" {
+		return &erros.NullValueError{}
+	}
+	c.receiverProfileIMG = receiverProfileIMG
 	return nil
 }
 
@@ -418,8 +514,24 @@ func (c Complaint) AuthorID() string {
 	return c.authorID
 }
 
+func (c Complaint) AuthorFullName() string {
+	return c.authorFullName
+}
+
+func (c Complaint) AuthorProfileIMG() string {
+	return c.authorProfileIMG
+}
+
 func (c Complaint) ReceiverID() string {
 	return c.receiverID
+}
+
+func (c Complaint) ReceiverFullName() string {
+	return c.receiverFullName
+}
+
+func (c Complaint) ReceiverProfileIMG() string {
+	return c.receiverProfileIMG
 }
 
 func (c Complaint) Status() Status {
@@ -448,6 +560,19 @@ func (c Complaint) Replies() mapset.Set[Reply] {
 		valueCopy.Add(*reply)
 	}
 	return valueCopy
+}
+
+func (c *Complaint) MarkRepliesAsSeen(parsedIds mapset.Set[uuid.UUID]) int {
+	replies := c.replies.ToSlice()
+	count := 0
+	for _, reply := range replies {
+		if parsedIds.Contains(reply.ID()) {
+			reply.MarkAsRead()
+			count++
+		}
+	}
+	c.replies = mapset.NewSet(replies...)
+	return count
 }
 
 func (c Complaint) RepliesDifference(replies mapset.Set[*Reply]) mapset.Set[Reply] {

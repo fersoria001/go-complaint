@@ -10,7 +10,7 @@ import (
 func FeedbackByComplaintIDResolver(params graphql.ResolveParams) (interface{}, error) {
 	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
 		params.Context,
-		"rid",
+		"Complaint",
 		params.Args["id"].(string),
 		application_services.WRITE,
 		"MANAGER", "ASSISTANT", "OWNER",
@@ -28,21 +28,22 @@ func FeedbackByComplaintIDResolver(params graphql.ResolveParams) (interface{}, e
 	return c, nil
 }
 
-func FeedbackByReviewerIDResolver(params graphql.ResolveParams) (interface{}, error) {
+func FeedbackByIDResolver(params graphql.ResolveParams) (interface{}, error) {
 	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
 		params.Context,
-		"rid",
+		"Feedback",
 		params.Args["id"].(string),
 		application_services.WRITE,
 		"MANAGER", "ASSISTANT", "OWNER",
 	)
 	if err != nil {
+
 		return false, err
 	}
 	query := queries.FeedbackQuery{
-		ReviewerID: params.Args["id"].(string),
+		FeedbackID: params.Args["id"].(string),
 	}
-	c, err := query.FindByReviewerID(params.Context)
+	c, err := query.Feedback(params.Context)
 	if err != nil {
 		return nil, err
 	}

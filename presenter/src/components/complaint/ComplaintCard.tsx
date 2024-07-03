@@ -8,8 +8,8 @@ interface ComplaintCardProps {
 function ComplaintCard({ reason, description, body, status, createdAt }: ComplaintCardProps) {
     return (
         <div className="flex flex-col">
-            <div className="flex w-full justify-between mb-2">
-                <h5 id="status" className="px-2 mb-2 text-lg font-bold tracking-tight text-gray-500 md:text-xl">{
+            <div className="flex flex-col md:flex-row w-full justify-between mb-2">
+                <h5 id="status" className="mx-auto md:mx-0 px-2 mb-2 text-lg font-bold tracking-tight text-gray-500 md:text-xl">{
                     new Date(parseInt(createdAt)).toLocaleDateString()
                 }</h5>
                 <div className="flex">

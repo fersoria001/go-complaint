@@ -38,7 +38,7 @@ func (pr NotificationRepository) Get(
 			link,
 			occurred_on,
 			seen
-		FROM public."notification"
+		FROM notification
 		WHERE notification_id = $1
 		`)
 	row := conn.QueryRow(
@@ -115,6 +115,7 @@ func (pr NotificationRepository) load(ctx context.Context, row pgx.Row) (*domain
 		&seen,
 	)
 	if err != nil {
+
 		return nil, err
 	}
 	if _, err := mail.ParseAddress(thumbnail); err != nil {
@@ -130,8 +131,10 @@ func (pr NotificationRepository) load(ctx context.Context, row pgx.Row) (*domain
 		}
 		thumbnail = user.ProfileIMG()
 	}
+
 	occurredOnTime, err := common.NewDateFromString(occurredOn)
 	if err != nil {
+
 		return nil, err
 	}
 	notification, err := domain.NewNotification(
@@ -209,17 +212,19 @@ func (pr NotificationRepository) Update(
 		return err
 	}
 	insertCommand := string(`
-		UPDATE public."notification"
+		UPDATE notification
 		SET
 			seen = $1
 		WHERE notification_id = $2`)
 	var (
-		seen bool = notification.Seen()
+		seen bool      = notification.Seen()
+		id   uuid.UUID = notification.ID()
 	)
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
 		&seen,
+		&id,
 	)
 	if err != nil {
 		return err

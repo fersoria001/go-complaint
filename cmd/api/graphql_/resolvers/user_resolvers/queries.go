@@ -33,7 +33,7 @@ func LoginResolver(params graphql.ResolveParams) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newToken.Token, nil
+	return newToken, nil
 }
 
 func UserDescriptorResolver(params graphql.ResolveParams) (interface{}, error) {
@@ -41,12 +41,19 @@ func UserDescriptorResolver(params graphql.ResolveParams) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return currentUser, nil
+	q := queries.UserQuery{
+		Email: currentUser.Email,
+	}
+	renewedDescriptor, err := q.UserDescriptor(params.Context)
+	if err != nil {
+		return nil, err
+	}
+	return renewedDescriptor, nil
 }
 
 func UserResolver(params graphql.ResolveParams) (interface{}, error) {
 	userQuery := queries.UserQuery{
-		Email: params.Args["ID"].(string),
+		Email: params.Args["id"].(string),
 	}
 	user, err := userQuery.User(params.Context)
 	if err != nil {
@@ -73,7 +80,7 @@ func UsersForHiringResolver(params graphql.ResolveParams) (interface{}, error) {
 	//authorize
 	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
 		params.Context,
-		"rid",
+		"Enterprise",
 		params.Args["id"].(string),
 		application_services.READ,
 		"MANAGER", "OWNER",
@@ -84,6 +91,9 @@ func UsersForHiringResolver(params graphql.ResolveParams) (interface{}, error) {
 	//query
 	uq := queries.EnterpriseQuery{
 		EnterpriseName: params.Args["id"].(string),
+		Limit:          params.Args["limit"].(int),
+		Offset:         params.Args["offset"].(int),
+		Term:           params.Args["query"].(string),
 	}
 	//return
 	return uq.UsersForHiring(params.Context)

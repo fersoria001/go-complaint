@@ -9,6 +9,7 @@ import (
 type SendEmailCommand struct {
 	ToEmail           string
 	ToName            string
+	Text              string
 	ConfirmationToken string
 	ConfirmationCode  int
 	RandomPassword    string
@@ -267,6 +268,44 @@ func (c SendEmailCommand) HiringInvitationSent(ctx context.Context) error {
 					"account": map[string]interface{}{
 						"name": "Go-Complaint",
 					},
+				},
+			},
+		},
+	})
+	return nil
+}
+
+func (c SendEmailCommand) Contact(ctx context.Context) error {
+	if c.ToEmail == "" || c.ToName == "" {
+		return nil
+	}
+	service := infrastructure.EmailServiceInstance()
+	service.QueueEmail(&email.Email{
+		TemplateID: "vywj2lpd9kpl7oqz",
+		From: struct {
+			Email string `json:"email"`
+			Name  string `json:"name"`
+		}{
+			Email: "go-complaint.com",
+			Name:  "Go-Complaint",
+		},
+		To: struct {
+			Email string `json:"email"`
+			Name  string `json:"name"`
+		}{
+			Email: c.ToEmail,
+			Name:  c.ToName,
+		},
+		Subject: "Contact email to Go-Complaint",
+		Personalization: []map[string]interface{}{
+			{
+				"email": "go-complaint.com",
+				"data": map[string]interface{}{
+					"name": "Go-Complaint",
+					"account": map[string]interface{}{
+						"name": "Go-Complaint",
+					},
+					"text": c.Text,
 				},
 			},
 		},

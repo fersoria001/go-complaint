@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
-import { Query, CountiesQuery, CountyListType } from "../queries";
-import { County } from "../types";
+import { CountryStateListType, CountryStatesQuery, Query } from "../queries";
+import { CountryState } from "../types";
 
-function useCounties(countryID: number): County[] {
-  const [counties, setCounties] = useState<County[]>([]);
+function useCounties(countryID: number): CountryState[] {
+  const [counties, setCounties] = useState<CountryState[]>([]);
   useEffect(() => {
-    const countyFallback = [{ id: 0, name: "No counties found" }];
-    Query<County[]>(CountiesQuery, CountyListType, [countryID]).then((data) => {
-      if (data.length > 0) {
-        setCounties(data);
-        return;
-      }
-      setCounties(countyFallback);
-      return;
-    });
+    async function fetchCountryStates() {
+      const data = await Query<CountryState[]>(
+        CountryStatesQuery,
+        CountryStateListType,
+        [countryID]
+      );
+      setCounties(data);
+    }
+    fetchCountryStates();
   }, [countryID]);
 
   return counties;

@@ -10,8 +10,9 @@ type ReviewID struct {
 func ByReviewID(reviewID uuid.UUID) *ReviewID {
 	return &ReviewID{
 		query: string(`
-		SELECT id, feedback_id, review_id, color
-	FROM public.feedback_reply_review
+		SELECT id, feedback_id, review_id, color,
+		created_at
+	FROM feedback_reply_review
 	WHERE review_id = $1
 		`),
 		args: []interface{}{reviewID},

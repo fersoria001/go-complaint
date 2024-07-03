@@ -19,19 +19,6 @@ func GetTokenFromRequest(r *http.Request) (string, error) {
 	return checkAndSliceHeader(header)
 }
 
-func GetTokenFromWebsocketRequest(r *http.Request) (string, error) {
-	header := r.Header.Get("Sec-WebSocket-Protocol")
-	if header == "" {
-		header, err := r.Cookie("Sec-WebSocket-Protocol")
-		if err != nil {
-			return "", err
-		}
-
-		return checkAndSliceHeader(header.Value)
-	}
-	return checkAndSliceHeader(header)
-}
-
 func checkAndSliceHeader(header string) (string, error) {
 	if startWith(header, "Bearer ") {
 		return header[7:], nil
@@ -58,10 +45,9 @@ func AuthenticationMiddleware() Middleware {
 	middleware := func(next http.HandlerFunc) http.HandlerFunc {
 
 		handler := func(w http.ResponseWriter, r *http.Request) {
-
 			jwtToken, err := GetTokenFromRequest(r)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
+				next(w, r)
 				return
 			}
 			authorized, err := application_services.AuthorizationApplicationServiceInstance().Authorize(
@@ -69,9 +55,12 @@ func AuthenticationMiddleware() Middleware {
 				jwtToken,
 			)
 			if err != nil {
+				// next(w, r)
+				// return
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
+
 			r = r.WithContext(authorized)
 			next(w, r)
 		}

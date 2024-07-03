@@ -32,7 +32,7 @@ func (cr StateCitiesRepository) Get(
 		country_code,
 	 	latitude,
 	  	longitude
-		FROM public."state_cities"
+		FROM state_cities
 		WHERE id = $1
 		`)
 	row := conn.QueryRow(

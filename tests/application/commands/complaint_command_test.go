@@ -2,7 +2,6 @@ package commands_test
 
 import (
 	"context"
-	"go-complaint/application"
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
 	"go-complaint/tests"
@@ -11,7 +10,6 @@ import (
 
 func TestComplaintCommandSendNew(t *testing.T) {
 	ctx := context.Background()
-	application.EventProcessorInstance().ResetDomainEventPublisher()
 	command := commands.ComplaintCommand{
 		AuthorID:    tests.UserRegisterAndVerifyCommands["1"].Email,
 		ReceiverID:  tests.UserRegisterAndVerifyCommands["2"].Email,
@@ -28,7 +26,6 @@ func TestComplaintCommandSendNew(t *testing.T) {
 
 func TestComplaintCommandReply(t *testing.T) {
 	ctx := context.Background()
-	application.EventProcessorInstance().ResetDomainEventPublisher()
 	command := commands.ComplaintCommand{
 		ReplyAuthorID: tests.UserRegisterAndVerifyCommands["1"].Email,
 		ReplyBody:     tests.RepeatString("ja", 10),
@@ -42,7 +39,6 @@ func TestComplaintCommandReply(t *testing.T) {
 
 func TestComplaintCommandSendForReview(t *testing.T) {
 	ctx := context.Background()
-	application.EventProcessorInstance().ResetDomainEventPublisher()
 	command := commands.ComplaintCommand{
 		ID:     "8e184d43-6eae-40ad-af72-51c74fc0f2c9",
 		UserID: tests.UserRegisterAndVerifyCommands["2"].Email,
@@ -55,7 +51,6 @@ func TestComplaintCommandSendForReview(t *testing.T) {
 
 func TestComplaintCommandRate(t *testing.T) {
 	ctx := context.Background()
-	application.EventProcessorInstance().ResetDomainEventPublisher()
 	command := commands.ComplaintCommand{
 		ID:      "8e184d43-6eae-40ad-af72-51c74fc0f2c9",
 		UserID:  tests.UserRegisterAndVerifyCommands["2"].Email,

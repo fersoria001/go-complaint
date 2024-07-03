@@ -37,6 +37,8 @@ func CreateReply(
 	id uuid.UUID,
 	complaintID uuid.UUID,
 	authorID string,
+	authorIMG string,
+	authorName string,
 	body string,
 	enterpriseID string,
 ) *Reply {
@@ -49,6 +51,8 @@ func CreateReply(
 		id:           id,
 		complaintID:  complaintID,
 		senderID:     authorID,
+		senderIMG:    authorIMG,
+		senderName:   authorName,
 		body:         body,
 		read:         false,
 		readAt:       newCommonDate,
@@ -130,7 +134,7 @@ func (r *Reply) SetEnterpriseID(enterpriseID string) error {
 	return nil
 }
 
-func (r *Reply) EnterpriseID() string {
+func (r Reply) EnterpriseID() string {
 	return r.enterpriseID
 }
 
@@ -218,46 +222,46 @@ func (r *Reply) setUpdatedAt(updatedAt common.Date) error {
 	return nil
 }
 
-func (r *Reply) ID() uuid.UUID {
+func (r Reply) ID() uuid.UUID {
 	return r.id
 }
 
-func (r *Reply) ComplaintID() uuid.UUID {
+func (r Reply) ComplaintID() uuid.UUID {
 	return r.complaintID
 }
 
-func (r *Reply) SenderIMG() string {
+func (r Reply) SenderIMG() string {
 	return r.senderIMG
 }
 
-func (r *Reply) SenderName() string {
+func (r Reply) SenderName() string {
 	return r.senderName
 }
 
-func (r *Reply) Body() string {
+func (r Reply) Body() string {
 	return r.body
 }
 
-func (r *Reply) CreatedAt() common.Date {
+func (r Reply) CreatedAt() common.Date {
 	return r.createdAt
 }
 
-func (r *Reply) Read() bool {
+func (r Reply) Read() bool {
 	return r.read
 }
 
-func (r *Reply) ReadAt() common.Date {
+func (r Reply) ReadAt() common.Date {
 	return r.readAt
 }
 
-func (r *Reply) UpdatedAt() common.Date {
+func (r Reply) UpdatedAt() common.Date {
 	return r.updatedAt
 }
 
-func (r *Reply) SenderID() string {
+func (r Reply) SenderID() string {
 	return r.senderID
 }
 
-func (r *Reply) IsEnterprise() bool {
+func (r Reply) IsEnterprise() bool {
 	return r.isEnterprise
 }

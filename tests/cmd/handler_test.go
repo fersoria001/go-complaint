@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"go-complaint/cmd/api/middleware"
 	"go-complaint/cmd/server"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -66,6 +65,5 @@ func TestHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	log.Printf("Response: %v", v)
 
 }

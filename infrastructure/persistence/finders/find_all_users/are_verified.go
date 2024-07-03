@@ -8,14 +8,14 @@ type AreVerified struct {
 func ThatAreVerified(limit, offset int) *AreVerified {
 	return &AreVerified{
 		query: string(
-			`SELECT PUBLIC.USER.EMAIL,
-					PUBLIC.USER.PASSWORD,
-					PUBLIC.USER.REGISTER_DATE,
-					PUBLIC.USER.IS_CONFIRMED
-			FROM PUBLIC.USER
-			JOIN PUBLIC.PERSON ON
-					PUBLIC.USER.EMAIL = PUBLIC.PERSON.EMAIL
-			WHERE 		PUBLIC.USER.IS_CONFIRMED = TRUE
+			`SELECT USER.EMAIL,
+					USER.PASSWORD,
+					USER.REGISTER_DATE,
+					USER.IS_CONFIRMED
+			FROM USER
+			JOIN PERSON ON
+					USER.EMAIL = PERSON.EMAIL
+			WHERE 		USER.IS_CONFIRMED = TRUE
 			LIMIT $1 OFFSET $2;`,
 		),
 		args: []interface{}{limit, offset},
