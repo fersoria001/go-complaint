@@ -20,7 +20,7 @@ function useSubscriber(id: string | null) {
       },
     };
     const ws = new WebSocket(
-      "ws://go-complaint-server-latest.onrender.com/graphql"
+      "ws://3.143.110.143:5555/graphql"
     );
     ws.onopen = () => {
       console.log("id", id)

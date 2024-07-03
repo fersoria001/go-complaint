@@ -21,7 +21,7 @@ export const uploadFile = async (
     form.append(folder, blob, fileName);
     const request = new XMLHttpRequest();
     const bearer = Cookies.get("authorization") || "";
-    let url = "https://docker-go-complaint-server-latest.onrender.com/upload" + `?folder=${folder}`;
+    let url = "http://3.143.110.143:5555" + `?folder=${folder}`;
     if (enterpriseID) {
       url = url + `&id=${enterpriseID}`;
     }
