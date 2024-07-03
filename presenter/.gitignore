@@ -1,4 +1,6 @@
 # Logs
+Dockerfile
+compose.yaml
 logs
 *.log
 npm-debug.log*

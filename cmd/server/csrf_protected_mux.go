@@ -36,7 +36,7 @@ func CSRFPMWithHandlerFunc(pattern string, handler http.HandlerFunc) OptionsCSRF
 }
 
 func (csrfpm *CSRFProtectedMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	csrfKey := os.Getenv("CSRF-KEY")
+	csrfKey := os.Getenv("CSRF_KEY")
 	origin := os.Getenv("ORIGIN")
 	origins := strings.Split(origin, ",")
 	csrfMiddleware := csrf.Protect(

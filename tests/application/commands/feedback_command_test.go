@@ -7,18 +7,12 @@ import (
 	"go-complaint/infrastructure/persistence/finders/find_all_feedback"
 	"go-complaint/infrastructure/persistence/repositories"
 	"go-complaint/tests"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func setup() {
-	os.Setenv("DATABASE_URL", "postgres://postgres:sfdkwtf@localhost:5432/postgres?pool_max_conns=100&search_path=public&connect_timeout=5")
-	os.Setenv("JWT_SECRET", "supersecret123$%^&*")
-	os.Setenv("CSRF-KEY", "csrf-key!@#1KJH")
-	os.Setenv("HOST", "localhost")
-	os.Setenv("PORT", "5170")
 }
 func TestFeedback(t *testing.T) {
 	setup()
