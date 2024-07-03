@@ -1,6 +1,6 @@
 
 export async function csrf(): Promise<string> {
-  const response = await fetch("http://localhost:5170/csrf", {
+  const response = await fetch("https://go-complaint-server-latest.onrender.com", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

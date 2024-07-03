@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/csrf"
 )
@@ -37,14 +38,14 @@ func CSRFPMWithHandlerFunc(pattern string, handler http.HandlerFunc) OptionsCSRF
 func (csrfpm *CSRFProtectedMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	csrfKey := os.Getenv("CSRF-KEY")
 	origin := os.Getenv("ORIGIN")
-	log.Println(origin)
+	origins := strings.Split(origin, ",")
 	csrfMiddleware := csrf.Protect(
 		[]byte(csrfKey),
 		csrf.Path("/"),
 		csrf.HttpOnly(false),
 		csrf.Secure(false),
 		csrf.SameSite(csrf.SameSiteLaxMode),
-		csrf.TrustedOrigins([]string{origin}),
+		csrf.TrustedOrigins(origins),
 		csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			err := csrf.FailureReason(r)
 			log.Println(err)

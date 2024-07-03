@@ -9,18 +9,11 @@ import (
 	projectpath "go-complaint/project_path"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/csrf"
 )
 
 func main() {
-	os.Setenv("HOST", "localhost")
-	os.Setenv("PORT", "5170")
-	os.Setenv("ORIGIN", "http://localhost:5173")
-	os.Setenv("CSRF-KEY", "ultrasecret")
-	os.Setenv("JWT_SECRET", "supersecret123$%^&*")
-	os.Setenv("DATABASE_URL", "postgres://postgres:sfdkwtf@localhost:5432/postgres?pool_max_conns=100&search_path=public&connect_timeout=5")
 	profileImgHandler := http.StripPrefix("/profile_img/", http.FileServer(http.Dir(projectpath.ProfileImgsPath)))
 	logoImgsHandler := http.StripPrefix("/logo_img/", http.FileServer(http.Dir(projectpath.LogoImgsPath)))
 	bannerImgsHandler := http.StripPrefix("/banner_img/", http.FileServer(http.Dir(projectpath.BannerImgsPath)))
