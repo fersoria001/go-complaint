@@ -26,7 +26,7 @@ const LoginForm: React.FC = () => {
                 {errors?.form && <span className="mx-auto text-red-500 text-xs italic" >{errors.form}</span>}
                 <label
                     className="block text-gray-700 text-sm font-bold mb-2"
-                    htmlFor="confirmationCode">Enter the confirmation code</label>
+                    htmlFor="confirmationCode">Enter the confirmation code we sent to your email</label>
                 <div className="flex gap-0.5">
                     {
                         Array.from({ length: 7 }).map((_, i) => (

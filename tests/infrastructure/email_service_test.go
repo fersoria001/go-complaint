@@ -12,6 +12,7 @@ func TestEmailServiceSendBackground(t *testing.T) {
 		ToEmail:           "bercho001@gmail.com",
 		ToName:            "fer",
 		ConfirmationToken: "89175",
+		ConfirmationCode:  3463748,
 	}
-	c.Welcome(ctx)
+	c.VerifySignIn(ctx)
 }

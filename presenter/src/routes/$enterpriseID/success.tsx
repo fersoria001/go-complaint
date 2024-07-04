@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import SuccessPage from '../../pages/SuccessPage'
 
 
@@ -14,6 +14,16 @@ type Success = {
 }
 
 export const Route = createFileRoute('/$enterpriseID/success')({
+  beforeLoad: ({ context: { isLoggedIn } }) => {
+    if (!isLoggedIn) {
+      throw redirect({
+        to: '/sign-in',
+        search: {
+          redirect: location.href,
+        },
+      })
+    }
+  },
   validateSearch: (search: Record<string, unknown>): SuccessLoaderData => {
     return {
       content: search.content as Success

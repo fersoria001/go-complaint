@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+div {
+    width: 400px;
+    line-height: 24px;
+    font-size: 20px;
+    margin-bottom: 48px;
+    margin-top:42px;
+}
+#container{
+    line-break: strict;
+    width: 430px;
+    height: 320px;
+    padding: 12px;
+}
+p{
+    margin:0 auto;
+    width: 260px;
+    font-size:12px;
+}
+@media (width >= 760px) {
+    div {
+        line-height: 28px;
+        font-size:24px;
+        line-break:strict;
+        text-align:unset
+    }
+    #container{
+        width: 700px;
+        height: 320px;
+        padding: 12px;
+    }
+    p{  
+        font-size:16px;
+        white-space: nowrap;
+        margin:0px;
+    }
+}
+@media (width >= 1024px) {
+    div {
+        width:960px;
+        line-height: 40px;
+        font-size:36px;
+        line-break:strict;
+        text-align:unset
+    }
+    #container{
+        width: 960px;
+        height: 320px;
+        padding: 12px;
+    }
+    p{
+        font-size:24px;
+        white-space: nowrap;
+    }
+}
+</style>
+<body>
+    <div id="container">
+        You have request to reset your password
+        your new randomly generated password is: 'password'
+        <div>
+            Use it to sign-in into your account.
+        </div>
+        <div>
+            If you did not request this action on your account or you find trouble login in contact us to 
+            owner@go-complaint.com.
+        </div>
+        <p>© 2024 Go-Complaint by Fernando Agustín Soria. San Carlos de Bariloche, Rio Negro, Argentina.8400</p>
+    </div>
+</body>
+</html>

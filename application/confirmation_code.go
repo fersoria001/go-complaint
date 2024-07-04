@@ -15,9 +15,9 @@ type ConfirmationCode struct {
 func CreateConfirmationCode() ConfirmationCode {
 	min := 1000000
 	max := 9999999
-	_ = rand.Intn(max-min+1) + min
+	randomCode := rand.Intn(max-min+1) + min
 	cc := ConfirmationCode{
-		Code: 9999999,
+		Code: randomCode,
 	}
 	cc.IssuedAt = time.Now().Unix()
 	cc.ExpiresAt = time.Now().Add(time.Minute * 15).Unix()

@@ -23,6 +23,15 @@ import {
   UpdateUserType,
 } from "./types";
 
+export const VerifyEmailMutation = (token : string) : string => {
+  return ` 
+  mutation {
+    VerifyEmail(id: "${token}")
+  }
+  `
+}
+
+
 export const ContactMutation = ({ email, text }: ContactType): string => {
   return `
   mutation {

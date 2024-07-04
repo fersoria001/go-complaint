@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { HiringProccessesQuery, HiringProccessesTypeList, Query } from '../../lib/queries'
 import { HiringProccessList } from '../../lib/types'
 import HiringProcceses from '../../pages/HiringProcceses'
@@ -12,6 +12,25 @@ type HiringProccessSearchFilter = {
   page: number
 }
 export const Route = createFileRoute('/$enterpriseID/hiring-procceses')({
+  beforeLoad: async ({ params: { enterpriseID }, context: { hasPermission, isLoggedIn } }) => {
+    if (!isLoggedIn) {
+      throw redirect({
+        to: '/sign-in',
+        search: {
+          redirect: location.href,
+        },
+      })
+    }
+    const ok = await hasPermission("MANAGER", enterpriseID)
+    if (!ok) {
+      throw redirect({
+        to: '/',
+        search: {
+          redirect: location.href,
+        },
+      })
+    }
+  },
   validateSearch: (search: Record<string, unknown>): HiringProccessSearchType => {
     return {
       id: search.id as string || '',

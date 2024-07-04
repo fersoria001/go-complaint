@@ -4,16 +4,25 @@ import { EmployeeType } from '../../../lib/types'
 import Employees from '../../../components/enterprise/employee/Employees'
 
 export const Route = createFileRoute('/$enterpriseID/employees/')({
-    beforeLoad: ({ context: { isLoggedIn } }) => {
+    beforeLoad: async ({ params: { enterpriseID }, context: { hasPermission, isLoggedIn } }) => {
         if (!isLoggedIn) {
-            throw redirect({
-                to: '/sign-in',
-                search: {
-                    redirect: location.href,
-                },
-            })
+          throw redirect({
+            to: '/sign-in',
+            search: {
+              redirect: location.href,
+            },
+          })
         }
-    },
+        const ok = await hasPermission("MANAGER", enterpriseID)
+        if (!ok) {
+          throw redirect({
+            to: '/',
+            search: {
+              redirect: location.href,
+            },
+          })
+        }
+      },
     loader: async ({ params, context: { fetchUserDescriptor } }) => {
         const descriptor = await fetchUserDescriptor()
         const result = await Query<EmployeeType[]>(

@@ -16,6 +16,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as SignUpImport } from './routes/sign-up'
 import { Route as LicensingImport } from './routes/licensing'
 import { Route as ContactImport } from './routes/contact'
+import { Route as ConfirmationLinkImport } from './routes/confirmation-link'
 import { Route as ConfirmationImport } from './routes/confirmation'
 import { Route as ProfileImport } from './routes/_profile'
 import { Route as EnterpriseIDImport } from './routes/$enterpriseID'
@@ -103,6 +104,11 @@ const LicensingRoute = LicensingImport.update({
 
 const ContactRoute = ContactImport.update({
   path: '/contact',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ConfirmationLinkRoute = ConfirmationLinkImport.update({
+  path: '/confirmation-link',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -383,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/confirmation'
       fullPath: '/confirmation'
       preLoaderRoute: typeof ConfirmationImport
+      parentRoute: typeof rootRoute
+    }
+    '/confirmation-link': {
+      id: '/confirmation-link'
+      path: '/confirmation-link'
+      fullPath: '/confirmation-link'
+      preLoaderRoute: typeof ConfirmationLinkImport
       parentRoute: typeof rootRoute
     }
     '/contact': {
@@ -776,6 +789,7 @@ export const routeTree = rootRoute.addChildren({
     ProfileSentComplaintIdIndexRoute,
   }),
   ConfirmationRoute,
+  ConfirmationLinkRoute,
   ContactRoute,
   LicensingRoute,
   SignUpRoute,
@@ -797,6 +811,7 @@ export const routeTree = rootRoute.addChildren({
         "/$enterpriseID",
         "/_profile",
         "/confirmation",
+        "/confirmation-link",
         "/contact",
         "/licensing",
         "/sign-up",
@@ -856,6 +871,9 @@ export const routeTree = rootRoute.addChildren({
     },
     "/confirmation": {
       "filePath": "confirmation.tsx"
+    },
+    "/confirmation-link": {
+      "filePath": "confirmation-link.tsx"
     },
     "/contact": {
       "filePath": "contact.tsx"

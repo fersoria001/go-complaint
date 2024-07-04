@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { ComplaintQuery, ComplaintQueryType, FeedbackByIDQuery, FeedbackByIDType, Query, UserQuery, UserType } from '../../../lib/queries';
 import { ComplaintType, FeedbackType, User } from '../../../lib/types';
 import EmployeeFeedback from '../../../components/enterprise/feedback/EmployeeFeedback';
@@ -6,6 +6,16 @@ type FeedbacksSearchType = {
   id: string;
 }
 export const Route = createFileRoute('/$enterpriseID/feedbacks/')({
+  beforeLoad: ({ context: { isLoggedIn } }) => {
+    if (!isLoggedIn) {
+      throw redirect({
+        to: '/sign-in',
+        search: {
+          redirect: location.href,
+        },
+      })
+    }
+  },
   validateSearch: (search: Record<string, unknown>): FeedbacksSearchType => {
     return {
       id: search.id

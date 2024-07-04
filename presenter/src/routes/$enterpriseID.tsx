@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from '@tanstack/react-router'
+import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import EnterpriseLayout from '../EnterpriseLayout'
 import { ComplaintInfo, Enterprise, User } from '../lib/types'
 import { Query, EnterpriseType, CompleteEnterpriseQuery, ComplaintsReceivedInfoQuery, ComplaintReceivedInfoType, OnlineUsersQuery, OnlineUsersType } from '../lib/queries'
@@ -13,6 +13,16 @@ async function fetchOnlineUsers(enterpriseID: string): Promise<User[]> {
 }
 
 export const Route = createFileRoute('/$enterpriseID')({
+  beforeLoad: ({ context: { isLoggedIn } }) => {
+    if (!isLoggedIn) {
+      throw redirect({
+        to: '/sign-in',
+        search: {
+          redirect: location.href,
+        },
+      })
+    }
+  },
   loader: async ({ params, context: { fetchUserDescriptor } }) => {
     const descriptor = await fetchUserDescriptor()
     const onlineUsers : User[] = await fetchOnlineUsers(params.enterpriseID)

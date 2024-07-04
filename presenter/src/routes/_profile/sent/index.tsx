@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import Sent from '../../../components/profile/sent/Sent'
 import { Query, SentSearchQuery, SentSearchTypeList } from '../../../lib/queries'
 import { ComplaintTypeList } from '../../../lib/types'
@@ -12,6 +12,16 @@ export type ComplaintSearchFilterType = {
   date: string;
 }
 export const Route = createFileRoute('/_profile/sent/')({
+  beforeLoad: ({ context: { isLoggedIn } }) => {
+    if (!isLoggedIn) {
+      throw redirect({
+        to: '/sign-in',
+        search: {
+          redirect: location.href,
+        },
+      })
+    }
+  },
   validateSearch: (search: Record<string, unknown>): ComplaintSearchType => {
     return {
       page: search.page ? Number(search.page) : 1,

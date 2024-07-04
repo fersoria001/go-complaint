@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Query, SearchInDraftQuery, SearchInDraftTypeList } from '../../../lib/queries'
 import { ComplaintTypeList } from '../../../lib/types'
 import Inbox from '../../../components/enterprise/inbox/Inbox'
@@ -7,6 +7,16 @@ import { ComplaintSearchType, ComplaintSearchFilterType } from '../../_profile/s
 
 
 export const Route = createFileRoute('/$enterpriseID/inbox/')({
+  beforeLoad: ({ context: { isLoggedIn } }) => {
+    if (!isLoggedIn) {
+      throw redirect({
+        to: '/sign-in',
+        search: {
+          redirect: location.href,
+        },
+      })
+    }
+  },
   validateSearch: (search: Record<string, unknown>): ComplaintSearchType => {
     return {
       page: search.page ? Number(search.page) : 1,

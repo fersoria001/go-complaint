@@ -1,9 +1,19 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import Chat from '../../../../components/profile/sent/Chat'
 import { Query, ComplaintQuery, ComplaintQueryType } from '../../../../lib/queries'
 import { ComplaintType } from '../../../../lib/types'
 
 export const Route = createFileRoute('/_profile/sent/$complaintId/chat')({
+  beforeLoad: ({ context: { isLoggedIn } }) => {
+    if (!isLoggedIn) {
+      throw redirect({
+        to: '/sign-in',
+        search: {
+          redirect: location.href,
+        },
+      })
+    }
+  },
   loader: async ({ params, context: { fetchUserDescriptor } }) => {
     const descriptor = await fetchUserDescriptor()
     const complaint = await Query<ComplaintType>(
