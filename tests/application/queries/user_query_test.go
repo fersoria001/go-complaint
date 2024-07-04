@@ -15,6 +15,7 @@ import (
 )
 
 func TestUserQuery_SignIn(t *testing.T) {
+
 	// Arrange
 	ctx := context.Background()
 	userQuery := queries.UserQuery{

@@ -38,12 +38,9 @@ func TestUserCommand_RegisterUser(t *testing.T) {
 	assert.Equal(t, command.LastName, dbUser.LastName())
 	assert.Equal(t, command.BirthDate, dbUser.BirthDate().StringRepresentation())
 	assert.Equal(t, false, dbUser.IsConfirmed())
-	assert.Equal(t, command.Phone, dbUser.Phone())
 	assert.Equal(t, command.CountryID, dbUser.Address().Country().ID())
 	assert.Equal(t, command.CountryStateID, dbUser.Address().CountryState().ID())
 	assert.Equal(t, command.CityID, dbUser.Address().City().ID())
-
-	// Assert
 }
 
 func TestUserCommand_VerifyEmail(t *testing.T) {

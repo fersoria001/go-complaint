@@ -58,7 +58,7 @@ func (userCommand UserCommand) Register(ctx context.Context) error {
 				if castedEvent, ok := event.(*identity.UserCreated); ok {
 					SendEmailCommand{
 						ToEmail:           userCommand.Email,
-						ToName:            userCommand.FullName,
+						ToName:            userCommand.FirstName + " " + userCommand.LastName,
 						ConfirmationToken: castedEvent.ConfirmationToken(),
 					}.Welcome(ctx)
 					return nil

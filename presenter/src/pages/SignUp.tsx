@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import useCounties from "../lib/hooks/useCounties";
 import useCities from "../lib/hooks/useCities";
@@ -36,11 +37,11 @@ const SignUp: React.FC = () => {
             setErrors(errors);
             return;
         }
-        const ok = await createUser(parsed);
-        if (ok) {
-           return ConfirmationEmailSent
-        } else {
-            setErrors({ form: 'An error occurred while creating the user' });
+        try {
+            await createUser(parsed);
+            return ConfirmationEmailSent
+        } catch (e: any) {
+            setErrors({ form: 'An error occurred while creating the user: ' + e.messsage });
         }
     }
     return (
@@ -267,9 +268,9 @@ const SignUp: React.FC = () => {
                 {errors?.form && <span className="text-red-500 text-xs italic" >{errors.form}</span>}
             </div>
 
-            <div  
-            onMouseUp={handleSubmit}
-            className="flex flex-col justify-center items-center">
+            <div
+                onMouseUp={handleSubmit}
+                className="flex flex-col justify-center items-center">
                 <PrimaryButton text="Sign up" />
             </div>
         </form>

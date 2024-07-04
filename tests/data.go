@@ -25,6 +25,7 @@ var (
 			Gender:         "MALE",
 			Pronoun:        "He",
 			BirthDate:      msBirthDate,
+			PhoneCode:      "54",
 			Phone:          "12345678910",
 			CountryID:      11,
 			CountryStateID: 3634,

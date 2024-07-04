@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Mutation, VerifyEmailMutation } from '../lib/mutations'
 import ConfirmationSucceed from '../components/ConfirmationSucceed'
@@ -15,11 +16,13 @@ export const Route = createFileRoute('/confirmation-link')({
   loaderDeps: ({ search: { token, success } }) => ({ token, success }),
   loader: async ({ deps: { token, success } }) => {
     if (success) return
-    if (token) return redirect({ to: "/" })
-    const ok = await Mutation<string>(VerifyEmailMutation, token)
-    if (!ok)
+    if (!token || token == "") return redirect({ to: "/" })
+    try {
+      await Mutation<string>(VerifyEmailMutation, token)
+      return redirect({ to: "/confirmation-link", search: { success: true } })
+    } catch (e : any ) {
       return redirect({ to: "/error" })
-    return redirect({ to: "/confirmation-link", search: { success: true } })
+    }
   },
   component: ConfirmationSucceed,
 })

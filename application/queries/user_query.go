@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"go-complaint/application"
+	"log"
 	"slices"
 
 	"go-complaint/application/application_services"
@@ -65,6 +66,7 @@ func (userQuery UserQuery) SignIn(
 	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
 		HandleEvent: func(event domain.DomainEvent) error {
 			if userSignedIn, ok := event.(*identity.UserSignedIn); ok {
+				log.Println("userSignedIn", user.Email(), user.FullName(), userSignedIn.ConfirmationCode())
 				commands.SendEmailCommand{
 					ToEmail:          user.Email(),
 					ToName:           user.FullName(),

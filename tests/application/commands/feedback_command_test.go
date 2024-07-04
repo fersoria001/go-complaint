@@ -12,10 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setup() {
-}
 func TestFeedback(t *testing.T) {
-	setup()
 	ctx := context.Background()
 	repository := repositories.MapperRegistryInstance().Get("Feedback").(repositories.FeedbackRepository)
 	complaintID := tests.ComplaintID

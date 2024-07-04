@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 )
 
 type To struct {
@@ -39,13 +38,53 @@ func EmailServiceInstance() *EmailService {
 }
 
 type EmailService struct {
+	emailQueueInstance chan *email.Email
+	sentLog            map[string]interface{}
+	queued             int
 }
 
 func NewEmailService() *EmailService {
-	return &EmailService{}
+	return &EmailService{
+		emailQueueInstance: make(chan *email.Email),
+		sentLog:            make(map[string]interface{}),
+		queued:             0,
+	}
+}
+func (es *EmailService) Queued() int {
+	return es.queued
+}
+func (es *EmailService) QueueEmail(email *email.Email) {
+	es.emailQueueInstance <- email
+	es.queued++
 }
 
-func (es *EmailService) Send(ctx context.Context, obj email.Email) {
+func (es *EmailService) SentLog() map[string]interface{} {
+	return es.sentLog
+}
+
+//var EmailChannel = make(chan email.Email)
+
+// func (es *EmailService) SendAll(em chan email.Email) {
+// 	for {
+// 		email := <-em
+// 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
+// 		log.Println("email received in channel")
+// 		msgID, err := es.Send(ctx, email)
+// 		es.queued--
+// 		es.sentLog[msgID] = struct {
+// 			Error      error
+// 			OccurredOn time.Time
+// 		}{
+// 			Error:      err,
+// 			OccurredOn: time.Now(),
+// 		}
+// 		cancel()
+// 	}
+
+// }
+
+func Send(ctx context.Context, obj email.Email) (string, error) {
+	log.Println("sending email ", obj)
 	sender := "owner@go-complaint.com"
 	to := make([]*To, 0)
 	to = append(to, &To{
@@ -63,27 +102,25 @@ func (es *EmailService) Send(ctx context.Context, obj email.Email) {
 	j, err := json.Marshal(input)
 	if err != nil {
 		fmt.Sprintln("error marshaling", err)
-		return
+		return "", err
 	}
 	b := bytes.NewBuffer(j)
-	sendCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
 	request, err := http.NewRequestWithContext(
-		sendCtx,
+		context.Background(),
 		"POST",
 		"https://api.mailersend.com/v1/email",
 		b,
 	)
 	if err != nil {
 		fmt.Sprintln("error at create request", err)
-		return
+		return "", err
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer mlsn.0557f4217143328c73149ad91c7455121924f188c63af0fe093b42feb3fa1de1")
 	body, err := http.DefaultClient.Do(request)
 	if err != nil {
 		fmt.Sprintln("error at send request", err)
-		return
+		return "", err
 	}
 	log.Println("Status", body.Status)
 	msgID := body.Header.Get("X-Message-Id")
@@ -97,6 +134,7 @@ func (es *EmailService) Send(ctx context.Context, obj email.Email) {
 	fmt.Println("Email Sent to address: " + obj.Recipient)
 	fmt.Println("msgID", msgID)
 	fmt.Println("paused?", paused)
+	return msgID, nil
 }
 
 // func (es *EmailService) Send(ctx context.Context, email email.Email) {
