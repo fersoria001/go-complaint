@@ -1,6 +1,6 @@
 
 export async function csrf(): Promise<string> {
-  const response = await fetch("http://3.143.110.143:5555", {
+  const response = await fetch("https://api.go-complaint.com/csrf", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

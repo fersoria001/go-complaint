@@ -4,7 +4,6 @@ import { Route } from "../routes/$enterpriseID/hiring-procceses";
 
 function HiringProcceses() {
     const { hiringProcceses, search } = Route.useLoaderData();
-    console.log(hiringProcceses)
     const navigate = Route.useNavigate();
     const [page, setPage] = useState<number>(search.filter.page)
     const [query, setQuery] = useState(search.filter.query)

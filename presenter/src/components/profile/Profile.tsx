@@ -6,7 +6,6 @@ import OfficesList from "./OfficesList";
 
 function Profile() {
     const { descriptor, ownerEnterprises, employeeEnterprises } = Route.useLoaderData();
-    console.log(descriptor)
     return (
         <div className="pb-[30px] md:min-h-[450px]">
             <div className="mb-4">

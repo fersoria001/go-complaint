@@ -41,7 +41,6 @@ const Employee: React.FC<Props> = ({ employee, enterpriseId }: Props) => {
         router.invalidate()
     }
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        console.log(e.target.value)
         setSelectedPosition(e.target.value)
     }
     return (

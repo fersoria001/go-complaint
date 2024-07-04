@@ -36,7 +36,6 @@ const SideBar: React.FC<Props> = ({ descriptor, role = "", isEnterprise = false,
     }, [])
     useEffect(() => {
         if (reload) {
-            console.log("reload")
             const load = async () => {
                 const options = isEnterprise ? await enterpriseOptions(descriptor, enterpriseName) : await profileOptions(descriptor.email, descriptor.email);
                 setOptions(options);

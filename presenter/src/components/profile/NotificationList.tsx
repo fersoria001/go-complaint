@@ -23,7 +23,6 @@ function NotificationList() {
     )
     useEffect(() => {
         if (incomingMessage) {
-            console.log('incomingMessage', incomingMessage)
             const notification = incomingMessage as Notifications
             setNotificationList(prev => {
                 const exists = prev.find(notif => notif.id === notification.id)

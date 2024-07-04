@@ -13,8 +13,7 @@ async function markAsRead(id: string) {
 const Notification: React.FC<Props> = ({ notification, callback }: Props) => {
     const handleHover = async () => {
         if (!notification.seen) {
-            const ok = await markAsRead(notification.id)
-            console.log("markAsRead",ok)
+            await markAsRead(notification.id)
         }
     }
     const style = notification.seen ? `flex justify-between first:pt-0 last:mb-0 bg-gray-200 rounded-xl p-2 mb-2 hover:cursor-pointer` :

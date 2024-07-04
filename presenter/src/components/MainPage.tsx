@@ -4,7 +4,6 @@ function MainPage() {
     const [src, setSrc] = useState(["./find-receiver.png", "./describe.png", "./complain.png"])
     useEffect(() => {
         const interval = setInterval(() => {
-            console.log("change");
             setSrc(prev => {
                 const first = prev.shift() as string
                 const newArr = [...prev, first]

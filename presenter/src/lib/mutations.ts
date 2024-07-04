@@ -485,7 +485,7 @@ export const Mutation = async <T>(
 ): Promise<boolean> => {
   const token = await csrf();
   if (token != "") {
-    const response = await fetch("http://3.143.110.143:5555", {
+    const response = await fetch("https://api.go-complaint.com/graphql", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

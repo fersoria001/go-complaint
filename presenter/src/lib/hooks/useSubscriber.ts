@@ -20,15 +20,13 @@ function useSubscriber(id: string | null) {
       },
     };
     const ws = new WebSocket(
-      "ws://3.143.110.143:5555/graphql"
+      "wss://api.go-complaint.com/subscriptions"
     );
     ws.onopen = () => {
-      console.log("id", id)
       ws.send(JSON.stringify(connection_ack));
     };
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log("wsdata",data)
       if (data.type === "data") {
         setIncomingMessage(data.payload);
       }

@@ -21,7 +21,7 @@ export const uploadFile = async (
     form.append(folder, blob, fileName);
     const request = new XMLHttpRequest();
     const bearer = Cookies.get("authorization") || "";
-    let url = "http://3.143.110.143:5555" + `?folder=${folder}`;
+    let url = "https://api.go-complaint.com/upload" + `?folder=${folder}`;
     if (enterpriseID) {
       url = url + `&id=${enterpriseID}`;
     }
@@ -31,7 +31,6 @@ export const uploadFile = async (
     request.setRequestHeader("authorization", `Bearer ${bearer}`)
     request.send(form);
     request.onreadystatechange = function () {
-      console.log(request.readyState);
       if (request.readyState === 4 && request.status === 200) {
         return true;
       }

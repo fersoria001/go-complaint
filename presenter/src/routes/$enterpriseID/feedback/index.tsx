@@ -23,7 +23,6 @@ export const Route = createFileRoute('/$enterpriseID/feedback/')({
         FeedbackByRevieweeIDType,
         [descriptor.email],
       )
-      console.log(feedbacks)
       return feedbacks
     } catch (e: any) {
       console.error(e)

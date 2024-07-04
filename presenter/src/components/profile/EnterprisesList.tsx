@@ -6,7 +6,6 @@ interface Props {
   enterprises: Enterprise[];
 }
 function EnterprisesList({ enterprises }: Props) {
-  console.log(enterprises);
   return (
     <>
       <div

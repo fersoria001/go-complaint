@@ -1042,7 +1042,7 @@ export async function Query<T>(
     const strBody = JSON.stringify({
       query: deleteLinebreaks(queryFn(...args)),
     });
-    const response = await fetch("http://3.143.110.143:5555", {
+    const response = await fetch("https://api.go-complaint.com/graphql", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

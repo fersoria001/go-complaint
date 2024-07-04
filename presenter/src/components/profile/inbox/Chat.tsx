@@ -30,10 +30,8 @@ function Chat() {
     const { incomingMessage } = useSubscriber(id);
     useEffect(() => {
         if (incomingMessage) {
-            console.log(incomingMessage);
 
             if (isReply(incomingMessage)) {
-                console.log("isreply");
 
                 const msg = incomingMessage as Reply;
                 if (msg.complaintStatus === "IN_REVIEW") {
@@ -47,7 +45,6 @@ function Chat() {
                 setReplies(replies => [...replies!, incomingMessage]);
             }
             if (isReplies(incomingMessage)) {
-                console.log("isreplies");
 
                 const msgs = incomingMessage as Reply[];
                 setReplies(p => p?.map((reply) => {

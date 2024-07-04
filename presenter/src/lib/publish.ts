@@ -8,7 +8,7 @@ export const Publish = async <T>(
   ): Promise<boolean> => {
     const token = await csrf();
     if (token != "") {
-      const response = await fetch("http://3.143.110.143:5555/graphql/publish", {
+      const response = await fetch("https://api.go-complaint.com/graphql/publish", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

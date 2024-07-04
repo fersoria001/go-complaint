@@ -153,7 +153,6 @@ export const addToMap = (
 
         const lastPosTopLimit = offsetScrollY(lastPos.top) + additional
         if (lastPosTopLimit >= offsetScrollY(valuePos.top)) {
-            console.log(window.scrollY , document.documentElement.scrollTop)
             top = offsetScrollY(lastPos.top) + additional
             bottom = limitScrollY(lastPos.bottom) + additional
             value.current.style.top = `${top}px`

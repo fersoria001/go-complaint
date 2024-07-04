@@ -291,8 +291,6 @@ const EmployeeFeedback: React.FC = () => {
 
 
     useEffect(() => {
-        console.log(feedback)
-        console.log("isDone?", isDone)
     })
 
     return (
