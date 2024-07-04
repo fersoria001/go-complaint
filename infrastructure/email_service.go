@@ -1,13 +1,15 @@
 package infrastructure
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"fmt"
 	"go-complaint/domain/model/email"
-	"net/http"
 	"sync"
-	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ses"
 )
 
 var emailServiceInstance *EmailService
@@ -20,7 +22,6 @@ func EmailServiceInstance() *EmailService {
 	return emailServiceInstance
 }
 
-// email queue instance
 type EmailService struct {
 	emailQueueInstance chan *email.Email
 	sentLog            map[string]interface{}
@@ -34,78 +35,70 @@ func NewEmailService() *EmailService {
 		queued:             0,
 	}
 }
-func (es *EmailService) Queued() int {
-	return es.queued
-}
-func (es *EmailService) QueueEmail(email *email.Email) {
-	es.emailQueueInstance <- email
-	es.queued++
-}
 
-func (es *EmailService) SentLog() map[string]interface{} {
-	return es.sentLog
-}
-
-func (es *EmailService) SendAll(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-	for {
-		<-ticker.C
-		select {
-		case <-ctx.Done():
-			return
-		case email := <-es.emailQueueInstance:
-			msgID, err := es.Send(ctx, *email)
-
-			es.queued--
-			es.sentLog[msgID] = struct {
-				Error      error
-				OccurredOn time.Time
-			}{
-				Error:      err,
-				OccurredOn: time.Now(),
-			}
-		}
-	}
-
-}
-
-func (es *EmailService) Send(ctx context.Context, email email.Email) (string, error) {
-	j, err := json.Marshal(email)
-	if err != nil {
-		return "", err
-	}
-	b := bytes.NewBuffer(j)
-	sendCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	request, err := http.NewRequestWithContext(
-		sendCtx,
-		"POST",
-		"https://api.mailersend.com/v1/email",
-		b,
+func (es *EmailService) Send(ctx context.Context, email email.Email) {
+	// Replace us-west-2 with the AWS Region you're using for Amazon SES.
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("us-east-2")},
 	)
 	if err != nil {
-		return "", err
+		fmt.Sprintln("error creating new session", err)
 	}
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer mlsn.0557f4217143328c73149ad91c7455121924f188c63af0fe093b42feb3fa1de1")
+	charSet := "UTF-8"
+	sender := "owner@go-complaint.com"
+	// Create an SES session.
+	svc := ses.New(sess)
 
-	body, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return "", err
+	// Assemble the email.
+	input := &ses.SendEmailInput{
+		Destination: &ses.Destination{
+			CcAddresses: []*string{},
+			ToAddresses: []*string{
+				aws.String(email.Recipient),
+			},
+		},
+		Message: &ses.Message{
+			Body: &ses.Body{
+				Html: &ses.Content{
+					Charset: aws.String(charSet),
+					Data:    aws.String(email.HtmlBody),
+				},
+				Text: &ses.Content{
+					Charset: aws.String(charSet),
+					Data:    aws.String(email.HtmlBody),
+				},
+			},
+			Subject: &ses.Content{
+				Charset: aws.String(charSet),
+				Data:    aws.String(email.Subject),
+			},
+		},
+		Source: aws.String(sender),
+		// Uncomment to use a configuration set
+		//ConfigurationSetName: aws.String(ConfigurationSet),
 	}
 
-	msgID := body.Header.Get("X-Message-Id")
-	var responseBody []byte
-	_, err = body.Body.Read(responseBody)
+	// Attempt to send the email.
+	result, err := svc.SendEmail(input)
+	// Display error messages if they occur.
 	if err != nil {
-		return "", err
-	}
-	if string(responseBody) != "" {
-		return msgID, &EmailError{
-			StatusCode:   body.StatusCode,
-			ResponseBody: string(responseBody),
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case ses.ErrCodeMessageRejected:
+				fmt.Println(ses.ErrCodeMessageRejected, aerr.Error())
+			case ses.ErrCodeMailFromDomainNotVerifiedException:
+				fmt.Println(ses.ErrCodeMailFromDomainNotVerifiedException, aerr.Error())
+			case ses.ErrCodeConfigurationSetDoesNotExistException:
+				fmt.Println(ses.ErrCodeConfigurationSetDoesNotExistException, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
 		}
 	}
-	return msgID, nil
+	fmt.Println("Email Sent to address: " + email.Recipient)
+	fmt.Println(result)
 }

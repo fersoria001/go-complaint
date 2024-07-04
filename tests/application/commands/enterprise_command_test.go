@@ -8,7 +8,6 @@ import (
 	"go-complaint/domain"
 	"go-complaint/domain/model/identity"
 	"go-complaint/erros"
-	"go-complaint/infrastructure"
 	"go-complaint/infrastructure/persistence/repositories"
 	"go-complaint/tests"
 	"reflect"
@@ -162,12 +161,8 @@ func TestEnterpriseCommandCommand_InviteToProject(t *testing.T) {
 		Position:  "MANAGER",
 		ProposeTo: tests.UserRegisterAndVerifyCommands["1"].Email,
 	}
-	queue := infrastructure.EmailServiceInstance()
+
 	// Act
 	err = enterpriseCommand.InviteToProject(ctx)
-	queue.SendAll(ctx)
-	// Assert
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(queue.SentLog()))
-	assert.Equal(t, 0, queue.Queued())
 }
