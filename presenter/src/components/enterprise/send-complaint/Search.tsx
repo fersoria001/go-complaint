@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Query, FindComplaintReceiversQuery, FindComplaintReceiversTypeList } from "../../../lib/queries";
 import { Receiver } from "../../../lib/types";
 import LoadingSpinner from "../../icons/LoadingSpinner";
-import { Route } from "../../../routes/$enterpriseID/_send-complaint/send-complaint";
+import { Route } from "../../../routes/$enterpriseID/_send-complaint";
 
 
 interface Props {

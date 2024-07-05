@@ -4,7 +4,7 @@ import { Receiver } from '../../../lib/types'
 import FindReceiver from '../../../components/enterprise/send-complaint/FindReceiver'
 
 
-export const Route = createFileRoute('/$enterpriseID/_send-complaint/send-complaint')({
+export const Route = createFileRoute('/$enterpriseID/_send-complaint/')({
   beforeLoad: ({ context: { isLoggedIn } }) => {
     if (!isLoggedIn) {
       throw redirect({
