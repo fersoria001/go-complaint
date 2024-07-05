@@ -49,6 +49,8 @@ func ParseFolder(folder string) Folder {
 func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse our multipart form, 10 << 20 specifies a maximum
 	// upload of 10 MB files.
+	authorization := r.Header.Get("authorization")
+	log.Println("authorization", authorization)
 	r.ParseMultipartForm(10 << 20)
 	f := r.URL.Query().Get("folder")
 	id := r.URL.Query().Get("id")

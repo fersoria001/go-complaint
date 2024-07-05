@@ -21,7 +21,7 @@ export const uploadFile = async (
       .replace(/-/g, "");
     form.append(folder, blob, fileName);
     const request = new XMLHttpRequest();
-    const bearer = Cookies.get("authorization") || "";
+    const bearer = Cookies.get("Authorization")
     let url = "https://api.go-complaint.com/upload" + `?folder=${folder}`;
     if (enterpriseID) {
       url = url + `&id=${enterpriseID}`;
