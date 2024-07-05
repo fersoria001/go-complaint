@@ -25,6 +25,8 @@ export const signIn = async (
       Cookies.set("Authorization", `Bearer ${res}`, {
         path: "/",
         expires: date,
+        sameSite: "Lax",
+        secure:true,
       });
       return {};
     })
