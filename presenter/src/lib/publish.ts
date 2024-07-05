@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { csrf } from "./csrf";
 import { deleteLinebreaks } from "./delete_line_breaks";
-
+import Cookies from 'js-cookie';
 export const Publish = async <T>(
     mutationFn: (data: T) => string,
     arg: T,
@@ -8,13 +9,18 @@ export const Publish = async <T>(
   ): Promise<boolean> => {
     const token = await csrf();
     if (token != "") {
+      const authorization = Cookies.get("Authorization");
+      const headers: any = {
+        "Content-Type": "application/json",
+        "x-csrf-token": token,
+        "subscription-id": subscriptionID,
+      };
+      if (authorization && authorization != "") {
+        headers["Authorization"] = `Bearer ${authorization}`;
+      }
       const response = await fetch("https://api.go-complaint.com/graphql/publish", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": token,
-          "subscription-id": subscriptionID,
-        },
+        headers: headers,
         credentials: "include",
         body: JSON.stringify({ query: deleteLinebreaks(mutationFn(arg)) }),
       });

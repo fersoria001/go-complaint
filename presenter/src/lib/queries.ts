@@ -1,9 +1,11 @@
+/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import UnauthorizedError from "../components/error/UnauthorizedError";
 import PasswordNotMatchError from "../components/sign-in/PasswordNotMatchError";
 import UserNotFoundError from "../components/sign-in/UserNotFoundError";
 import { csrf } from "./csrf";
 import { deleteLinebreaks } from "./delete_line_breaks";
+import Cookies from "js-cookie";
 import {
   City,
   ComplaintInfo,
@@ -87,12 +89,12 @@ export const LoginQuery = (confirmationCode: string): string => `
   }
 }
 `;
-export type LoginType ={
-  token: string
-}
+export type LoginType = {
+  token: string;
+};
 export const LoginQueryType = (data: any): LoginType => {
-  console.error(data)
-  return data.data.Login
+  console.error(data);
+  return data.data.Login;
 };
 
 export const UserDescriptorQuery = (): string => `
@@ -1046,12 +1048,17 @@ export async function Query<T>(
     const strBody = JSON.stringify({
       query: deleteLinebreaks(queryFn(...args)),
     });
+    const authorization = Cookies.get("Authorization");
+    const headers: any = {
+      "Content-Type": "application/json",
+      "x-csrf-token": token,
+    };
+    if (authorization && authorization != "") {
+      headers["Authorization"] = `Bearer ${authorization}`;
+    }
     const response = await fetch("https://api.go-complaint.com/graphql", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-csrf-token": token,
-      },
+      headers: headers,
       credentials: "include",
       body: strBody,
     });

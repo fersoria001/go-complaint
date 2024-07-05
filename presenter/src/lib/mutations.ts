@@ -1,6 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable prefer-const */
 import EmailAlreadyInUseError from "../components/error/EmailAlreadyInUseError";
 import { ChangePasswordType } from "../components/profile/settings/settings_lib";
 import { csrf } from "./csrf";
+import Cookies from 'js-cookie';
 import { deleteLinebreaks } from "./delete_line_breaks";
 import {
   ContactType,
@@ -494,12 +497,17 @@ export const Mutation = async <T>(
 ): Promise<boolean> => {
   const token = await csrf();
   if (token != "") {
+    const authorization = Cookies.get("Authorization");
+    const headers: any = {
+      "Content-Type": "application/json",
+      "x-csrf-token": token,
+    };
+    if (authorization && authorization != "") {
+      headers["Authorization"] = `Bearer ${authorization}`;
+    }
     const response = await fetch("https://api.go-complaint.com/graphql", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-csrf-token": token,
-      },
+      headers: headers,
       credentials: "include",
       body: JSON.stringify({ query: deleteLinebreaks(mutationFn(arg)) }),
     });
