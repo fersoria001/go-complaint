@@ -13,5 +13,5 @@ export const Route = createFileRoute('/$enterpriseID/_send-complaint/describe-co
       })
     }
   },
-  component: () => <DescribeComplaint />
+  component: DescribeComplaint,
 })

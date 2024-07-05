@@ -12,5 +12,5 @@ export const Route = createFileRoute('/_profile/_send-complaint')({
       })
     }
   },
-  component: () => <SendComplaint />
+  component: SendComplaint,
 })

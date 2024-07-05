@@ -20,5 +20,5 @@ export const Route = createFileRoute('/$enterpriseID/_send-complaint/send-compla
       FindComplaintReceiversTypeList, [enterpriseID, ""])
     return receivers
   },
-  component: () => <FindReceiver />
+  component: FindReceiver,
 })

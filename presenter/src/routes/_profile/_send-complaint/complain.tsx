@@ -13,6 +13,6 @@ export const Route = createFileRoute('/_profile/_send-complaint/complain')({
       })
     }
   },
-  component: () => <Complain />,
+  component: Complain,
   errorComponent: () => Navigate({ to: '/send-complaint' }),
 })

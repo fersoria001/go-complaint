@@ -11,5 +11,5 @@ export const Route = createFileRoute('/_profile/profile')({
       })
     }
   },
-  component: () => <Profile />
+  component: Profile,
 })
