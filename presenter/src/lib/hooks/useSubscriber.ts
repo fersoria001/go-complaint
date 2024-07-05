@@ -20,7 +20,7 @@ function useSubscriber(id: string | null) {
       },
     };
     const ws = new WebSocket(
-      "wss://api.go-complaint.com:443/subscriptions"
+      "wss://api.go-complaint.com:443/subscriptions", "subscriptions"
     );
     ws.onopen = () => {
       ws.send(JSON.stringify(connection_ack));
