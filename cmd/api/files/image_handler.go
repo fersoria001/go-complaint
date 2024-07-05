@@ -90,13 +90,20 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func dispatchToCommand(ctx context.Context, folder Folder, name string, id string) error {
-	_, after, found := strings.Cut(name, "\\png")
-	if !found {
-		return fmt.Errorf("path %s is incorrect", name)
-	}
-	s := strings.ReplaceAll(after, "\\", "/")
-	s = strings.Replace(s, "/", "", 1)
 	dns := os.Getenv("DNS")
+	log.Println("FILEDNS", dns)
+	_, after, win := strings.Cut(name, "\\png")
+	var s string
+	if !win {
+		_, after, lin := strings.Cut(name, "/png")
+		if !lin {
+			return fmt.Errorf("path not correct in win or lin os ")
+		}
+		s = strings.Replace(after, "/", "", 1)
+	} else {
+		s = strings.ReplaceAll(after, "\\", "/")
+		s = strings.Replace(s, "/", "", 1)
+	}
 	url := fmt.Sprintf("%s/%s", dns, s)
 	switch folder {
 	case PROFILE_IMG:
