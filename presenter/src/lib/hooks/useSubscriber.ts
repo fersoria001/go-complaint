@@ -25,7 +25,7 @@ function useSubscriber(id: string | null) {
     );
     console.log("new ws")
     ws.addEventListener("open", (event: any) => {
-      console.log("open")
+      console.log("open",event)
     });
     ws.onopen = () => {
       console.log("wsopen",ws)
