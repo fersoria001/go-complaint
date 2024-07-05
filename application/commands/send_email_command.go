@@ -25,7 +25,7 @@ func (c SendEmailCommand) Welcome(ctx context.Context) error {
 	}
 	// service := infrastructure.EmailServiceInstance()
 
-	confirmationLink := fmt.Sprintf("\"https://www.go-complaint.com/confirmation-link?token=%s\"", c.ConfirmationToken)
+	confirmationLink := fmt.Sprintf("\"https://api.go-complaint.com/confirmation-link?token=%s\"", c.ConfirmationToken)
 	html := `
 	<div>
 	<div> Welcome to Go Complaint! </div>
@@ -66,7 +66,7 @@ func (c SendEmailCommand) EmailVerified(ctx context.Context) error {
 	html := `<div>`
 	html += `Welcome!`
 	html += `<div> You have been verified your email in Go Complain, now you are able to`
-	html += fmt.Sprintf("<a href=\"%s\">sign-in</a>", "https://www.go-complaint.com/sign-in")
+	html += fmt.Sprintf("<a href=\"%s\">sign-in</a>", "https://www.go-complaint.com/")
 	html += `</div>`
 	html += `</div>`
 	infrastructure.Send(ctx, email.Email{
@@ -141,7 +141,7 @@ func (c SendEmailCommand) HiringInvitationSent(ctx context.Context) error {
 	html := `<div>`
 	html += fmt.Sprintf(`Hi %s you have been received a hiring invitation at Go Complaint,
 	you can review your invitations <a href=\"%s\">here</a>`, c.ToName,
-		"https://www.go-complaint.com/hiring-invitations")
+		"https://www.go-complaint.com")
 	html += `</div>`
 	infrastructure.Send(ctx, email.Email{
 		Recipient: c.ToEmail,

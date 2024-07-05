@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-complaint/application/commands"
 	"go-complaint/cmd/api/files"
 	"go-complaint/cmd/api/middleware"
 	"go-complaint/cmd/server"
@@ -47,6 +48,7 @@ func main() {
 		server.WithHandler("/logo_img/", logoImgsHandler),
 		server.WithHandler("/banner_img/", bannerImgsHandler),
 		server.WithHandlerFunc("/subscriptions", server.SubscriptionsHandler),
+		server.WithHandlerFunc("/confirmation-link", ValidateEmail),
 	)
 	if err != nil {
 		log.Fatalf("Error starting server %s", err)
@@ -58,4 +60,21 @@ func main() {
 
 func CSRF(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-CSRF-Token", csrf.Token(r))
+}
+
+func ValidateEmail(w http.ResponseWriter, r *http.Request) {
+	queries := r.URL.Query()
+	token := queries.Get("token")
+	userCommand := commands.UserCommand{
+		EmailVerificationToken: token,
+	}
+	err := userCommand.VerifyEmail(r.Context())
+	if err != nil {
+		newUrl := "https://www.go-complaint.com/"
+		log.Println("errorLoginIn")
+		http.Redirect(w, r, newUrl, http.StatusSeeOther)
+		return
+	}
+	newUrl := "https://www.go-complaint.com/"
+	http.Redirect(w, r, newUrl, http.StatusSeeOther)
 }
