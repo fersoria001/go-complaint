@@ -1054,7 +1054,7 @@ export async function Query<T>(
       "x-csrf-token": token,
     };
     if (authorization && authorization != "") {
-      headers["Authorization"] = `Bearer ${authorization}`;
+      headers["Authorization"] = authorization;
     }
     const response = await fetch("https://api.go-complaint.com/graphql", {
       method: "POST",

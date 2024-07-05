@@ -16,7 +16,7 @@ export const Publish = async <T>(
         "subscription-id": subscriptionID,
       };
       if (authorization && authorization != "") {
-        headers["Authorization"] = `Bearer ${authorization}`;
+        headers["Authorization"] = authorization;
       }
       const response = await fetch("https://api.go-complaint.com/graphql/publish", {
         method: "POST",
