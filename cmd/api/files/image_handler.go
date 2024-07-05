@@ -84,6 +84,7 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("error at dspatch", err)
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)

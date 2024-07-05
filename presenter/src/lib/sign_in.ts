@@ -27,6 +27,7 @@ export const signIn = async (
         expires: date,
         sameSite: "Lax",
         secure:true,
+        domain: "api.go-complaint.com",
       });
       return {};
     })
