@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
@@ -22,7 +23,10 @@ function useSubscriber(id: string | null) {
     const ws = new WebSocket(
       "wss://api.go-complaint.com:443/subscriptions", "subscriptions"
     );
-    console.log("new ws", ws)
+    console.log("new ws")
+    ws.addEventListener("open", (event: any) => {
+      console.log("open")
+    });
     ws.onopen = () => {
       console.log("wsopen",ws)
       ws.send(JSON.stringify(connection_ack));
