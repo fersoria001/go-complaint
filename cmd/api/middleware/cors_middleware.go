@@ -16,10 +16,18 @@ func CORS() Middleware {
 			origin := os.Getenv("ORIGIN")
 			origins := strings.Split(origin, ",")
 			c := cors.New(cors.Options{
-				AllowedOrigins:   origins,
-				AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-				AllowedHeaders:   []string{"authorization", "content-type", "x-csrf-token", "subscription-id"},
-				ExposedHeaders:   []string{"x-csrf-token"},
+				AllowedOrigins: origins,
+				AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+				AllowedHeaders: []string{
+					"authorization",
+					"content-type",
+					"x-csrf-token",
+					"subscription-id",
+					"upgrade",
+					"connection",
+					"sec-websocket-key",
+				},
+				ExposedHeaders:   []string{"x-csrf-token", "upgrade", "connection", "sec-websocket-accept"},
 				AllowCredentials: true,
 			})
 			handler := c.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
