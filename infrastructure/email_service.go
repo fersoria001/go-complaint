@@ -8,6 +8,7 @@ import (
 	"go-complaint/domain/model/email"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 )
 
@@ -115,8 +116,9 @@ func Send(ctx context.Context, obj email.Email) (string, error) {
 		fmt.Sprintln("error at create request", err)
 		return "", err
 	}
+	sendGridAuthorizationToken := os.Getenv("SEND_GRID_API_KEY")
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer mlsn.0557f4217143328c73149ad91c7455121924f188c63af0fe093b42feb3fa1de1")
+	request.Header.Set("Authorization", sendGridAuthorizationToken)
 	body, err := http.DefaultClient.Do(request)
 	if err != nil {
 		fmt.Sprintln("error at send request", err)

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 
 	"go-complaint/application"
 	"go-complaint/cmd/api/graphql_"
@@ -109,8 +111,13 @@ func SubscriptionsHandler(w http.ResponseWriter, r *http.Request) {
 
 func subscribe(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	var conn *websocket.Conn
+	secWebsocketProtocolHeader := r.Header.Get("Sec-Websocket-Protocol")
+	protocols := strings.Split(secWebsocketProtocolHeader, ",")
+	originsEnv := os.Getenv("ORIGIN")
+	origins := strings.Split(originsEnv, ",")
 	conn1, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: []string{"localhost:5173"},
+		OriginPatterns: origins,
+		Subprotocols:   protocols,
 	})
 	if err != nil {
 		return err
