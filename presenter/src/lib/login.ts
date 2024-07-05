@@ -1,5 +1,5 @@
 import { syncParseSchema } from "./parse_schema";
-import { LoginQuery, LoginType, Query } from "./queries";
+import { LoginQuery, LoginQueryType, LoginType, Query } from "./queries";
 import { ConfirmationCodeValidationSchema, ErrorType } from "./types";
 import Cookies from "js-cookie";
 export const login = async (confirmationCode: string): Promise<ErrorType> => {
@@ -10,12 +10,12 @@ export const login = async (confirmationCode: string): Promise<ErrorType> => {
   if (Object.keys(errors).length > 0){
     return errors;
   }
-  return await Query<string>(LoginQuery, LoginType, [data.confirmationCode])
+  return await Query<LoginType>(LoginQuery, LoginQueryType, [data.confirmationCode])
     .then((res) => {
       Cookies.remove("Authorization");
       const date = new Date();
       date.setTime(date.getTime() + 1 * 24 * 60 * 60 * 1000);
-      Cookies.set("Authorization", `Bearer ${res}`, {
+      Cookies.set("Authorization", `Bearer ${res.token}`, {
         path: "/",
         expires: date,
       });
@@ -24,6 +24,6 @@ export const login = async (confirmationCode: string): Promise<ErrorType> => {
     })
     .catch((error) => {
       console.error("Error confirmation code login", error);
-      return { form: "error: confirmation code not valid" };
+      return { form: error };
     });
 };

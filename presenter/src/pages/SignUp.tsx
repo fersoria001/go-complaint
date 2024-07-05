@@ -9,7 +9,7 @@ import usePhonecode from "../lib/hooks/usePhonecode";
 import { ErrorType, SignUpSchema } from "../lib/types";
 import { syncParseSchema } from "../lib/parse_schema";
 import { createUser } from "../lib/create_user";
-import ConfirmationEmailSent from "../components/sign-up/ConfirmationEmailSent";
+import { useRouter } from "@tanstack/react-router";
 
 
 
@@ -22,6 +22,7 @@ const SignUp: React.FC = () => {
     const counties = useCounties(selectedCountry);
     const cities = useCities(selectedCounty);
     const phoneCode = usePhonecode(selectedCountry, countries);
+    const router = useRouter()
     const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedCountry(parseInt(e.target.value));
     }
@@ -38,10 +39,11 @@ const SignUp: React.FC = () => {
             return;
         }
         try {
-            await createUser(parsed);
-            return ConfirmationEmailSent
+            await createUser(parsed)
+            return router.navigate({ to: "/confirmation-sent" })
+
         } catch (e: any) {
-            setErrors({ form: 'An error occurred while creating the user: ' + e.messsage });
+            setErrors({ form: 'An error occurred while creating the user: ' + e });
         }
     }
     return (

@@ -87,8 +87,12 @@ export const LoginQuery = (confirmationCode: string): string => `
   }
 }
 `;
-export const LoginType = (data: any): string => {
-  return data.data.Login.token;
+export type LoginType ={
+  token: string
+}
+export const LoginQueryType = (data: any): LoginType => {
+  console.error(data)
+  return data.data.Login
 };
 
 export const UserDescriptorQuery = (): string => `

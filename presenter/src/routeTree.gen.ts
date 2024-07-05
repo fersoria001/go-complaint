@@ -16,6 +16,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as SignUpImport } from './routes/sign-up'
 import { Route as LicensingImport } from './routes/licensing'
 import { Route as ContactImport } from './routes/contact'
+import { Route as ConfirmationSentImport } from './routes/confirmation-sent'
 import { Route as ConfirmationLinkImport } from './routes/confirmation-link'
 import { Route as ConfirmationImport } from './routes/confirmation'
 import { Route as ProfileImport } from './routes/_profile'
@@ -104,6 +105,11 @@ const LicensingRoute = LicensingImport.update({
 
 const ContactRoute = ContactImport.update({
   path: '/contact',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ConfirmationSentRoute = ConfirmationSentImport.update({
+  path: '/confirmation-sent',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -396,6 +402,13 @@ declare module '@tanstack/react-router' {
       path: '/confirmation-link'
       fullPath: '/confirmation-link'
       preLoaderRoute: typeof ConfirmationLinkImport
+      parentRoute: typeof rootRoute
+    }
+    '/confirmation-sent': {
+      id: '/confirmation-sent'
+      path: '/confirmation-sent'
+      fullPath: '/confirmation-sent'
+      preLoaderRoute: typeof ConfirmationSentImport
       parentRoute: typeof rootRoute
     }
     '/contact': {
@@ -790,6 +803,7 @@ export const routeTree = rootRoute.addChildren({
   }),
   ConfirmationRoute,
   ConfirmationLinkRoute,
+  ConfirmationSentRoute,
   ContactRoute,
   LicensingRoute,
   SignUpRoute,
@@ -812,6 +826,7 @@ export const routeTree = rootRoute.addChildren({
         "/_profile",
         "/confirmation",
         "/confirmation-link",
+        "/confirmation-sent",
         "/contact",
         "/licensing",
         "/sign-up",
@@ -874,6 +889,9 @@ export const routeTree = rootRoute.addChildren({
     },
     "/confirmation-link": {
       "filePath": "confirmation-link.tsx"
+    },
+    "/confirmation-sent": {
+      "filePath": "confirmation-sent.tsx"
     },
     "/contact": {
       "filePath": "contact.tsx"
