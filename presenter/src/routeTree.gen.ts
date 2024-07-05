@@ -46,10 +46,10 @@ import { Route as EnterpriseIDHistoryIndexImport } from './routes/$enterpriseID/
 import { Route as EnterpriseIDFeedbacksIndexImport } from './routes/$enterpriseID/feedbacks/index'
 import { Route as EnterpriseIDFeedbackIndexImport } from './routes/$enterpriseID/feedback/index'
 import { Route as EnterpriseIDEmployeesIndexImport } from './routes/$enterpriseID/employees/index'
-import { Route as EnterpriseIDSendComplaintIndexImport } from './routes/$enterpriseID/_send-complaint/index'
 import { Route as ProfileSendComplaintSendComplaintImport } from './routes/_profile/_send-complaint/send-complaint'
 import { Route as ProfileSendComplaintDescribeComplaintImport } from './routes/_profile/_send-complaint/describe-complaint'
 import { Route as ProfileSendComplaintComplainImport } from './routes/_profile/_send-complaint/complain'
+import { Route as EnterpriseIDSendComplaintSendComplaintImport } from './routes/$enterpriseID/_send-complaint/send-complaint'
 import { Route as EnterpriseIDSendComplaintDescribeComplaintImport } from './routes/$enterpriseID/_send-complaint/describe-complaint'
 import { Route as EnterpriseIDSendComplaintComplainImport } from './routes/$enterpriseID/_send-complaint/complain'
 import { Route as ProfileSentComplaintIdIndexImport } from './routes/_profile/sent/$complaintId/index'
@@ -268,12 +268,6 @@ const EnterpriseIDEmployeesIndexRoute = EnterpriseIDEmployeesIndexImport.update(
   } as any,
 )
 
-const EnterpriseIDSendComplaintIndexRoute =
-  EnterpriseIDSendComplaintIndexImport.update({
-    path: '/',
-    getParentRoute: () => EnterpriseIDSendComplaintRoute,
-  } as any)
-
 const ProfileSendComplaintSendComplaintRoute =
   ProfileSendComplaintSendComplaintImport.update({
     path: '/send-complaint',
@@ -290,6 +284,12 @@ const ProfileSendComplaintComplainRoute =
   ProfileSendComplaintComplainImport.update({
     path: '/complain',
     getParentRoute: () => ProfileSendComplaintRoute,
+  } as any)
+
+const EnterpriseIDSendComplaintSendComplaintRoute =
+  EnterpriseIDSendComplaintSendComplaintImport.update({
+    path: '/send-complaint',
+    getParentRoute: () => EnterpriseIDSendComplaintRoute,
   } as any)
 
 const EnterpriseIDSendComplaintDescribeComplaintRoute =
@@ -572,6 +572,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EnterpriseIDSendComplaintDescribeComplaintImport
       parentRoute: typeof EnterpriseIDSendComplaintImport
     }
+    '/$enterpriseID/_send-complaint/send-complaint': {
+      id: '/$enterpriseID/_send-complaint/send-complaint'
+      path: '/send-complaint'
+      fullPath: '/$enterpriseID/send-complaint'
+      preLoaderRoute: typeof EnterpriseIDSendComplaintSendComplaintImport
+      parentRoute: typeof EnterpriseIDSendComplaintImport
+    }
     '/_profile/_send-complaint/complain': {
       id: '/_profile/_send-complaint/complain'
       path: '/complain'
@@ -592,13 +599,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/send-complaint'
       preLoaderRoute: typeof ProfileSendComplaintSendComplaintImport
       parentRoute: typeof ProfileSendComplaintImport
-    }
-    '/$enterpriseID/_send-complaint/': {
-      id: '/$enterpriseID/_send-complaint/'
-      path: '/'
-      fullPath: '/$enterpriseID/'
-      preLoaderRoute: typeof EnterpriseIDSendComplaintIndexImport
-      parentRoute: typeof EnterpriseIDSendComplaintImport
     }
     '/$enterpriseID/employees/': {
       id: '/$enterpriseID/employees/'
@@ -758,7 +758,7 @@ export const routeTree = rootRoute.addChildren({
     EnterpriseIDSendComplaintRoute: EnterpriseIDSendComplaintRoute.addChildren({
       EnterpriseIDSendComplaintComplainRoute,
       EnterpriseIDSendComplaintDescribeComplaintRoute,
-      EnterpriseIDSendComplaintIndexRoute,
+      EnterpriseIDSendComplaintSendComplaintRoute,
     }),
     EnterpriseIDComplaintSentRoute,
     EnterpriseIDHireRoute,
@@ -920,7 +920,7 @@ export const routeTree = rootRoute.addChildren({
       "children": [
         "/$enterpriseID/_send-complaint/complain",
         "/$enterpriseID/_send-complaint/describe-complaint",
-        "/$enterpriseID/_send-complaint/"
+        "/$enterpriseID/_send-complaint/send-complaint"
       ]
     },
     "/$enterpriseID/complaint-sent": {
@@ -988,6 +988,10 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "$enterpriseID/_send-complaint/describe-complaint.tsx",
       "parent": "/$enterpriseID/_send-complaint"
     },
+    "/$enterpriseID/_send-complaint/send-complaint": {
+      "filePath": "$enterpriseID/_send-complaint/send-complaint.tsx",
+      "parent": "/$enterpriseID/_send-complaint"
+    },
     "/_profile/_send-complaint/complain": {
       "filePath": "_profile/_send-complaint/complain.tsx",
       "parent": "/_profile/_send-complaint"
@@ -999,10 +1003,6 @@ export const routeTree = rootRoute.addChildren({
     "/_profile/_send-complaint/send-complaint": {
       "filePath": "_profile/_send-complaint/send-complaint.tsx",
       "parent": "/_profile/_send-complaint"
-    },
-    "/$enterpriseID/_send-complaint/": {
-      "filePath": "$enterpriseID/_send-complaint/index.tsx",
-      "parent": "/$enterpriseID/_send-complaint"
     },
     "/$enterpriseID/employees/": {
       "filePath": "$enterpriseID/employees/index.tsx",
