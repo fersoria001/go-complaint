@@ -23,7 +23,7 @@ const validatePhone = z
         }
         return parsed;
     })
-export const UpdatePhone: React.FC<Props> = ({ enterpriseID, countries }: Props) => {
+const UpdatePhone: React.FC<Props> = ({ enterpriseID, countries }: Props) => {
     const [phoneCode, setPhoneCode] = useState<string>(countries[0].phoneCode)
     const [phone, setPhone] = useState<string>("")
     const [reset, setReset] = useState<boolean>(false)

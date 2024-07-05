@@ -396,7 +396,6 @@ export const SentSearchTypeList = (data: any): ComplaintTypeList => {
   if (data.errors) {
     console.error("SentTypeList err ", data.errors[0].message);
   }
-  console.error("daata", data);
   return data.data.ComplaintsSentSearch as ComplaintTypeList;
 };
 export const ComplaintQuery = (id: string): string => `

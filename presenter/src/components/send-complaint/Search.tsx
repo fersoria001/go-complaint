@@ -76,7 +76,7 @@ function Search({ callback }: Props) {
             <div className="flex flex-col h-36 md:h-56 lg:h-96 px-2 md:px-6 overflow-y-auto  ">
                 {searching ? <span className="self-center pt-8"><LoadingSpinner /></span> :
                     <ul className="flex flex-col w-full h-auto cursor-pointer">
-                        {results.map((receiver) => (
+                        {results.length > 0 && results.map((receiver) => (
                             <li
                                 onClick={() => handleSelection(receiver)}
                                 className="flex items-center pb-2 hover:bg-gray-100"

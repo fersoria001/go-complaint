@@ -12,6 +12,7 @@ const UpdateProfileImage: React.FC<Props> = ({ descriptor }: Props) => {
     const [file, setFile] = useState<File | null>(null)
     const router = useRouter()
     function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+        console.log("click")
         e.preventDefault();
         const input = document.getElementById("file-input");
         if (input) {
@@ -30,6 +31,7 @@ const UpdateProfileImage: React.FC<Props> = ({ descriptor }: Props) => {
         }
     }, [file, router])
     useEffect(() => {
+
         const input = document.getElementById("file-input")
         if (input) {
             input.addEventListener("change", function (e: any) {

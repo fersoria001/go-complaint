@@ -1,5 +1,6 @@
 //import { csrf } from "./csrf";
 import Cookies from 'js-cookie';
+import { csrf } from './csrf';
 export enum Folder {
   Profile = "profile_img",
   Enterprise = "logo_img",
@@ -10,8 +11,8 @@ export const uploadFile = async (
   folder: Folder,
   enterpriseID?: string
 ): Promise<boolean> => {
-  // const token = await csrf();
-  // if (token != "") {
+  const csrftoken = await csrf();
+  if (csrftoken != "") {
     const blob = new Blob([file], { type: file.type });
     const form = new FormData();
     const fileName = file.name
@@ -26,9 +27,9 @@ export const uploadFile = async (
       url = url + `&id=${enterpriseID}`;
     }
     request.open("POST", url, true);
-//    request.withCredentials = true;
-    //request.setRequestHeader("x-csrf-token", token);
-    request.setRequestHeader("authorization", `Bearer ${bearer}`)
+    request.withCredentials = true;
+    request.setRequestHeader("x-csrf-token", csrftoken);
+    request.setRequestHeader("authorization", `${bearer}`)
     request.send(form);
     request.onreadystatechange = function () {
       if (request.readyState === 4 && request.status === 200) {
@@ -36,6 +37,6 @@ export const uploadFile = async (
       }
     };
     return true;
-  // }
-  // throw new Error("No CSRF token");
+  }
+  throw new Error("No CSRF token");
 };

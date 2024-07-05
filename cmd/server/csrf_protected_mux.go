@@ -43,7 +43,7 @@ func (csrfpm *CSRFProtectedMux) ServeHTTP(w http.ResponseWriter, r *http.Request
 		[]byte(csrfKey),
 		csrf.Path("/"),
 		csrf.HttpOnly(false),
-		csrf.Secure(true),
+		csrf.Secure(false),
 		csrf.SameSite(csrf.SameSiteLaxMode),
 		csrf.TrustedOrigins(origins),
 		csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

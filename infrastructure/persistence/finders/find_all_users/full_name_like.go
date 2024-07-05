@@ -12,16 +12,16 @@ func ByFullNameLike(term string) *FullNameLike {
 	return &FullNameLike{
 		query: string(
 			`SELECT email, password, register_date, is_confirmed FROM (SELECT 				
-		USER.EMAIL,
-		USER.PASSWORD,
-		USER.REGISTER_DATE,
-		USER.IS_CONFIRMED,
+		PUBLIC.USER.EMAIL,
+		PUBLIC.USER.PASSWORD,
+		PUBLIC.USER.REGISTER_DATE,
+		PUBLIC.USER.IS_CONFIRMED,
 		person.first_name,
 		person.last_name,
 		person.first_name || ' ' || person.last_name AS full_name
-FROM USER
+FROM PUBLIC.USER
 JOIN PERSON ON
-		USER.EMAIL = PERSON.EMAIL
+		PUBLIC.USER.EMAIL = PERSON.EMAIL
 ) as users
 where LOWER(first_name) like $1 OR
 	  LOWER(last_name) like $1 OR

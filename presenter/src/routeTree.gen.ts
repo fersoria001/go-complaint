@@ -14,6 +14,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as SignUpImport } from './routes/sign-up'
+import { Route as SignInImport } from './routes/sign-in'
 import { Route as LicensingImport } from './routes/licensing'
 import { Route as ContactImport } from './routes/contact'
 import { Route as ConfirmationSentImport } from './routes/confirmation-sent'
@@ -65,18 +66,12 @@ import { Route as EnterpriseIDEmployeesSolvedEmployeeIdImport } from './routes/$
 
 // Create Virtual Routes
 
-const SignInLazyImport = createFileRoute('/sign-in')()
 const PrivacyLazyImport = createFileRoute('/privacy')()
 const ErrorsLazyImport = createFileRoute('/errors')()
 const AboutLazyImport = createFileRoute('/about')()
 const IndexLazyImport = createFileRoute('/')()
 
 // Create/Update Routes
-
-const SignInLazyRoute = SignInLazyImport.update({
-  path: '/sign-in',
-  getParentRoute: () => rootRoute,
-} as any).lazy(() => import('./routes/sign-in.lazy').then((d) => d.Route))
 
 const PrivacyLazyRoute = PrivacyLazyImport.update({
   path: '/privacy',
@@ -95,6 +90,11 @@ const AboutLazyRoute = AboutLazyImport.update({
 
 const SignUpRoute = SignUpImport.update({
   path: '/sign-up',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SignInRoute = SignInImport.update({
+  path: '/sign-in',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -425,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LicensingImport
       parentRoute: typeof rootRoute
     }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInImport
+      parentRoute: typeof rootRoute
+    }
     '/sign-up': {
       id: '/sign-up'
       path: '/sign-up'
@@ -451,13 +458,6 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyLazyImport
-      parentRoute: typeof rootRoute
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInLazyImport
       parentRoute: typeof rootRoute
     }
     '/$enterpriseID/_send-complaint': {
@@ -806,11 +806,11 @@ export const routeTree = rootRoute.addChildren({
   ConfirmationSentRoute,
   ContactRoute,
   LicensingRoute,
+  SignInRoute,
   SignUpRoute,
   AboutLazyRoute,
   ErrorsLazyRoute,
   PrivacyLazyRoute,
-  SignInLazyRoute,
 })
 
 /* prettier-ignore-end */
@@ -829,11 +829,11 @@ export const routeTree = rootRoute.addChildren({
         "/confirmation-sent",
         "/contact",
         "/licensing",
+        "/sign-in",
         "/sign-up",
         "/about",
         "/errors",
-        "/privacy",
-        "/sign-in"
+        "/privacy"
       ]
     },
     "/": {
@@ -899,6 +899,9 @@ export const routeTree = rootRoute.addChildren({
     "/licensing": {
       "filePath": "licensing.tsx"
     },
+    "/sign-in": {
+      "filePath": "sign-in.tsx"
+    },
     "/sign-up": {
       "filePath": "sign-up.tsx"
     },
@@ -910,9 +913,6 @@ export const routeTree = rootRoute.addChildren({
     },
     "/privacy": {
       "filePath": "privacy.lazy.tsx"
-    },
-    "/sign-in": {
-      "filePath": "sign-in.lazy.tsx"
     },
     "/$enterpriseID/_send-complaint": {
       "filePath": "$enterpriseID/_send-complaint.tsx",

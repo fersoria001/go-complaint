@@ -10,7 +10,7 @@ function ComplaintSent() {
             </p>
             <span className="self-center hover:underline hover:underline-offset-8 text-sm md:text-xl text-gray-700 p-4">
                 <Link
-                    to={`/${enterpriseID}/complaint-sent`}
+                    to={`/${enterpriseID}`}
                 >Return to profile</Link>
             </span>
         </div>

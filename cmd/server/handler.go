@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -97,6 +98,7 @@ func GraphQLHandler(w http.ResponseWriter, r *http.Request) {
 
 func SubscriptionsHandler(w http.ResponseWriter, r *http.Request) {
 	err := subscribe(r.Context(), w, r)
+	log.Println(err)
 	if errors.Is(err, context.Canceled) {
 		return
 	}
@@ -159,6 +161,7 @@ func subscribe(ctx context.Context, w http.ResponseWriter, r *http.Request) erro
 	mu.Unlock()
 	defer conn.CloseNow()
 	ctx = conn.CloseRead(ctx)
+
 	err = subscriber.Listen(ctx)
 	if err != nil {
 		return err

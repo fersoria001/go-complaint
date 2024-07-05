@@ -19,7 +19,7 @@ const addressSchema = z.object({
     county: z.number(),
     city: z.number(),
 })
-export const UpdateAddress: React.FC<Props> = ({ enterpriseID, countries }: Props) => {
+const UpdateAddress: React.FC<Props> = ({ enterpriseID, countries }: Props) => {
     const [errors, setErrors] = useState<ErrorType>({})
     const [reset, setReset] = useState<boolean>(false)
     const [selectedCountry, setSelectedCountry] = useState<number>(0);

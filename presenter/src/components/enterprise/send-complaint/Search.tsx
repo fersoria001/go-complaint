@@ -10,10 +10,10 @@ interface Props {
 }
 function Search({ callback }: Props) {
     const { enterpriseID } = Route.useParams();
-    const receiver: Receiver[] = Route.useLoaderData();
+    const receivers: Receiver[] = Route.useLoaderData();
     const [query, setQuery] = useState<string>("");
     const [searching, setSearching] = useState<boolean>(false);
-    const [results, setResults] = useState<Receiver[]>(receiver);
+    const [results, setResults] = useState<Receiver[]>(receivers);
     useEffect(() => {
         if (query.length >= 1) {
             setSearching(true);

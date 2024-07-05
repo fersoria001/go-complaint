@@ -96,7 +96,8 @@ func dispatchToCommand(ctx context.Context, folder Folder, name string, id strin
 	}
 	s := strings.ReplaceAll(after, "\\", "/")
 	s = strings.Replace(s, "/", "", 1)
-	url := fmt.Sprintf("%s/%s", "https://docker-go-complaint-server-latest.onrender.com", s)
+	dns := os.Getenv("DNS")
+	url := fmt.Sprintf("%s/%s", dns, s)
 	switch folder {
 	case PROFILE_IMG:
 		credentials, err := application_services.AuthorizationApplicationServiceInstance().Credentials(ctx)

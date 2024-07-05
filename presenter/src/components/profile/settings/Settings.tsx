@@ -7,7 +7,8 @@ import UpdatePassword from "./UpdatePassword";
 import UpdatePhone from "./UpdatePhone";
 import UpdateProfileImage from "./UpdateProfileImage";
 
-export const Settings: React.FC = () => {
+
+const Settings: React.FC = () => {
     const { descriptor, countries } = Route.useLoaderData()
     return (
         <div className=" bg-white ">

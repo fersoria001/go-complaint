@@ -7,7 +7,7 @@ import { updateGenre } from "./settings_lib";
 interface Props {
     descriptor: UserDescriptor
 }
-export const UpdateGenre: React.FC<Props> = ({ descriptor }: Props) => {
+const UpdateGenre: React.FC<Props> = ({ descriptor }: Props) => {
     const [genre, setGenre] = useState<string>(descriptor.gender)
     const [pronoun, setPronoun] = useState<string>(descriptor.pronoun)
     const [reset, setReset] = useState<boolean>(false)
