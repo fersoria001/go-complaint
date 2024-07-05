@@ -21,12 +21,15 @@ function useSubscriber(id: string | null) {
       },
     };
     const ws = new WebSocket(
-      "wss://api.go-complaint.com:443/subscriptions", "subscriptions"
+      "wss://api.go-complaint.com/subscriptions", "subscriptions"
     );
     console.log("new ws")
     ws.addEventListener("open", (event: any) => {
       console.log("open",event)
     });
+    ws.onerror= (error : any) => {
+      console.log("error from onerror",error)
+    }
     ws.onopen = () => {
       console.log("wsopen",ws)
       ws.send(JSON.stringify(connection_ack));
