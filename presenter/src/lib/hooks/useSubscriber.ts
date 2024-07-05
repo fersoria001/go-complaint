@@ -22,8 +22,11 @@ function useSubscriber(id: string | null) {
     const ws = new WebSocket(
       "wss://api.go-complaint.com:443/subscriptions", "subscriptions"
     );
+    console.log("new ws", ws)
     ws.onopen = () => {
+      console.log("wsopen",ws)
       ws.send(JSON.stringify(connection_ack));
+      console.log("sent msg",JSON.stringify(connection_ack))
     };
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
