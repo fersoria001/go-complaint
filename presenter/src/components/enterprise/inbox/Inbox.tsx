@@ -27,7 +27,7 @@ function Inbox() {
     }
     const Pagination = (nextPage: number) => {
         router.navigate({
-            to: `/inbox`,
+            to: `/${enterpriseID}/inbox`,
             search: {
                 page: nextPage,
                 filter: {
@@ -40,7 +40,7 @@ function Inbox() {
     const Search = () => {
         setPage(1)
         router.navigate({
-            to: `/inbox`,
+            to: `/${enterpriseID}/inbox`,
             search: {
                 page: 1,
                 filter: {
@@ -55,7 +55,7 @@ function Inbox() {
         setPage(1)
         setShowDropdown(false)
         router.navigate({
-            to: `/inbox`,
+            to: `/${enterpriseID}/inbox`,
             search: {
                 page: 1,
                 filter: {

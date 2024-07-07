@@ -11,13 +11,13 @@ func NewByFirstNameOrLastNameLike(term string) *ByFirstNameOrLastNameLike {
 	wildCardTerm := "%" + strings.ToLower(term) + "%"
 	return &ByFirstNameOrLastNameLike{
 		query: string(
-			`SELECT USER.EMAIL,
-					USER.PASSWORD,
-					USER.REGISTER_DATE,
-					USER.IS_CONFIRMED
-			FROM USER
+			`SELECT PUBLIC.USER.EMAIL,
+					PUBLIC.USER.PASSWORD,
+					PUBLIC.USER.REGISTER_DATE,
+					PUBLIC.USER.IS_CONFIRMED
+			FROM PUBLIC.USER
 			JOIN PERSON ON
-					USER.EMAIL = PERSON.EMAIL
+					PUBLIC.USER.EMAIL = PERSON.EMAIL
 			WHERE 	LOWER(PERSON.FIRST_NAME) LIKE $1 OR
 					LOWER(PERSON.LAST_NAME) LIKE $1;`,
 		),
