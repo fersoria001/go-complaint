@@ -1,5 +1,5 @@
 export async function csrf(): Promise<string> {
-  const response = await fetch("https://api.go-complaint.com/csrf", {
+  const response = await fetch(import.meta.env.VITE_CSRF_TOKEN_ENDPOINT, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Mutation, ReplyComplaintMutation } from "./mutations";
 export async function replyComplaint(
   complaintID: string,
@@ -5,12 +6,16 @@ export async function replyComplaint(
   replyBody: string,
   replyEnterpriseID: string
 ): Promise<boolean> {
-  return await Mutation(ReplyComplaintMutation, {
-    complaintID,
-    replyAuthorID,
-    replyBody,
-    replyEnterpriseID,
-  }).then((res) => {
-    return res;
-  });
+  try {
+    const ok = await Mutation(ReplyComplaintMutation, {
+      complaintID,
+      replyAuthorID,
+      replyBody,
+      replyEnterpriseID,
+    });
+    return ok;
+  } catch (error: any) {
+    console.log(error);
+    return false
+  }
 }

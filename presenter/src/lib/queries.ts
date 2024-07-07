@@ -93,7 +93,9 @@ export type LoginType = {
   token: string;
 };
 export const LoginQueryType = (data: any): LoginType => {
-  console.error(data);
+  if (data.errors) {
+    throw new Error(data.errors[0].message)
+  }
   return data.data.Login;
 };
 

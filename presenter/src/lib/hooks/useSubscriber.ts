@@ -21,7 +21,7 @@ function useSubscriber(id: string | null) {
       },
     };
     const ws = new WebSocket(
-      "wss://api.go-complaint.com/subscriptions", "subscriptions"
+      "https://api.go-complaint.com/subscriptions", "subscriptions"
     );
     ws.onerror= (error : any) => {
       console.log("error from onerror",error)
