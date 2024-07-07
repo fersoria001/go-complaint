@@ -1,37 +1,45 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 
 import { useRouter } from "@tanstack/react-router";
 import { Mutation, RateComplaintMutation } from "../../lib/mutations";
-import { ComplaintReviewType, RateComplaint, UserDescriptor } from "../../lib/types";
+import { ComplaintReviewType, ErrorType, RateComplaint, UserDescriptor } from "../../lib/types";
 import AcceptBtn from "../buttons/AcceptBtn";
 import StarIcon from "../icons/StarIcon";
 
 
 interface Props {
-    review: ComplaintReviewType; 
+    review: ComplaintReviewType;
     enterpriseId?: string;
     user?: UserDescriptor;
 }
-function Review({ review, enterpriseId}: Props) {
+const Review: React.FC<Props> = ({ review, enterpriseId }: Props) => {
     const [rating, setRating] = useState(0);
     const [hover, setHover] = useState(0);
     const [comment, setComment] = useState("");
+    const [errors, setErrors] = useState<ErrorType>({})
     const router = useRouter();
-    const handleSubmit = useCallback(() => {
-        return Mutation<RateComplaint>(
-            RateComplaintMutation,
-            {
-                complaintId: review.complaint.id,
-                eventId: review.eventID,
-                rate: rating,
-                comment: comment,
+    const handleSubmit = useCallback(async () => {
+        try {
+            const ok = await Mutation<RateComplaint>(
+                RateComplaintMutation,
+                {
+                    complaintId: review.complaint.id,
+                    eventId: review.eventID,
+                    rate: rating,
+                    comment: comment,
+                }
+            )
+            return ok
+        } catch (e: any) {
+            if (e.message.includes("bad request")) {
+                setErrors({ review: "complete the review before sending it" })
+            } else {
+                router.navigate({ to: `/errors` });
             }
-        ).then((data) => data).catch(() => {
-            router.navigate({ to: `/errors` });
-            return false;
-        });
+            return false
+        }
     }, [comment, rating, review, router])
 
     const cleanUp = useCallback(() => {
@@ -73,6 +81,7 @@ function Review({ review, enterpriseId}: Props) {
                     onChange={(e) => setComment(e.target.value)}
                 >
                 </textarea>
+                {errors?.review && <span className="text-red-500 text-xs italic" >{errors.review}</span>}
                 <div className="self-center pt-6 md:self-end">
                     <AcceptBtn
                         variant="primary"
