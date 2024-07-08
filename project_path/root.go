@@ -13,4 +13,5 @@ var (
 	BannerImgsPath  = filepath.Join(Root, "files", "png", "banner_img")
 	PresenterPath   = filepath.Join(Root, "presenter", "dist")
 	IndexPath       = filepath.Join(Root, "presenter", "dist")
+	EmailsPath      = filepath.Join(Root, "presentation", "email")
 )
