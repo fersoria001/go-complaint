@@ -85,7 +85,6 @@ func (es *EmailService) SentLog() map[string]interface{} {
 // }
 
 func Send(ctx context.Context, obj email.Email) (string, error) {
-	log.Println("sending email ", obj)
 	sender := "owner@go-complaint.com"
 	to := make([]*To, 0)
 	to = append(to, &To{
@@ -126,16 +125,15 @@ func Send(ctx context.Context, obj email.Email) (string, error) {
 	}
 	log.Println("Status", body.Status)
 	msgID := body.Header.Get("X-Message-Id")
-	paused := body.Header.Get("x-send-paused")
+	_ = body.Header.Get("x-send-paused")
 	var responseBody map[string]interface{}
 	err = json.NewDecoder(body.Body).Decode(&responseBody)
 	if err != nil {
 		log.Println("Error decoding res", err)
 	}
 	log.Println("response body", responseBody)
-	fmt.Println("Email Sent to address: " + obj.Recipient)
-	fmt.Println("msgID", msgID)
-	fmt.Println("paused?", paused)
+	log.Println("Email Sent to address: " + obj.Recipient)
+	log.Println("msgID", msgID)
 	return msgID, nil
 }
 

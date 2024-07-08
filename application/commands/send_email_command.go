@@ -1,11 +1,16 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"go-complaint/domain/model/email"
 	"go-complaint/infrastructure"
+	projectpath "go-complaint/project_path"
+	"html/template"
 	"log"
+	"path/filepath"
+	"strconv"
 )
 
 type SendEmailCommand struct {
@@ -18,22 +23,18 @@ type SendEmailCommand struct {
 }
 
 func (c SendEmailCommand) Welcome(ctx context.Context) error {
-
 	if c.ToEmail == "" || c.ToName == "" || c.ConfirmationToken == "" {
-		log.Println("sending email", c.ToEmail, c.ToName)
+		log.Println("sending email error bad request", c.ToEmail, c.ToName)
 		return nil
 	}
-	// service := infrastructure.EmailServiceInstance()
-
-	confirmationLink := fmt.Sprintf("\"https://api.go-complaint.com/confirmation-link?token=%s\"", c.ConfirmationToken)
-	html := `
-	<div>
-	<div> Welcome to Go Complaint! </div>
-	<p>To confirm your email you have to click in the following </p>`
-	html += "<a href=" + confirmationLink + ">link</a>"
-	html += `<p> If you encounter any issues with the confirmation link contact to owner@go-complaint.com </p>`
-	html += `</div>`
-
+	confirmationLink := fmt.Sprintf("https://api.go-complaint.com/confirmation-link?token=%s", c.ConfirmationToken)
+	tmpl, err := template.ParseFiles(filepath.Join(projectpath.EmailsPath, "welcome.html"))
+	if err != nil {
+		fmt.Println("error parsing welcome template", err)
+	}
+	var buff bytes.Buffer
+	tmpl.Execute(&buff, map[string]string{"ConfirmationLink": confirmationLink})
+	html := buff.String()
 	infrastructure.Send(ctx, email.Email{
 		Recipient: c.ToEmail,
 		Subject:   "Welcome " + c.ToName + " to Go-Complaint",
@@ -43,14 +44,17 @@ func (c SendEmailCommand) Welcome(ctx context.Context) error {
 }
 func (c SendEmailCommand) VerifySignIn(ctx context.Context) error {
 	if c.ToEmail == "" || c.ToName == "" || c.ConfirmationCode == 0 {
+		log.Println("error at verify sign in email, bad request")
 		return nil
 	}
-	// service := infrastructure.EmailServiceInstance()
-	html := `<div>`
-	html += `You have attempt to sign-in into Go Complaint
-	to complete your login process enter this confirmation code`
-	html += fmt.Sprintf("<div>%d</div>", c.ConfirmationCode)
-	html += `</div>`
+	confirmationCode := strconv.Itoa(c.ConfirmationCode)
+	tmpl, err := template.ParseFiles(filepath.Join(projectpath.EmailsPath, "verify_sign_in.html"))
+	if err != nil {
+		fmt.Println("error verify sign in template", err)
+	}
+	var buff bytes.Buffer
+	tmpl.Execute(&buff, map[string]string{"ConfirmationCode": confirmationCode})
+	html := buff.String()
 	infrastructure.Send(ctx, email.Email{
 		Recipient: c.ToEmail,
 		Subject:   "Verify your sign-in action in Go-Complaint",
@@ -62,13 +66,14 @@ func (c SendEmailCommand) EmailVerified(ctx context.Context) error {
 	if c.ToEmail == "" || c.ToName == "" {
 		return nil
 	}
-	// service := infrastructure.EmailServiceInstance()
-	html := `<div>`
-	html += `Welcome!`
-	html += `<div> You have been verified your email in Go Complain, now you are able to`
-	html += fmt.Sprintf("<a href=\"%s\">sign-in</a>", "https://www.go-complaint.com/")
-	html += `</div>`
-	html += `</div>`
+	signInLink := "https://www.go-complaint.com/"
+	tmpl, err := template.ParseFiles(filepath.Join(projectpath.EmailsPath, "email_verified.html"))
+	if err != nil {
+		fmt.Println("error parsing welcome template", err)
+	}
+	var buff bytes.Buffer
+	tmpl.Execute(&buff, map[string]string{"SignInLink": signInLink})
+	html := buff.String()
 	infrastructure.Send(ctx, email.Email{
 		Recipient: c.ToEmail,
 		Subject:   c.ToName + "your email has been verified successfully at Go-Complaint",
@@ -96,17 +101,17 @@ func (c SendEmailCommand) SignIn(ctx context.Context) error {
 
 func (c SendEmailCommand) PasswordRecovery(ctx context.Context) error {
 	if c.ToEmail == "" || c.ToName == "" || c.RandomPassword == "" {
+		log.Println("error at passwordRecoveryEmail bad request")
 		return nil
 	}
-	// service := infrastructure.EmailServiceInstance()
-	html := `<div>`
-	html += `You have request to reset your password`
-	html += fmt.Sprintf("your new randomly generated password is: %s", c.RandomPassword)
-	html += `<div>Use it to log into your account</div>`
-	html += `<div> If you did not request this action on your account 
-	or you find trouble login in contact us to 
-	owner@go-complaint.com</div>`
-	html += `</div>`
+	randomPassword := c.RandomPassword
+	tmpl, err := template.ParseFiles(filepath.Join(projectpath.EmailsPath, "password_recovery.html"))
+	if err != nil {
+		log.Println("error parsing welcome template", err)
+	}
+	var buff bytes.Buffer
+	tmpl.Execute(&buff, map[string]string{"RandomPassword": randomPassword})
+	html := buff.String()
 	infrastructure.Send(ctx, email.Email{
 		Recipient: c.ToEmail,
 		Subject:   "Go-Complaint password recovery",
@@ -119,12 +124,13 @@ func (c SendEmailCommand) PasswordChanged(ctx context.Context) error {
 	if c.ToEmail == "" || c.ToName == "" {
 		return nil
 	}
-	// service := infrastructure.EmailServiceInstance()
-	html := `<div>`
-	html += `You has changed your password from your account configuration.`
-	html += `<div> If you didn't trigger this action on your account, contact us 
-	to owner@go-complaint.com</div>`
-	html += `</div>`
+	tmpl, err := template.ParseFiles(filepath.Join(projectpath.EmailsPath, "password_changed.html"))
+	if err != nil {
+		log.Println("error parsing welcome template", err)
+	}
+	var buff bytes.Buffer
+	tmpl.Execute(&buff, map[string]string{})
+	html := buff.String()
 	infrastructure.Send(ctx, email.Email{
 		Recipient: c.ToEmail,
 		Subject:   "Your account password has changed.",
@@ -137,12 +143,17 @@ func (c SendEmailCommand) HiringInvitationSent(ctx context.Context) error {
 	if c.ToEmail == "" || c.ToName == "" {
 		return nil
 	}
-	// service := infrastructure.EmailServiceInstance()
-	html := `<div>`
-	html += fmt.Sprintf(`Hi %s you have been received a hiring invitation at Go Complaint,
-	you can review your invitations <a href=\"%s\">here</a>`, c.ToName,
-		"https://www.go-complaint.com")
-	html += `</div>`
+	hiringInvitationsLink := "https://www.go-complaint.com"
+	receiverName := c.ToName
+	tmpl, err := template.ParseFiles(filepath.Join(projectpath.EmailsPath, "hiring_invitation_sent.html"))
+	if err != nil {
+		log.Println("error parsing welcome template", err)
+	}
+	var buff bytes.Buffer
+	tmpl.Execute(&buff, map[string]string{
+		"ReceiverName":          receiverName,
+		"HiringInvitationsLink": hiringInvitationsLink})
+	html := buff.String()
 	infrastructure.Send(ctx, email.Email{
 		Recipient: c.ToEmail,
 		Subject:   "You have been received a hiring invitation at Go-Complaint!",
@@ -155,11 +166,17 @@ func (c SendEmailCommand) Contact(ctx context.Context) error {
 	if c.ToEmail == "" {
 		return nil
 	}
-	// service := infrastructure.EmailServiceInstance()
-	html := `<div>`
-	html += fmt.Sprintf(`You have been received a contact message from %s at Go Complaint `, c.ToEmail)
-	html += fmt.Sprintf(`<div>%s</div>`, c.Text)
-	html += `</div>`
+	sender := c.ToEmail
+	message := c.Text
+	tmpl, err := template.ParseFiles(filepath.Join(projectpath.EmailsPath, "contact_email.html"))
+	if err != nil {
+		log.Println("error parsing welcome template", err)
+	}
+	var buff bytes.Buffer
+	tmpl.Execute(&buff, map[string]string{
+		"Sender":  sender,
+		"Message": message})
+	html := buff.String()
 	infrastructure.Send(ctx, email.Email{
 		Recipient: "bercho001@gmail.com",
 		Subject:   "Contact email to Go-Complaint",

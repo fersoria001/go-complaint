@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <title>Document</title>
+  </head>
+  <style></style>
+  <body
+    style="
+      width: 100%;
+      height: auto;
+      line-break: strict;
+      font-family: 'Raleway', sans-serif;
+      font-optical-sizing: auto;
+      font-weight: 600;
+      font-style: normal;">
+    <header>
+      <h2 style="padding-top: 2rem">Confirm your sign-in action</h2>
+    </header>
+    <main>
+      <article style="margin-bottom: 4rem;display:flex;flex-direction: column;">
+        <p>
+          You have attempt to sign-in into Go Complaint to complete your login
+          process enter this confirmation code:
+        </p>
+        <p style="margin:4rem auto;">{{ .ConfirmationCode }}</p>
+        <div>
+          <p style="margin:0;line-height: 1.5rem;">
+            If you encounter any issues login in contact to:
+          </p>
+          <a href="mailto:owner@go-complaint.com">owner@go-complaint.com</a>
+        </div>
+      </article>
+    </main>
+    <footer
+      style="
+        display: flex;
+        flex-direction: column;
+        font-size: 0.7rem;
+        padding-bottom: 2rem;">
+      <p>
+        © 2024 Go Complaint by Fernando Agustín Soria. San Carlos de Bariloche,
+        Rio Negro, Argentina.8400
+      </p>
+    </footer>
+  </body>
+</html>

@@ -261,10 +261,10 @@ func (enterpriseCommand EnterpriseCommand) InviteToProject(
 	if dbemployee.Cardinality() != 0 {
 		return ErrAlreadyHired
 	}
-	// targetUser, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, enterpriseCommand.ProposeTo)
-	// if err != nil {
-	// 	return ErrNotFound
-	// }
+	targetUser, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, enterpriseCommand.ProposeTo)
+	if err != nil {
+		return ErrNotFound
+	}
 	dbEnterprise, err := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository).Get(
 		ctx, enterpriseCommand.Name)
 	if err != nil {
@@ -283,10 +283,10 @@ func (enterpriseCommand EnterpriseCommand) InviteToProject(
 						Content:     enterpriseOwner.FullName() + " has invited you to join the project " + dbEnterprise.Name(),
 						Link:        "/hiring-invitations",
 					}.SaveNew(ctx)
-					// SendEmailCommand{
-					// 	ToEmail: castedEvent.ProposedTo(),
-					// 	ToName:  targetUser.FullName(),
-					// }.HiringInvitationSent(ctx)
+					SendEmailCommand{
+						ToEmail: castedEvent.ProposedTo(),
+						ToName:  targetUser.FullName(),
+					}.HiringInvitationSent(ctx)
 					return nil
 				}
 				return nil
