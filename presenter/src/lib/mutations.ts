@@ -3,7 +3,7 @@
 import EmailAlreadyInUseError from "../components/error/EmailAlreadyInUseError";
 import { ChangePasswordType } from "../components/profile/settings/settings_lib";
 import { csrf } from "./csrf";
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
 import { deleteLinebreaks } from "./delete_line_breaks";
 import {
   ContactType,
@@ -26,14 +26,20 @@ import {
   UpdateUserType,
 } from "./types";
 
-export const VerifyEmailMutation = (token : string) : string => {
+export const PasswordRecoveryMutation = (email: string): string => {
+  return `
+  mutation {
+    RecoverPassword(id: "${email}")
+  }`;
+};
+
+export const VerifyEmailMutation = (token: string): string => {
   return ` 
   mutation {
     VerifyEmail(id: "${token}")
   }
-  `
-}
-
+  `;
+};
 
 export const ContactMutation = ({ email, text }: ContactType): string => {
   return `
@@ -516,6 +522,8 @@ export const Mutation = async <T>(
       const stringErr = data.errors[0].message;
       if (stringErr.includes("SQLSTATE 23505")) {
         throw new EmailAlreadyInUseError();
+      } else if (stringErr.includes("not found")) {
+        throw new UserNotFoundError();
       }
       throw new Error(stringErr);
     }
@@ -523,3 +531,9 @@ export const Mutation = async <T>(
   }
   throw new Error("No CSRF token");
 };
+
+class UserNotFoundError extends Error {
+  constructor() {
+    super("the user with the given email is not registered in Go Complaint.");
+  }
+}

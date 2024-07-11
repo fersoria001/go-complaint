@@ -221,6 +221,7 @@ func (userCommand UserCommand) RecoverPassword(ctx context.Context) error {
 		return ErrBadRequest
 	}
 	newRandomGeneratedPassword := strings.Join(strings.Split(uuid.New().String(), "-")[0:2], "-")
+	newRandomGeneratedPassword = strings.Replace(newRandomGeneratedPassword, "-", "", 1)
 	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
 		HandleEvent: func(event domain.DomainEvent) error {
 			if _, ok := event.(*identity.PasswordReset); ok {
@@ -245,7 +246,7 @@ func (userCommand UserCommand) RecoverPassword(ctx context.Context) error {
 	}
 	user, err := userMapper.Get(ctx, userCommand.Email)
 	if err != nil {
-		return err
+		return ErrNotFound
 	}
 	encryptedPassword, err := infrastructure.EncryptionServiceInstance().Encrypt(newRandomGeneratedPassword)
 	if err != nil {

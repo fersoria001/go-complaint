@@ -15,6 +15,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Route as rootRoute } from './routes/__root'
 import { Route as SignUpImport } from './routes/sign-up'
 import { Route as SignInImport } from './routes/sign-in'
+import { Route as RecoverySucceedImport } from './routes/recovery-succeed'
+import { Route as PasswordRecoveryImport } from './routes/password-recovery'
 import { Route as LicensingImport } from './routes/licensing'
 import { Route as ContactImport } from './routes/contact'
 import { Route as ConfirmationSentImport } from './routes/confirmation-sent'
@@ -95,6 +97,16 @@ const SignUpRoute = SignUpImport.update({
 
 const SignInRoute = SignInImport.update({
   path: '/sign-in',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const RecoverySucceedRoute = RecoverySucceedImport.update({
+  path: '/recovery-succeed',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const PasswordRecoveryRoute = PasswordRecoveryImport.update({
+  path: '/password-recovery',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -423,6 +435,20 @@ declare module '@tanstack/react-router' {
       path: '/licensing'
       fullPath: '/licensing'
       preLoaderRoute: typeof LicensingImport
+      parentRoute: typeof rootRoute
+    }
+    '/password-recovery': {
+      id: '/password-recovery'
+      path: '/password-recovery'
+      fullPath: '/password-recovery'
+      preLoaderRoute: typeof PasswordRecoveryImport
+      parentRoute: typeof rootRoute
+    }
+    '/recovery-succeed': {
+      id: '/recovery-succeed'
+      path: '/recovery-succeed'
+      fullPath: '/recovery-succeed'
+      preLoaderRoute: typeof RecoverySucceedImport
       parentRoute: typeof rootRoute
     }
     '/sign-in': {
@@ -806,6 +832,8 @@ export const routeTree = rootRoute.addChildren({
   ConfirmationSentRoute,
   ContactRoute,
   LicensingRoute,
+  PasswordRecoveryRoute,
+  RecoverySucceedRoute,
   SignInRoute,
   SignUpRoute,
   AboutLazyRoute,
@@ -829,6 +857,8 @@ export const routeTree = rootRoute.addChildren({
         "/confirmation-sent",
         "/contact",
         "/licensing",
+        "/password-recovery",
+        "/recovery-succeed",
         "/sign-in",
         "/sign-up",
         "/about",
@@ -898,6 +928,12 @@ export const routeTree = rootRoute.addChildren({
     },
     "/licensing": {
       "filePath": "licensing.tsx"
+    },
+    "/password-recovery": {
+      "filePath": "password-recovery.tsx"
+    },
+    "/recovery-succeed": {
+      "filePath": "recovery-succeed.tsx"
     },
     "/sign-in": {
       "filePath": "sign-in.tsx"

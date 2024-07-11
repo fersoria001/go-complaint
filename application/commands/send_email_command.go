@@ -100,7 +100,7 @@ func (c SendEmailCommand) SignIn(ctx context.Context) error {
 }
 
 func (c SendEmailCommand) PasswordRecovery(ctx context.Context) error {
-	if c.ToEmail == "" || c.ToName == "" || c.RandomPassword == "" {
+	if c.ToEmail == "" || c.RandomPassword == "" {
 		log.Println("error at passwordRecoveryEmail bad request")
 		return nil
 	}

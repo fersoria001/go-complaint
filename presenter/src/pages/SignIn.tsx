@@ -2,7 +2,7 @@ import { useState } from "react";
 import PrimaryButton from "../components/buttons/PrimaryButton";
 import { ErrorType, } from "../lib/types";
 import { signIn } from "../lib/sign_in";
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 
 export const SignInPage: React.FC = () => {
     const [errors, setErrors] = useState<ErrorType>({});
@@ -52,9 +52,16 @@ export const SignInPage: React.FC = () => {
                         {errors?.rememberMe && <span className="text-red-500 text-xs italic">{errors.rememberMe}</span>}
                         <label
                             className="block text-gray-700 text-sm font-bold mb-2 ms-2"
-
                             htmlFor="rememberMe">Remember me</label>
                     </div>
+                </div>
+                <div className="w-full flex">
+                    <Link 
+                    to="/password-recovery"
+                    className="text-gray-700 text-sm font-medium mb-2 ms-auto cursor-pointer
+                    hover:underline">
+                        Forgot your password?
+                    </Link>
                 </div>
                 <span className="" onMouseUp={handleSignIn}>
                     <PrimaryButton text="Sign in" />
