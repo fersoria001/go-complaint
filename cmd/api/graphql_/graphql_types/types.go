@@ -118,7 +118,7 @@ var CountryType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Country",
 	Fields: graphql.Fields{
 		"id": &graphql.Field{
-			Type: graphql.ID,
+			Type: graphql.Int,
 		},
 		"name": &graphql.Field{
 			Type: graphql.String,
@@ -133,7 +133,7 @@ var CountyType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "County",
 	Fields: graphql.Fields{
 		"id": &graphql.Field{
-			Type: graphql.ID,
+			Type: graphql.Int,
 		},
 		"name": &graphql.Field{
 			Type: graphql.String,
@@ -145,7 +145,7 @@ var CityType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "City",
 	Fields: graphql.Fields{
 		"id": &graphql.Field{
-			Type: graphql.ID,
+			Type: graphql.Int,
 		},
 		"name": &graphql.Field{
 			Type: graphql.String,

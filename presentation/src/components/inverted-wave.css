@@ -1,0 +1,37 @@
+.container {
+  position: relative;
+  background: #ffffff;
+  height: 50vh;
+  min-width:100%;
+}
+
+.wave {
+  position: absolute;
+  height: 250px;
+  width: 100%;
+  background: #ffffff;
+  bottom: 0;
+}
+
+.wave::before,
+.wave::after {
+  content: "";
+  display: block;
+  position: absolute;
+  border-radius: 50% 100%;
+}
+
+.wave::before {
+  width: 55%;
+  height: 100%;
+  background-color: #ffffff;
+  right: -1.5%;
+  top: 40%;
+}
+.wave::after {
+  width: 55%;
+  height: 109%;
+  background-color: #3b82f6;
+  left: -1.5%;
+  top: 60%;
+}

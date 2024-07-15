@@ -13,14 +13,14 @@ func CountriesResolver(params graphql.ResolveParams) (interface{}, error) {
 
 func CountryStatesResolver(params graphql.ResolveParams) (interface{}, error) {
 	addressQuery := queries.AddressQuery{
-		CountryID: params.Args["ID"].(int),
+		CountryID: params.Args["id"].(int),
 	}
 	return addressQuery.ProvideCountryStateByCountryID(params.Context)
 }
 
 func CitiesResolver(params graphql.ResolveParams) (interface{}, error) {
 	addressQuery := queries.AddressQuery{
-		CountryStateID: params.Args["ID"].(int),
+		CountryStateID: params.Args["id"].(int),
 	}
 	return addressQuery.ProvideStateCitiesByStateID(params.Context)
 }

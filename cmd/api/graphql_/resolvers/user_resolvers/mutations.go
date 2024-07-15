@@ -16,11 +16,10 @@ func CreateUserResolver(p graphql.ResolveParams) (interface{}, error) {
 		Gender:         p.Args["gender"].(string),
 		Pronoun:        p.Args["pronoun"].(string),
 		BirthDate:      p.Args["birthDate"].(string),
-		PhoneCode:      p.Args["phoneCode"].(string),
 		Phone:          p.Args["phone"].(string),
-		CountryID:      p.Args["country"].(int),
-		CountryStateID: p.Args["county"].(int),
-		CityID:         p.Args["city"].(int),
+		CountryID:      p.Args["countryId"].(int),
+		CountryStateID: p.Args["countryStateId"].(int),
+		CityID:         p.Args["cityId"].(int),
 	}
 	err := command.Register(p.Context)
 	if err != nil {

@@ -24,19 +24,16 @@ var CreateUser = graphql.FieldConfigArgument{
 	"birthDate": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
-	"phoneCode": &graphql.ArgumentConfig{
-		Type: graphql.NewNonNull(graphql.String),
-	},
 	"phone": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.String),
 	},
-	"country": &graphql.ArgumentConfig{
+	"countryId": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.Int),
 	},
-	"county": &graphql.ArgumentConfig{
+	"countryStateId": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.Int),
 	},
-	"city": &graphql.ArgumentConfig{
+	"cityId": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.Int),
 	},
 }
@@ -329,7 +326,7 @@ var MarkAnswerAsRead = graphql.FieldConfigArgument{
 }
 
 var IntegerID = graphql.FieldConfigArgument{
-	"ID": &graphql.ArgumentConfig{
+	"id": &graphql.ArgumentConfig{
 		Type: graphql.NewNonNull(graphql.Int),
 	},
 }
