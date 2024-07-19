@@ -2,7 +2,7 @@ import { graphql } from "@/gql";
 
 const citiesQuery = graphql(`
     query CitiesQuery($id: Int!){
-        Cities(id:$id){
+        cities(id:$id){
             id
             name
             countryCode

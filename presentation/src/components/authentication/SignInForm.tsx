@@ -1,12 +1,9 @@
 'use client'
-import { userSignIn } from "@/lib/actions/authentication";
-import signInSchema from "@/lib/validation/signInSchema";
+import { SignInFormState, userSignIn } from "@/lib/actions/authentication";
 import Link from "next/dist/client/link";
 import { useFormStatus, useFormState } from "react-dom";
-import { z } from "zod";
 import InlineAlert from "../error/InlineAlert";
-type stateType = z.inferFlattenedErrors<typeof signInSchema>
-const initialState: Partial<stateType> = {}
+const initialState: SignInFormState = {}
 const SignInForm: React.FC = () => {
     const { pending } = useFormStatus()
     const [state, formAction] = useFormState(userSignIn, initialState)
@@ -23,16 +20,16 @@ const SignInForm: React.FC = () => {
                 }
                 <label
                     className="block text-gray-700 text-sm lg:text-md font-bold mb-2"
-                    htmlFor="email">Email</label>
+                    htmlFor="userName">Email</label>
                 <input
                     className="appearance-none border rounded w-full py-2 px-3 text-md lg:text-lg
                  text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    type="email" id="email" name="email" autoComplete="username" />
+                    type="email" id="email" name="userName" autoComplete="username" />
                 {
-                    state?.fieldErrors?.email &&
+                    state?.fieldErrors?.userName &&
                     <InlineAlert
                         className="w-full mt-0.5 py-0.5 px-0.5 inline-flex items-center text-sm text-red-800 rounded-lg bg-red-50"
-                        errors={state.fieldErrors.email} />
+                        errors={state.fieldErrors.userName} />
                 }
             </div>
             <div className="mb-4 px-4">

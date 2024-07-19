@@ -1,8 +1,14 @@
-function BurguerMenuIcon() {
+import IconsProps from "./IconsProps";
+
+
+function BurguerMenuIcon({ onClick = () => { }, className = "w-6 h-6", height = 0, width = 0, fill = "currentColor" }: IconsProps) {
     return (
-        <svg className="w-6 h-6"
-            aria-hidden="true"
-            fill="currentColor"
+        <svg
+            onClick={onClick}
+            className={className}
+            fill={fill}
+            height={height}
+            width={width}
             viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
             <path
                 clipRule="evenodd"

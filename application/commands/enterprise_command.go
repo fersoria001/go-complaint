@@ -18,7 +18,6 @@ import (
 	"go-complaint/infrastructure/persistence/repositories"
 	"reflect"
 	"slices"
-	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
@@ -34,7 +33,6 @@ type EnterpriseCommand struct {
 	BannerIMG      string   `json:"banner_img"`
 	Website        string   `json:"website"`
 	Email          string   `json:"email"`
-	PhoneCode      string   `json:"phone_code"`
 	Phone          string   `json:"phone"`
 	CountryID      int      `json:"country_id"`
 	CountryStateID int      `json:"country_state_id"`
@@ -60,7 +58,6 @@ func (enterpriseCommand EnterpriseCommand) Register(
 		enterpriseCommand.Name == "" ||
 		enterpriseCommand.Website == "" ||
 		enterpriseCommand.Email == "" ||
-		enterpriseCommand.PhoneCode == "" ||
 		enterpriseCommand.Phone == "" ||
 		enterpriseCommand.FoundationDate == "" {
 		return ErrBadRequest
@@ -112,13 +109,7 @@ func (enterpriseCommand EnterpriseCommand) Register(
 	if err != nil {
 		return err
 	}
-	var phoneCode string
-	if strings.HasPrefix(enterpriseCommand.PhoneCode, "+") {
-		phoneCode = enterpriseCommand.PhoneCode
-	} else {
-		phoneCode = "+" + enterpriseCommand.PhoneCode
-	}
-	phone := phoneCode + enterpriseCommand.Phone
+	phone := enterpriseCommand.Phone
 	newEnterprise, err := enterprise.CreateEnterprise(
 		ctx,
 		user,

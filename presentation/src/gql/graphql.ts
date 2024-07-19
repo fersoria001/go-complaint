@@ -18,650 +18,203 @@ export type Scalars = {
 
 export type Address = {
   __typename?: 'Address';
-  city?: Maybe<Scalars['String']['output']>;
-  country?: Maybe<Scalars['String']['output']>;
-  county?: Maybe<Scalars['String']['output']>;
-};
-
-export type ChatReply = {
-  __typename?: 'ChatReply';
-  chatID?: Maybe<Scalars['String']['output']>;
-  content?: Maybe<Scalars['String']['output']>;
-  createdAt?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['String']['output']>;
-  seen?: Maybe<Scalars['Boolean']['output']>;
-  updatedAt?: Maybe<Scalars['String']['output']>;
-  user?: Maybe<User>;
+  city: Scalars['String']['output'];
+  country: Scalars['String']['output'];
+  countryState: Scalars['String']['output'];
 };
 
 export type City = {
   __typename?: 'City';
-  countryCode?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['Int']['output']>;
-  latitude?: Maybe<Scalars['Float']['output']>;
-  longitude?: Maybe<Scalars['Float']['output']>;
-  name?: Maybe<Scalars['String']['output']>;
-};
-
-export type Complaint = {
-  __typename?: 'Complaint';
-  authorFullName?: Maybe<Scalars['String']['output']>;
-  authorID?: Maybe<Scalars['String']['output']>;
-  authorProfileIMG?: Maybe<Scalars['String']['output']>;
-  createdAt?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['ID']['output']>;
-  message?: Maybe<ComplaintMessage>;
-  rating?: Maybe<ComplaintRating>;
-  receiverFullName?: Maybe<Scalars['String']['output']>;
-  receiverID?: Maybe<Scalars['String']['output']>;
-  receiverProfileIMG?: Maybe<Scalars['String']['output']>;
-  replies?: Maybe<Array<Maybe<ComplaintReply>>>;
-  status?: Maybe<Scalars['String']['output']>;
-  updatedAt?: Maybe<Scalars['String']['output']>;
+  countryCode: Scalars['String']['output'];
+  id: Scalars['Int']['output'];
+  latitude: Scalars['Float']['output'];
+  longitude: Scalars['Float']['output'];
+  name: Scalars['String']['output'];
 };
 
 export type ComplaintInfo = {
   __typename?: 'ComplaintInfo';
-  averageRating?: Maybe<Scalars['Float']['output']>;
-  complaintsPending?: Maybe<Scalars['Int']['output']>;
-  complaintsReceived?: Maybe<Scalars['Int']['output']>;
-  complaintsResolved?: Maybe<Scalars['Int']['output']>;
-  complaintsReviewed?: Maybe<Scalars['Int']['output']>;
-};
-
-export type ComplaintList = {
-  __typename?: 'ComplaintList';
-  complaints?: Maybe<Array<Maybe<Complaint>>>;
-  count?: Maybe<Scalars['Int']['output']>;
-  currentLimit?: Maybe<Scalars['Int']['output']>;
-  currentOffset?: Maybe<Scalars['Int']['output']>;
-};
-
-export type ComplaintMessage = {
-  __typename?: 'ComplaintMessage';
-  body?: Maybe<Scalars['String']['output']>;
-  description?: Maybe<Scalars['String']['output']>;
-  title?: Maybe<Scalars['String']['output']>;
-};
-
-export type ComplaintRating = {
-  __typename?: 'ComplaintRating';
-  comment?: Maybe<Scalars['String']['output']>;
-  rate?: Maybe<Scalars['Int']['output']>;
-};
-
-export type ComplaintReceiver = {
-  __typename?: 'ComplaintReceiver';
-  fullName?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['String']['output']>;
-  thumbnail?: Maybe<Scalars['String']['output']>;
-};
-
-export type ComplaintReply = {
-  __typename?: 'ComplaintReply';
-  body?: Maybe<Scalars['String']['output']>;
-  complaintID?: Maybe<Scalars['ID']['output']>;
-  complaintStatus?: Maybe<Scalars['String']['output']>;
-  createdAt?: Maybe<Scalars['String']['output']>;
-  enterpriseID?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['ID']['output']>;
-  isEnterprise?: Maybe<Scalars['Boolean']['output']>;
-  read?: Maybe<Scalars['Boolean']['output']>;
-  readAt?: Maybe<Scalars['String']['output']>;
-  senderID?: Maybe<Scalars['String']['output']>;
-  senderIMG?: Maybe<Scalars['String']['output']>;
-  senderName?: Maybe<Scalars['String']['output']>;
-  updatedAt?: Maybe<Scalars['String']['output']>;
+  avgRating: Scalars['Float']['output'];
+  pending: Scalars['Int']['output'];
+  received: Scalars['Int']['output'];
+  resolved: Scalars['Int']['output'];
+  reviewed: Scalars['Int']['output'];
+  total: Scalars['Int']['output'];
 };
 
 export type Country = {
   __typename?: 'Country';
-  id?: Maybe<Scalars['Int']['output']>;
-  name?: Maybe<Scalars['String']['output']>;
-  phoneCode?: Maybe<Scalars['String']['output']>;
+  id: Scalars['Int']['output'];
+  name: Scalars['String']['output'];
+  phoneCode: Scalars['String']['output'];
 };
 
-export type County = {
-  __typename?: 'County';
-  id?: Maybe<Scalars['Int']['output']>;
-  name?: Maybe<Scalars['String']['output']>;
+export type CountryState = {
+  __typename?: 'CountryState';
+  id: Scalars['Int']['output'];
+  name: Scalars['String']['output'];
 };
 
-export type Employee = {
-  __typename?: 'Employee';
-  age?: Maybe<Scalars['Int']['output']>;
-  approvedHiring?: Maybe<Scalars['Boolean']['output']>;
-  approvedHiringAt?: Maybe<Scalars['String']['output']>;
-  complaintsFeedbacked?: Maybe<Scalars['Int']['output']>;
-  complaintsFeedbackedIDs?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  complaintsRated?: Maybe<Scalars['Int']['output']>;
-  complaintsRatedIDs?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  complaintsSolved?: Maybe<Scalars['Int']['output']>;
-  complaintsSolvedIds?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  email?: Maybe<Scalars['String']['output']>;
-  employeesFired?: Maybe<Scalars['Int']['output']>;
-  employeesHired?: Maybe<Scalars['Int']['output']>;
-  feedbackReceived?: Maybe<Scalars['Int']['output']>;
-  feedbackReceivedIDs?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  firstName?: Maybe<Scalars['String']['output']>;
-  hireInvitationsSent?: Maybe<Scalars['Int']['output']>;
-  hiringDate?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['String']['output']>;
-  lastName?: Maybe<Scalars['String']['output']>;
-  phone?: Maybe<Scalars['String']['output']>;
-  position?: Maybe<Scalars['String']['output']>;
-  profileIMG?: Maybe<Scalars['String']['output']>;
-};
-
-export type Enterprise = {
-  __typename?: 'Enterprise';
-  address?: Maybe<Address>;
-  bannerIMG?: Maybe<Scalars['String']['output']>;
-  email?: Maybe<Scalars['String']['output']>;
-  employees?: Maybe<Array<Maybe<Employee>>>;
-  foundationDate?: Maybe<Scalars['String']['output']>;
-  industry?: Maybe<Scalars['String']['output']>;
-  logoIMG?: Maybe<Scalars['String']['output']>;
-  name?: Maybe<Scalars['String']['output']>;
-  ownerID?: Maybe<Scalars['String']['output']>;
-  phone?: Maybe<Scalars['String']['output']>;
-  website?: Maybe<Scalars['String']['output']>;
-};
-
-export type EnterpriseChat = {
-  __typename?: 'EnterpriseChat';
-  id?: Maybe<Scalars['String']['output']>;
-  replies?: Maybe<Array<Maybe<ChatReply>>>;
-};
-
-export type Feedback = {
-  __typename?: 'Feedback';
-  complaintID?: Maybe<Scalars['String']['output']>;
-  enterpriseID?: Maybe<Scalars['String']['output']>;
-  feedbackAnswer?: Maybe<Array<Maybe<FeedbackAnswer>>>;
-  id?: Maybe<Scalars['String']['output']>;
-  isDone?: Maybe<Scalars['Boolean']['output']>;
-  replyReview?: Maybe<Array<Maybe<ReplyReview>>>;
-  reviewedAt?: Maybe<Scalars['String']['output']>;
-  updatedAt?: Maybe<Scalars['String']['output']>;
-};
-
-export type FeedbackAnswer = {
-  __typename?: 'FeedbackAnswer';
-  body?: Maybe<Scalars['String']['output']>;
-  createdAt?: Maybe<Scalars['String']['output']>;
-  enterpriseID?: Maybe<Scalars['String']['output']>;
-  feedbackID?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['String']['output']>;
-  isEnterprise?: Maybe<Scalars['Boolean']['output']>;
-  read?: Maybe<Scalars['Boolean']['output']>;
-  readAt?: Maybe<Scalars['String']['output']>;
-  senderID?: Maybe<Scalars['String']['output']>;
-  senderIMG?: Maybe<Scalars['String']['output']>;
-  senderName?: Maybe<Scalars['String']['output']>;
-  updatedAt?: Maybe<Scalars['String']['output']>;
-};
-
-export type Geolocation = {
-  __typename?: 'Geolocation';
-  latitude?: Maybe<Scalars['Float']['output']>;
-  longitude?: Maybe<Scalars['Float']['output']>;
-};
-
-export type GrantedAuthority = {
-  __typename?: 'GrantedAuthority';
-  authority?: Maybe<Scalars['String']['output']>;
-  enterpriseID?: Maybe<Scalars['String']['output']>;
-};
-
-export type HiringInvitation = {
-  __typename?: 'HiringInvitation';
-  enterpriseEmail?: Maybe<Scalars['String']['output']>;
-  enterpriseID?: Maybe<Scalars['String']['output']>;
-  enterpriseLogoIMG?: Maybe<Scalars['String']['output']>;
-  enterprisePhone?: Maybe<Scalars['String']['output']>;
-  eventID?: Maybe<Scalars['String']['output']>;
-  fullName?: Maybe<Scalars['String']['output']>;
-  occurredOn?: Maybe<Scalars['String']['output']>;
-  ownerID?: Maybe<Scalars['String']['output']>;
-  proposedPosition?: Maybe<Scalars['String']['output']>;
-  reason?: Maybe<Scalars['String']['output']>;
-  seen?: Maybe<Scalars['String']['output']>;
-  status?: Maybe<Scalars['String']['output']>;
-};
-
-export type HiringProccess = {
-  __typename?: 'HiringProccess';
-  emitedBy?: Maybe<User>;
-  eventID?: Maybe<Scalars['String']['output']>;
-  lastUpdate?: Maybe<Scalars['String']['output']>;
-  occurredOn?: Maybe<Scalars['String']['output']>;
-  position?: Maybe<Scalars['String']['output']>;
-  reason?: Maybe<Scalars['String']['output']>;
-  status?: Maybe<Scalars['String']['output']>;
-  user?: Maybe<User>;
-};
-
-export type HiringProccessList = {
-  __typename?: 'HiringProccessList';
-  count?: Maybe<Scalars['Int']['output']>;
-  currentLimit?: Maybe<Scalars['Int']['output']>;
-  currentOffset?: Maybe<Scalars['Int']['output']>;
-  hiringProccesses?: Maybe<Array<Maybe<HiringProccess>>>;
-};
-
-export type Industry = {
-  __typename?: 'Industry';
-  id?: Maybe<Scalars['Int']['output']>;
-  name?: Maybe<Scalars['String']['output']>;
-};
-
-export type JwtToken = {
-  __typename?: 'JwtToken';
-  token: Scalars['String']['output'];
-};
-
-export type Mutation = {
-  __typename?: 'Mutation';
-  /** Accept the invitation to join the enterprise */
-  AcceptEnterpriseInvitation?: Maybe<Scalars['Boolean']['output']>;
-  /** Add a comment to a feedback */
-  AddComment?: Maybe<Scalars['Boolean']['output']>;
-  /** Add a review to a reply */
-  AddReply?: Maybe<Scalars['Boolean']['output']>;
-  /** Answer a feedback */
-  AnswerFeedback?: Maybe<Scalars['Boolean']['output']>;
-  /** Cancel the hiring proccess */
-  CancelHiringProccess?: Maybe<Scalars['Boolean']['output']>;
-  /** Set a new random password for the user and send it by email */
-  ChangePassword?: Maybe<Scalars['Boolean']['output']>;
-  /** Send a contact email */
-  Contact?: Maybe<Scalars['Boolean']['output']>;
-  /** Create a new enterprise */
-  CreateEnterprise?: Maybe<Scalars['Boolean']['output']>;
-  /** Create a feedback */
-  CreateFeedback?: Maybe<Scalars['Boolean']['output']>;
-  /** Create new user */
-  CreateUser?: Maybe<Scalars['Boolean']['output']>;
-  /** Delete a comment from a feedback */
-  DeleteComment?: Maybe<Scalars['Boolean']['output']>;
-  /** End the feedback */
-  EndFeedback?: Maybe<Scalars['Boolean']['output']>;
-  /** Fire an employee from the enterprise */
-  FireEmployee?: Maybe<Scalars['Boolean']['output']>;
-  /** Hire an employee to the enterprise */
-  HireEmployee?: Maybe<Scalars['Boolean']['output']>;
-  /** Invite a user to join the enterprise */
-  InviteToEnterprise?: Maybe<Scalars['Boolean']['output']>;
-  /** Leave the enterprise */
-  LeaveEnterprise?: Maybe<Scalars['Boolean']['output']>;
-  /** Mark a complaint reply as seen */
-  MarkAsSeen?: Maybe<Scalars['Boolean']['output']>;
-  /** Mark a notification as read */
-  MarkNotificationAsRead?: Maybe<Scalars['Boolean']['output']>;
-  /** Mark an enterprise chat reply as seen */
-  MarkReplyChatAsSeen?: Maybe<Scalars['Boolean']['output']>;
-  /** Promote an employee */
-  PromoteEmployee?: Maybe<Scalars['Boolean']['output']>;
-  /** Rate a complaint */
-  RateComplaint?: Maybe<Scalars['Boolean']['output']>;
-  /** Set a new random password for the user and send it by email */
-  RecoverPassword?: Maybe<Scalars['Boolean']['output']>;
-  /** Reject the invitation to join the enterprise */
-  RejectEnterpriseInvitation?: Maybe<Scalars['Boolean']['output']>;
-  /** Remove a review from a reply */
-  RemoveReply?: Maybe<Scalars['Boolean']['output']>;
-  /** Reply a chat */
-  ReplyChat?: Maybe<Scalars['Boolean']['output']>;
-  /** Reply a complaint */
-  ReplyComplaint?: Maybe<Scalars['Boolean']['output']>;
-  /** Send a new complaint */
-  SendComplaint?: Maybe<Scalars['Boolean']['output']>;
-  /** Send a complaint for reviewing */
-  SendForReviewing?: Maybe<Scalars['Boolean']['output']>;
-  /** Update the enterprise */
-  UpdateEnterprise?: Maybe<Scalars['Boolean']['output']>;
-  /** Update the user personal information */
-  UpdateUser?: Maybe<Scalars['Boolean']['output']>;
-  /** Verify the email from the link sent by email */
-  VerifyEmail?: Maybe<Scalars['Boolean']['output']>;
-};
-
-
-export type MutationAcceptEnterpriseInvitationArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type MutationAddCommentArgs = {
-  color?: InputMaybe<Scalars['String']['input']>;
-  comment?: InputMaybe<Scalars['String']['input']>;
-  complaintID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseID: Scalars['String']['input'];
-  feedbackID?: InputMaybe<Scalars['String']['input']>;
-  repliesID?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
-  reviewerID?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationAddReplyArgs = {
-  color?: InputMaybe<Scalars['String']['input']>;
-  comment?: InputMaybe<Scalars['String']['input']>;
-  complaintID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseID: Scalars['String']['input'];
-  feedbackID?: InputMaybe<Scalars['String']['input']>;
-  repliesID?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
-  reviewerID?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationAnswerFeedbackArgs = {
-  answerBody?: InputMaybe<Scalars['String']['input']>;
-  feedbackID: Scalars['String']['input'];
-};
-
-
-export type MutationCancelHiringProccessArgs = {
-  enterpriseName: Scalars['String']['input'];
-  eventID: Scalars['String']['input'];
-  reason?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationChangePasswordArgs = {
-  newPassword: Scalars['String']['input'];
-  oldPassword: Scalars['String']['input'];
-};
-
-
-export type MutationContactArgs = {
-  email: Scalars['String']['input'];
-  text: Scalars['String']['input'];
-};
-
-
-export type MutationCreateEnterpriseArgs = {
-  cityID: Scalars['Int']['input'];
-  countryID: Scalars['Int']['input'];
-  countryStateID: Scalars['Int']['input'];
-  email: Scalars['String']['input'];
-  foundationDate: Scalars['String']['input'];
-  industryID: Scalars['Int']['input'];
-  name: Scalars['String']['input'];
-  phone: Scalars['String']['input'];
-  phoneCode: Scalars['String']['input'];
-  website?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationCreateFeedbackArgs = {
-  color?: InputMaybe<Scalars['String']['input']>;
-  comment?: InputMaybe<Scalars['String']['input']>;
-  complaintID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseID: Scalars['String']['input'];
-  feedbackID?: InputMaybe<Scalars['String']['input']>;
-  repliesID?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
-  reviewerID?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationCreateUserArgs = {
-  birthDate: Scalars['String']['input'];
+export type CreateEnterprise = {
   cityId: Scalars['Int']['input'];
   countryId: Scalars['Int']['input'];
   countryStateId: Scalars['Int']['input'];
   email: Scalars['String']['input'];
+  foundationDate: Scalars['String']['input'];
+  industryId: Scalars['Int']['input'];
+  name: Scalars['String']['input'];
+  phoneNumber: Scalars['String']['input'];
+  website: Scalars['String']['input'];
+};
+
+export type CreateUser = {
+  birthDate: Scalars['String']['input'];
+  cityId: Scalars['Int']['input'];
+  countryId: Scalars['Int']['input'];
+  countryStateId: Scalars['Int']['input'];
   firstName: Scalars['String']['input'];
-  gender: Scalars['String']['input'];
+  genre: Scalars['String']['input'];
   lastName: Scalars['String']['input'];
   password: Scalars['String']['input'];
-  phone: Scalars['String']['input'];
+  phoneNumber: Scalars['String']['input'];
   pronoun: Scalars['String']['input'];
+  userName: Scalars['String']['input'];
+};
+
+export type Employee = {
+  __typename?: 'Employee';
+  approvedHiring: Scalars['Boolean']['output'];
+  approvedHiringAt: Scalars['String']['output'];
+  enterpriseId: Scalars['String']['output'];
+  enterprisePosition: Scalars['String']['output'];
+  hiringDate: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  user: User;
+  userId: Scalars['String']['output'];
+};
+
+export type Enterprise = {
+  __typename?: 'Enterprise';
+  address: Address;
+  bannerImg: Scalars['String']['output'];
+  email: Scalars['String']['output'];
+  employees: Array<Maybe<Employee>>;
+  foundationDate: Scalars['String']['output'];
+  industry: Scalars['String']['output'];
+  logoImg: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  ownerId: Scalars['String']['output'];
+  phoneNumber: Scalars['String']['output'];
+  website: Scalars['String']['output'];
+};
+
+export type EnterpriseByAuthenticatedUser = {
+  __typename?: 'EnterpriseByAuthenticatedUser';
+  authority: GrantedAuthority;
+  enterprise?: Maybe<Enterprise>;
+};
+
+export type EnterprisesByAuthenticatedUserResult = {
+  __typename?: 'EnterprisesByAuthenticatedUserResult';
+  enterprises: Array<EnterpriseByAuthenticatedUser>;
+  offices: Array<EnterpriseByAuthenticatedUser>;
+};
+
+export type GrantedAuthority = {
+  __typename?: 'GrantedAuthority';
+  authority: Scalars['String']['output'];
+  enterpriseId: Scalars['String']['output'];
+};
+
+export type HiringInvitation = {
+  __typename?: 'HiringInvitation';
+  enterpriseEmail: Scalars['String']['output'];
+  enterpriseId: Scalars['String']['output'];
+  enterpriseLogoImg: Scalars['String']['output'];
+  enterprisePhone: Scalars['String']['output'];
+  eventId: Scalars['String']['output'];
+  fullName: Scalars['String']['output'];
+  occurredOn: Scalars['String']['output'];
+  ownerId: Scalars['String']['output'];
+  proposedPosition: Scalars['String']['output'];
+  reason: Scalars['String']['output'];
+  seen: Scalars['Boolean']['output'];
+  status: HiringProccessState;
+};
+
+export enum HiringProccessState {
+  Accepted = 'accepted',
+  Canceled = 'canceled',
+  Fired = 'fired',
+  Hired = 'hired',
+  Leaved = 'leaved',
+  Pending = 'pending',
+  Rated = 'rated',
+  Rejected = 'rejected',
+  UserAccepted = 'user_accepted',
+  Waiting = 'waiting'
+}
+
+export type Industry = {
+  __typename?: 'Industry';
+  id: Scalars['Int']['output'];
+  name: Scalars['String']['output'];
+};
+
+export type Mutation = {
+  __typename?: 'Mutation';
+  createEnterprise: Enterprise;
+  createUser: User;
 };
 
 
-export type MutationDeleteCommentArgs = {
-  color?: InputMaybe<Scalars['String']['input']>;
-  comment?: InputMaybe<Scalars['String']['input']>;
-  complaintID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseID: Scalars['String']['input'];
-  feedbackID?: InputMaybe<Scalars['String']['input']>;
-  repliesID?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
-  reviewerID?: InputMaybe<Scalars['String']['input']>;
+export type MutationCreateEnterpriseArgs = {
+  input: CreateEnterprise;
 };
 
 
-export type MutationEndFeedbackArgs = {
-  color?: InputMaybe<Scalars['String']['input']>;
-  comment?: InputMaybe<Scalars['String']['input']>;
-  complaintID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseID: Scalars['String']['input'];
-  feedbackID?: InputMaybe<Scalars['String']['input']>;
-  repliesID?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
-  reviewerID?: InputMaybe<Scalars['String']['input']>;
+export type MutationCreateUserArgs = {
+  input: CreateUser;
 };
 
-
-export type MutationFireEmployeeArgs = {
-  employeeID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseName?: InputMaybe<Scalars['String']['input']>;
+export type Notification = {
+  __typename?: 'Notification';
+  content: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  link: Scalars['String']['output'];
+  occurredOn: Scalars['String']['output'];
+  ownerId: Scalars['String']['output'];
+  seen: Scalars['Boolean']['output'];
+  thumbnail: Scalars['String']['output'];
+  title: Scalars['String']['output'];
 };
 
-
-export type MutationHireEmployeeArgs = {
-  enterpriseName: Scalars['String']['input'];
-  eventID: Scalars['String']['input'];
-  reason?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationInviteToEnterpriseArgs = {
-  enterpriseName: Scalars['String']['input'];
-  proposeTo: Scalars['String']['input'];
-  proposedPosition: Scalars['String']['input'];
-};
-
-
-export type MutationLeaveEnterpriseArgs = {
-  employeeID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseName?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationMarkAsSeenArgs = {
-  complaintID: Scalars['String']['input'];
-  ids?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationMarkNotificationAsReadArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type MutationMarkReplyChatAsSeenArgs = {
-  chatID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseName?: InputMaybe<Scalars['String']['input']>;
-  repliesID?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationPromoteEmployeeArgs = {
-  employeeID: Scalars['String']['input'];
-  enterpriseName: Scalars['String']['input'];
-  position: Scalars['String']['input'];
-};
-
-
-export type MutationRateComplaintArgs = {
-  comment?: InputMaybe<Scalars['String']['input']>;
-  complaintId: Scalars['String']['input'];
-  eventId: Scalars['String']['input'];
-  rate: Scalars['Int']['input'];
-};
-
-
-export type MutationRecoverPasswordArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type MutationRejectEnterpriseInvitationArgs = {
-  id: Scalars['String']['input'];
-  reason?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationRemoveReplyArgs = {
-  color?: InputMaybe<Scalars['String']['input']>;
-  comment?: InputMaybe<Scalars['String']['input']>;
-  complaintID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseID: Scalars['String']['input'];
-  feedbackID?: InputMaybe<Scalars['String']['input']>;
-  repliesID?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
-  reviewerID?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationReplyChatArgs = {
-  content?: InputMaybe<Scalars['String']['input']>;
-  enterpriseName?: InputMaybe<Scalars['String']['input']>;
-  id?: InputMaybe<Scalars['String']['input']>;
-  senderID?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationReplyComplaintArgs = {
-  complaintID: Scalars['String']['input'];
-  replyAuthorID: Scalars['String']['input'];
-  replyBody: Scalars['String']['input'];
-  replyEnterpriseID?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationSendComplaintArgs = {
-  authorID: Scalars['String']['input'];
-  content: Scalars['String']['input'];
-  description: Scalars['String']['input'];
-  receiverFullName: Scalars['String']['input'];
-  receiverID: Scalars['String']['input'];
-  receiverProfileIMG: Scalars['String']['input'];
-  title: Scalars['String']['input'];
-};
-
-
-export type MutationSendForReviewingArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type MutationUpdateEnterpriseArgs = {
-  enterpriseID: Scalars['String']['input'];
-  numberValue?: InputMaybe<Scalars['Int']['input']>;
-  updateType: Scalars['String']['input'];
-  value?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationUpdateUserArgs = {
-  numberValue?: InputMaybe<Scalars['Int']['input']>;
-  updateType: Scalars['String']['input'];
-  value?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationVerifyEmailArgs = {
-  id: Scalars['String']['input'];
-};
-
-export type Notifications = {
-  __typename?: 'Notifications';
-  content?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['String']['output']>;
-  link?: Maybe<Scalars['String']['output']>;
-  occurredOn?: Maybe<Scalars['String']['output']>;
-  ownerID?: Maybe<Scalars['String']['output']>;
-  seen?: Maybe<Scalars['Boolean']['output']>;
-  thumbnail?: Maybe<Scalars['String']['output']>;
-  title?: Maybe<Scalars['String']['output']>;
-};
-
-export type PendingReview = {
-  __typename?: 'PendingReview';
-  complaint?: Maybe<Complaint>;
-  eventID?: Maybe<Scalars['String']['output']>;
-  occurredOn?: Maybe<Scalars['String']['output']>;
-  ratedBy?: Maybe<User>;
-  status?: Maybe<Scalars['String']['output']>;
-  triggeredBy?: Maybe<User>;
+export type Person = {
+  __typename?: 'Person';
+  address: Address;
+  age: Scalars['Int']['output'];
+  email: Scalars['String']['output'];
+  firstName: Scalars['String']['output'];
+  genre: Scalars['String']['output'];
+  lastName: Scalars['String']['output'];
+  phoneNumber: Scalars['String']['output'];
+  profileImg: Scalars['String']['output'];
+  pronoun: Scalars['String']['output'];
 };
 
 export type Query = {
   __typename?: 'Query';
-  /** find all cities by county ID */
-  Cities?: Maybe<Array<Maybe<City>>>;
-  /** Get a complaint by it's ID */
-  Complaint?: Maybe<Complaint>;
-  /** Get the list of inbox complaints for the current user */
-  ComplaintHistory?: Maybe<ComplaintList>;
-  /** Get the list of inbox complaints for the current user */
-  ComplaintInbox?: Maybe<ComplaintList>;
-  /** Search the inbox complaints for the current user */
-  ComplaintInboxSearch?: Maybe<ComplaintList>;
-  /** Get the complaints received info for the current user */
-  ComplaintsReceivedInfo?: Maybe<ComplaintInfo>;
-  /** Get the list of sent complaints for the current user */
-  ComplaintsSent?: Maybe<ComplaintList>;
-  /** Get the list of sent complaints for the current user */
-  ComplaintsSentSearch?: Maybe<ComplaintList>;
-  /** Get the list of countries */
-  Countries?: Maybe<Array<Maybe<Country>>>;
-  /** find all counties by country ID */
-  CountryStates?: Maybe<Array<Maybe<County>>>;
-  /** Get the employee by it's ID, enterpriseID required for auth for authorization */
-  Employee?: Maybe<Employee>;
-  /** Get the list of employees for the enterprise, enterpriseID required for authorization */
-  Employees?: Maybe<Array<Maybe<Employee>>>;
-  /** Return the enterprise info */
-  Enterprise?: Maybe<Enterprise>;
-  /** Get the chat for the enterprise */
-  EnterpriseChat?: Maybe<EnterpriseChat>;
-  /** Get the feedback by complaint ID */
-  FeedbackByComplaintID?: Maybe<Feedback>;
-  /** Get the reviews by reviewer ID */
-  FeedbackByID?: Maybe<Feedback>;
-  /** Get the reviews by reviee ID */
-  FeedbackByRevieweeID?: Maybe<Array<Maybe<Feedback>>>;
-  /** Find the author by ID */
-  FindAuthorByID?: Maybe<ComplaintReceiver>;
-  /** Find the receivers for a complaint */
-  FindComplaintReceivers?: Maybe<Array<Maybe<ComplaintReceiver>>>;
-  /** Get the list of hiring invitations */
-  HiringInvitations?: Maybe<Array<Maybe<HiringInvitation>>>;
-  /** Get the list of hiring invitations accepted */
-  HiringProcceses?: Maybe<HiringProccessList>;
-  /** Get the list of industries */
-  Industries?: Maybe<Array<Maybe<Industry>>>;
-  /** Check if the enterprise name is available */
-  IsEnterpriseNameAvailable?: Maybe<Scalars['Boolean']['output']>;
-  /** Check if the receiver is valid for a complaint */
-  IsValidComplaintReceiver?: Maybe<Scalars['Boolean']['output']>;
-  /** Authenticate the user with the token and confirmation code it got the token from the request header */
-  Login?: Maybe<JwtToken>;
-  /** Get the list of online users */
-  OnlineUsers?: Maybe<Array<Maybe<User>>>;
-  /** Get the list of complaints waiting for review */
-  PendingComplaintReviews?: Maybe<Array<Maybe<PendingReview>>>;
-  /** Get the token for the authenticated user or error */
-  SignIn?: Maybe<JwtToken>;
-  /** Get the list of solved complaints for the current user */
-  SolvedComplaints?: Maybe<Array<Maybe<Complaint>>>;
-  /** Get a user without private information by it's ID */
-  User?: Maybe<User>;
-  /** Get the user descriptor for the current session */
-  UserDescriptor?: Maybe<UserDescriptor>;
-  /** Get the list of users for hiring */
-  UsersForHiring?: Maybe<UserList>;
+  cities: Array<City>;
+  complaintsReceivedInfo: ComplaintInfo;
+  countries: Array<Country>;
+  countryStates: Array<CountryState>;
+  enterpriseById: Enterprise;
+  enterprisesByAuthenticatedUser: EnterprisesByAuthenticatedUserResult;
+  hiringInvitationsByAuthenticatedUser: Array<HiringInvitation>;
+  industries: Array<Industry>;
+  userById: User;
+  userDescriptor: UserDescriptor;
+  usersForHiring: UsersForHiringResult;
 };
 
 
@@ -670,68 +223,8 @@ export type QueryCitiesArgs = {
 };
 
 
-export type QueryComplaintArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryComplaintHistoryArgs = {
-  afterDate?: InputMaybe<Scalars['String']['input']>;
-  beforeDate?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  status?: InputMaybe<Scalars['String']['input']>;
-  term?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryComplaintInboxArgs = {
-  afterDate?: InputMaybe<Scalars['String']['input']>;
-  beforeDate?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  status?: InputMaybe<Scalars['String']['input']>;
-  term?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryComplaintInboxSearchArgs = {
-  afterDate?: InputMaybe<Scalars['String']['input']>;
-  beforeDate?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  status?: InputMaybe<Scalars['String']['input']>;
-  term?: InputMaybe<Scalars['String']['input']>;
-};
-
-
 export type QueryComplaintsReceivedInfoArgs = {
   id: Scalars['String']['input'];
-};
-
-
-export type QueryComplaintsSentArgs = {
-  afterDate?: InputMaybe<Scalars['String']['input']>;
-  beforeDate?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  status?: InputMaybe<Scalars['String']['input']>;
-  term?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryComplaintsSentSearchArgs = {
-  afterDate?: InputMaybe<Scalars['String']['input']>;
-  beforeDate?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  status?: InputMaybe<Scalars['String']['input']>;
-  term?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -740,132 +233,30 @@ export type QueryCountryStatesArgs = {
 };
 
 
-export type QueryEmployeeArgs = {
-  employeeID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseName?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryEmployeesArgs = {
-  employeeID?: InputMaybe<Scalars['String']['input']>;
-  enterpriseName?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryEnterpriseArgs = {
+export type QueryEnterpriseByIdArgs = {
   id: Scalars['String']['input'];
 };
 
 
-export type QueryEnterpriseChatArgs = {
-  chatID: Scalars['String']['input'];
-  enterpriseID: Scalars['String']['input'];
-};
-
-
-export type QueryFeedbackByComplaintIdArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryFeedbackByIdArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryFeedbackByRevieweeIdArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryFindAuthorByIdArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryFindComplaintReceiversArgs = {
-  id: Scalars['String']['input'];
-  term?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryHiringProccesesArgs = {
-  id: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  query?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryIsEnterpriseNameAvailableArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryIsValidComplaintReceiverArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryLoginArgs = {
-  confirmationCode: Scalars['Int']['input'];
-};
-
-
-export type QueryOnlineUsersArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryPendingComplaintReviewsArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QuerySignInArgs = {
-  email: Scalars['String']['input'];
-  password: Scalars['String']['input'];
-  rememberMe?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-
-export type QuerySolvedComplaintsArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryUserArgs = {
+export type QueryUserByIdArgs = {
   id: Scalars['String']['input'];
 };
 
 
 export type QueryUsersForHiringArgs = {
+  input: SearchWithPagination;
+};
+
+export type SearchWithPagination = {
   id: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  query?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ReplyReview = {
-  __typename?: 'ReplyReview';
-  color?: Maybe<Scalars['String']['output']>;
-  createdAt?: Maybe<Scalars['String']['output']>;
-  feedbackID?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['String']['output']>;
-  replies?: Maybe<Array<Maybe<ComplaintReply>>>;
-  review?: Maybe<Review>;
-  reviewer?: Maybe<User>;
-};
-
-export type Review = {
-  __typename?: 'Review';
-  comment?: Maybe<Scalars['String']['output']>;
-  replyReviewID?: Maybe<Scalars['String']['output']>;
+  limit: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+  query: Scalars['String']['input'];
 };
 
 export type Subscription = {
   __typename?: 'Subscription';
-  notifications?: Maybe<Array<Maybe<Notifications>>>;
+  notifications: Notification;
 };
 
 
@@ -875,78 +266,134 @@ export type SubscriptionNotificationsArgs = {
 
 export type User = {
   __typename?: 'User';
-  address?: Maybe<Address>;
-  age?: Maybe<Scalars['Int']['output']>;
-  email?: Maybe<Scalars['String']['output']>;
-  firstName?: Maybe<Scalars['String']['output']>;
-  gender?: Maybe<Scalars['String']['output']>;
-  lastName?: Maybe<Scalars['String']['output']>;
-  phone?: Maybe<Scalars['String']['output']>;
-  profileIMG?: Maybe<Scalars['String']['output']>;
-  pronoun?: Maybe<Scalars['String']['output']>;
-  status?: Maybe<Scalars['String']['output']>;
+  person: Person;
+  status: UserStatus;
+  userName: Scalars['String']['output'];
 };
 
 export type UserDescriptor = {
   __typename?: 'UserDescriptor';
+  authorities?: Maybe<Array<Maybe<GrantedAuthority>>>;
   device?: Maybe<Scalars['String']['output']>;
-  email?: Maybe<Scalars['String']['output']>;
-  fullName?: Maybe<Scalars['String']['output']>;
-  gender?: Maybe<Scalars['String']['output']>;
-  geolocation?: Maybe<Geolocation>;
-  grantedAuthorities?: Maybe<Array<Maybe<GrantedAuthority>>>;
+  fullName: Scalars['String']['output'];
+  genre: Scalars['String']['output'];
+  geolocation?: Maybe<Scalars['String']['output']>;
   ip?: Maybe<Scalars['String']['output']>;
   loginDate?: Maybe<Scalars['String']['output']>;
-  profileIMG?: Maybe<Scalars['String']['output']>;
-  pronoun?: Maybe<Scalars['String']['output']>;
+  profileImg: Scalars['String']['output'];
+  pronoun: Scalars['String']['output'];
+  userName: Scalars['String']['output'];
 };
 
-export type UserList = {
-  __typename?: 'UserList';
-  count?: Maybe<Scalars['Int']['output']>;
-  currentLimit?: Maybe<Scalars['Int']['output']>;
-  currentOffset?: Maybe<Scalars['Int']['output']>;
-  users?: Maybe<Array<Maybe<User>>>;
+export enum UserStatus {
+  Offline = 'OFFLINE',
+  Online = 'ONLINE'
+}
+
+export type UsersForHiringResult = {
+  __typename?: 'UsersForHiringResult';
+  count: Scalars['Int']['output'];
+  limit: Scalars['Int']['output'];
+  nextCursor: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  prevCursor: Scalars['Int']['output'];
+  users: Array<User>;
 };
 
-export type CreateUserMutationMutationVariables = Exact<{
-  email: Scalars['String']['input'];
-  password: Scalars['String']['input'];
-  firstName: Scalars['String']['input'];
-  lastName: Scalars['String']['input'];
-  gender: Scalars['String']['input'];
-  pronoun: Scalars['String']['input'];
-  birthDate: Scalars['String']['input'];
-  phone: Scalars['String']['input'];
-  countryId: Scalars['Int']['input'];
-  countryStateId: Scalars['Int']['input'];
-  cityId: Scalars['Int']['input'];
+export type CountryFragmentFragment = { __typename?: 'Country', id: number, name: string } & { ' $fragmentName'?: 'CountryFragmentFragment' };
+
+export type CreateEnterpriseMutationVariables = Exact<{
+  input: CreateEnterprise;
 }>;
 
 
-export type CreateUserMutationMutation = { __typename?: 'Mutation', CreateUser?: boolean | null };
+export type CreateEnterpriseMutation = { __typename?: 'Mutation', createEnterprise: { __typename?: 'Enterprise', name: string } };
+
+export type CreateUserMutationMutationVariables = Exact<{
+  input: CreateUser;
+}>;
+
+
+export type CreateUserMutationMutation = { __typename?: 'Mutation', createUser: { __typename?: 'User', userName: string } };
 
 export type CitiesQueryQueryVariables = Exact<{
   id: Scalars['Int']['input'];
 }>;
 
 
-export type CitiesQueryQuery = { __typename?: 'Query', Cities?: Array<{ __typename?: 'City', id?: number | null, name?: string | null, countryCode?: string | null, latitude?: number | null, longitude?: number | null } | null> | null };
+export type CitiesQueryQuery = { __typename?: 'Query', cities: Array<{ __typename?: 'City', id: number, name: string, countryCode: string, latitude: number, longitude: number }> };
+
+export type ComplaintsInfoQueryQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type ComplaintsInfoQueryQuery = { __typename?: 'Query', complaintsReceivedInfo: { __typename?: 'ComplaintInfo', received: number, resolved: number, reviewed: number, pending: number, avgRating: number, total: number } };
 
 export type CountriesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type CountriesQuery = { __typename?: 'Query', Countries?: Array<{ __typename?: 'Country', id?: number | null, name?: string | null, phoneCode?: string | null } | null> | null };
+export type CountriesQuery = { __typename?: 'Query', countries: Array<{ __typename?: 'Country', id: number, name: string, phoneCode: string }> };
 
 export type CountryStatesQueryQueryVariables = Exact<{
   id: Scalars['Int']['input'];
 }>;
 
 
-export type CountryStatesQueryQuery = { __typename?: 'Query', CountryStates?: Array<{ __typename?: 'County', id?: number | null, name?: string | null } | null> | null };
+export type CountryStatesQueryQuery = { __typename?: 'Query', countryStates: Array<{ __typename?: 'CountryState', id: number, name: string }> };
+
+export type EnterpriseByIdQueryQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
 
 
-export const CreateUserMutationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateUserMutation"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"email"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"password"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"firstName"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"lastName"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"gender"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"pronoun"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"birthDate"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"phone"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"countryId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"countryStateId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"cityId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"CreateUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"email"},"value":{"kind":"Variable","name":{"kind":"Name","value":"email"}}},{"kind":"Argument","name":{"kind":"Name","value":"password"},"value":{"kind":"Variable","name":{"kind":"Name","value":"password"}}},{"kind":"Argument","name":{"kind":"Name","value":"firstName"},"value":{"kind":"Variable","name":{"kind":"Name","value":"firstName"}}},{"kind":"Argument","name":{"kind":"Name","value":"lastName"},"value":{"kind":"Variable","name":{"kind":"Name","value":"lastName"}}},{"kind":"Argument","name":{"kind":"Name","value":"gender"},"value":{"kind":"Variable","name":{"kind":"Name","value":"gender"}}},{"kind":"Argument","name":{"kind":"Name","value":"pronoun"},"value":{"kind":"Variable","name":{"kind":"Name","value":"pronoun"}}},{"kind":"Argument","name":{"kind":"Name","value":"birthDate"},"value":{"kind":"Variable","name":{"kind":"Name","value":"birthDate"}}},{"kind":"Argument","name":{"kind":"Name","value":"phone"},"value":{"kind":"Variable","name":{"kind":"Name","value":"phone"}}},{"kind":"Argument","name":{"kind":"Name","value":"countryId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"countryId"}}},{"kind":"Argument","name":{"kind":"Name","value":"countryStateId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"countryStateId"}}},{"kind":"Argument","name":{"kind":"Name","value":"cityId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"cityId"}}}]}]}}]} as unknown as DocumentNode<CreateUserMutationMutation, CreateUserMutationMutationVariables>;
-export const CitiesQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"CitiesQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"Cities"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"countryCode"}},{"kind":"Field","name":{"kind":"Name","value":"latitude"}},{"kind":"Field","name":{"kind":"Name","value":"longitude"}}]}}]}}]} as unknown as DocumentNode<CitiesQueryQuery, CitiesQueryQueryVariables>;
-export const CountriesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Countries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"Countries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"phoneCode"}}]}}]}}]} as unknown as DocumentNode<CountriesQuery, CountriesQueryVariables>;
-export const CountryStatesQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"CountryStatesQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"CountryStates"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]} as unknown as DocumentNode<CountryStatesQueryQuery, CountryStatesQueryQueryVariables>;
+export type EnterpriseByIdQueryQuery = { __typename?: 'Query', enterpriseById: { __typename?: 'Enterprise', name: string, logoImg: string, bannerImg: string, website: string, email: string, phoneNumber: string, industry: string, foundationDate: string, ownerId: string, address: { __typename?: 'Address', country: string, countryState: string, city: string }, employees: Array<{ __typename?: 'Employee', id: string, enterpriseId: string, userId: string, hiringDate: string, approvedHiring: boolean, approvedHiringAt: string, enterprisePosition: string, user: { __typename?: 'User', userName: string, status: UserStatus, person: { __typename?: 'Person', profileImg: string, email: string, firstName: string, lastName: string, genre: string, pronoun: string, age: number, phoneNumber: string, address: { __typename?: 'Address', country: string, countryState: string, city: string } } } } | null> } };
+
+export type EnterprisesByAuthenticatedUserQueryQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type EnterprisesByAuthenticatedUserQueryQuery = { __typename?: 'Query', enterprisesByAuthenticatedUser: { __typename?: 'EnterprisesByAuthenticatedUserResult', enterprises: Array<{ __typename?: 'EnterpriseByAuthenticatedUser', authority: { __typename?: 'GrantedAuthority', authority: string, enterpriseId: string }, enterprise?: { __typename?: 'Enterprise', name: string, logoImg: string, bannerImg: string, website: string, email: string, phoneNumber: string, industry: string, foundationDate: string, ownerId: string, address: { __typename?: 'Address', country: string, countryState: string, city: string } } | null }>, offices: Array<{ __typename?: 'EnterpriseByAuthenticatedUser', authority: { __typename?: 'GrantedAuthority', authority: string, enterpriseId: string }, enterprise?: { __typename?: 'Enterprise', name: string, logoImg: string, bannerImg: string, website: string, email: string, phoneNumber: string, industry: string, foundationDate: string, ownerId: string, address: { __typename?: 'Address', country: string, countryState: string, city: string } } | null }> } };
+
+export type HiringInvitationsByAuthenticatedUserQueryQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type HiringInvitationsByAuthenticatedUserQueryQuery = { __typename?: 'Query', hiringInvitationsByAuthenticatedUser: Array<{ __typename?: 'HiringInvitation', eventId: string, enterpriseId: string, proposedPosition: string, ownerId: string, fullName: string, enterpriseEmail: string, enterprisePhone: string, enterpriseLogoImg: string, occurredOn: string, seen: boolean, status: HiringProccessState, reason: string }> };
+
+export type IndustriesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type IndustriesQuery = { __typename?: 'Query', industries: Array<{ __typename?: 'Industry', id: number, name: string }> };
+
+export type UserQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type UserQuery = { __typename?: 'Query', userById: { __typename?: 'User', userName: string, status: UserStatus, person: { __typename?: 'Person', profileImg: string, email: string, firstName: string, lastName: string, genre: string, pronoun: string, age: number, phoneNumber: string, address: { __typename?: 'Address', country: string, countryState: string, city: string } } } };
+
+export type UserDescriptorQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UserDescriptorQuery = { __typename?: 'Query', userDescriptor: { __typename?: 'UserDescriptor', userName: string, fullName: string, profileImg: string, genre: string, pronoun: string, authorities?: Array<{ __typename?: 'GrantedAuthority', enterpriseId: string, authority: string } | null> | null } };
+
+export type UsersForHiringQueryQueryVariables = Exact<{
+  input: SearchWithPagination;
+}>;
+
+
+export type UsersForHiringQueryQuery = { __typename?: 'Query', usersForHiring: { __typename?: 'UsersForHiringResult', count: number, limit: number, offset: number, nextCursor: number, prevCursor: number, users: Array<{ __typename?: 'User', userName: string, status: UserStatus, person: { __typename?: 'Person', profileImg: string, email: string, firstName: string, lastName: string, genre: string, pronoun: string, age: number, phoneNumber: string, address: { __typename?: 'Address', country: string, countryState: string, city: string } } }> } };
+
+export const CountryFragmentFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"CountryFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Country"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]} as unknown as DocumentNode<CountryFragmentFragment, unknown>;
+export const CreateEnterpriseDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"createEnterprise"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateEnterprise"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createEnterprise"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]} as unknown as DocumentNode<CreateEnterpriseMutation, CreateEnterpriseMutationVariables>;
+export const CreateUserMutationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateUserMutation"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateUser"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userName"}}]}}]}}]} as unknown as DocumentNode<CreateUserMutationMutation, CreateUserMutationMutationVariables>;
+export const CitiesQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"CitiesQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cities"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"countryCode"}},{"kind":"Field","name":{"kind":"Name","value":"latitude"}},{"kind":"Field","name":{"kind":"Name","value":"longitude"}}]}}]}}]} as unknown as DocumentNode<CitiesQueryQuery, CitiesQueryQueryVariables>;
+export const ComplaintsInfoQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"complaintsInfoQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"complaintsReceivedInfo"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"received"}},{"kind":"Field","name":{"kind":"Name","value":"resolved"}},{"kind":"Field","name":{"kind":"Name","value":"reviewed"}},{"kind":"Field","name":{"kind":"Name","value":"pending"}},{"kind":"Field","name":{"kind":"Name","value":"avgRating"}},{"kind":"Field","name":{"kind":"Name","value":"total"}}]}}]}}]} as unknown as DocumentNode<ComplaintsInfoQueryQuery, ComplaintsInfoQueryQueryVariables>;
+export const CountriesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Countries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"countries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"phoneCode"}}]}}]}}]} as unknown as DocumentNode<CountriesQuery, CountriesQueryVariables>;
+export const CountryStatesQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"CountryStatesQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"countryStates"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]} as unknown as DocumentNode<CountryStatesQueryQuery, CountryStatesQueryQueryVariables>;
+export const EnterpriseByIdQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"enterpriseByIdQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"enterpriseById"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"logoImg"}},{"kind":"Field","name":{"kind":"Name","value":"bannerImg"}},{"kind":"Field","name":{"kind":"Name","value":"website"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phoneNumber"}},{"kind":"Field","name":{"kind":"Name","value":"address"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"country"}},{"kind":"Field","name":{"kind":"Name","value":"countryState"}},{"kind":"Field","name":{"kind":"Name","value":"city"}}]}},{"kind":"Field","name":{"kind":"Name","value":"industry"}},{"kind":"Field","name":{"kind":"Name","value":"foundationDate"}},{"kind":"Field","name":{"kind":"Name","value":"ownerId"}},{"kind":"Field","name":{"kind":"Name","value":"employees"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"enterpriseId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userName"}},{"kind":"Field","name":{"kind":"Name","value":"person"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"profileImg"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"genre"}},{"kind":"Field","name":{"kind":"Name","value":"pronoun"}},{"kind":"Field","name":{"kind":"Name","value":"age"}},{"kind":"Field","name":{"kind":"Name","value":"phoneNumber"}},{"kind":"Field","name":{"kind":"Name","value":"address"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"country"}},{"kind":"Field","name":{"kind":"Name","value":"countryState"}},{"kind":"Field","name":{"kind":"Name","value":"city"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}},{"kind":"Field","name":{"kind":"Name","value":"hiringDate"}},{"kind":"Field","name":{"kind":"Name","value":"approvedHiring"}},{"kind":"Field","name":{"kind":"Name","value":"approvedHiringAt"}},{"kind":"Field","name":{"kind":"Name","value":"enterprisePosition"}}]}}]}}]}}]} as unknown as DocumentNode<EnterpriseByIdQueryQuery, EnterpriseByIdQueryQueryVariables>;
+export const EnterprisesByAuthenticatedUserQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"EnterprisesByAuthenticatedUserQuery"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"enterprisesByAuthenticatedUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"enterprises"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authority"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authority"}},{"kind":"Field","name":{"kind":"Name","value":"enterpriseId"}}]}},{"kind":"Field","name":{"kind":"Name","value":"enterprise"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"logoImg"}},{"kind":"Field","name":{"kind":"Name","value":"bannerImg"}},{"kind":"Field","name":{"kind":"Name","value":"website"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phoneNumber"}},{"kind":"Field","name":{"kind":"Name","value":"address"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"country"}},{"kind":"Field","name":{"kind":"Name","value":"countryState"}},{"kind":"Field","name":{"kind":"Name","value":"city"}}]}},{"kind":"Field","name":{"kind":"Name","value":"industry"}},{"kind":"Field","name":{"kind":"Name","value":"foundationDate"}},{"kind":"Field","name":{"kind":"Name","value":"ownerId"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"offices"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authority"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authority"}},{"kind":"Field","name":{"kind":"Name","value":"enterpriseId"}}]}},{"kind":"Field","name":{"kind":"Name","value":"enterprise"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"logoImg"}},{"kind":"Field","name":{"kind":"Name","value":"bannerImg"}},{"kind":"Field","name":{"kind":"Name","value":"website"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phoneNumber"}},{"kind":"Field","name":{"kind":"Name","value":"address"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"country"}},{"kind":"Field","name":{"kind":"Name","value":"countryState"}},{"kind":"Field","name":{"kind":"Name","value":"city"}}]}},{"kind":"Field","name":{"kind":"Name","value":"industry"}},{"kind":"Field","name":{"kind":"Name","value":"foundationDate"}},{"kind":"Field","name":{"kind":"Name","value":"ownerId"}}]}}]}}]}}]}}]} as unknown as DocumentNode<EnterprisesByAuthenticatedUserQueryQuery, EnterprisesByAuthenticatedUserQueryQueryVariables>;
+export const HiringInvitationsByAuthenticatedUserQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"hiringInvitationsByAuthenticatedUserQuery"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hiringInvitationsByAuthenticatedUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"eventId"}},{"kind":"Field","name":{"kind":"Name","value":"enterpriseId"}},{"kind":"Field","name":{"kind":"Name","value":"proposedPosition"}},{"kind":"Field","name":{"kind":"Name","value":"ownerId"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"enterpriseEmail"}},{"kind":"Field","name":{"kind":"Name","value":"enterprisePhone"}},{"kind":"Field","name":{"kind":"Name","value":"enterpriseLogoImg"}},{"kind":"Field","name":{"kind":"Name","value":"occurredOn"}},{"kind":"Field","name":{"kind":"Name","value":"seen"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"reason"}}]}}]}}]} as unknown as DocumentNode<HiringInvitationsByAuthenticatedUserQueryQuery, HiringInvitationsByAuthenticatedUserQueryQueryVariables>;
+export const IndustriesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"industries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"industries"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]} as unknown as DocumentNode<IndustriesQuery, IndustriesQueryVariables>;
+export const UserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"User"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userById"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userName"}},{"kind":"Field","name":{"kind":"Name","value":"person"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"profileImg"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"genre"}},{"kind":"Field","name":{"kind":"Name","value":"pronoun"}},{"kind":"Field","name":{"kind":"Name","value":"age"}},{"kind":"Field","name":{"kind":"Name","value":"phoneNumber"}},{"kind":"Field","name":{"kind":"Name","value":"address"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"country"}},{"kind":"Field","name":{"kind":"Name","value":"countryState"}},{"kind":"Field","name":{"kind":"Name","value":"city"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}}]}}]} as unknown as DocumentNode<UserQuery, UserQueryVariables>;
+export const UserDescriptorDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"UserDescriptor"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userDescriptor"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"profileImg"}},{"kind":"Field","name":{"kind":"Name","value":"genre"}},{"kind":"Field","name":{"kind":"Name","value":"pronoun"}},{"kind":"Field","name":{"kind":"Name","value":"authorities"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"enterpriseId"}},{"kind":"Field","name":{"kind":"Name","value":"authority"}}]}}]}}]}}]} as unknown as DocumentNode<UserDescriptorQuery, UserDescriptorQueryVariables>;
+export const UsersForHiringQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"usersForHiringQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"SearchWithPagination"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"usersForHiring"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userName"}},{"kind":"Field","name":{"kind":"Name","value":"person"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"profileImg"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"genre"}},{"kind":"Field","name":{"kind":"Name","value":"pronoun"}},{"kind":"Field","name":{"kind":"Name","value":"age"}},{"kind":"Field","name":{"kind":"Name","value":"phoneNumber"}},{"kind":"Field","name":{"kind":"Name","value":"address"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"country"}},{"kind":"Field","name":{"kind":"Name","value":"countryState"}},{"kind":"Field","name":{"kind":"Name","value":"city"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}},{"kind":"Field","name":{"kind":"Name","value":"count"}},{"kind":"Field","name":{"kind":"Name","value":"limit"}},{"kind":"Field","name":{"kind":"Name","value":"offset"}},{"kind":"Field","name":{"kind":"Name","value":"nextCursor"}},{"kind":"Field","name":{"kind":"Name","value":"prevCursor"}}]}}]}}]} as unknown as DocumentNode<UsersForHiringQueryQuery, UsersForHiringQueryQueryVariables>;

@@ -11,15 +11,15 @@ import { useFormState, useFormStatus } from "react-dom";
 import { z } from "zod";
 import signUpSchema from "@/lib/validation/signUpSchema";
 import InlineAlert from "../error/InlineAlert";
-type stateType = z.inferFlattenedErrors<typeof signUpSchema>
-const initialState: Partial<stateType> = {}
+
+const initialState: Partial<z.inferFlattenedErrors<typeof signUpSchema>> | undefined = {}
 const SignUpForm: React.FC = () => {
     const gqlClient = getGraphQLClient()
     const { data } = useSuspenseQuery({
         queryKey: ['countries'],
         queryFn: async () => gqlClient.request(countriesQuery),
     })
-    const [countryId, setCountryId] = useState<number | undefined>(data?.Countries?.at(0)?.id!)
+    const [countryId, setCountryId] = useState<number | undefined>(data?.countries?.at(0)?.id!)
     const [countryStateId, setCountryStateId] = useState<number | undefined>()
 
     const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -32,8 +32,8 @@ const SignUpForm: React.FC = () => {
         queryKey: ['countryStates', countryId],
         queryFn: async () => {
             const data = await gqlClient.request(countryStatesQuery, { id: countryId! })
-            if (data.CountryStates) {
-                setCountryStateId(data.CountryStates.at(0)?.id!)
+            if (data.countryStates) {
+                setCountryStateId(data.countryStates.at(0)?.id!)
             }
             return data
         },
@@ -54,18 +54,18 @@ const SignUpForm: React.FC = () => {
             <div className="mb-4">
                 <label
                     className="block text-gray-700 text-sm lg:text-md font-bold mb-2"
-                    htmlFor="email">Email</label>
+                    htmlFor="userName">Email</label>
                 <input
                     className="appearance-none border rounded w-full py-2 px-3
                 text-md lg:text-lg
                 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    name="email"
+                    name="userName"
                     type="email"
                     placeholder="Email"
                     autoComplete="username"
                 />
             </div>
-            {state?.fieldErrors?.email && <InlineAlert errors={state.fieldErrors.email} />}
+            {state?.fieldErrors?.userName && <InlineAlert errors={state.fieldErrors.userName} />}
             <div className="mb-4">
                 <label
                     className="block text-gray-700 text-sm lg:text-md font-bold mb-2"
@@ -117,14 +117,14 @@ const SignUpForm: React.FC = () => {
             <div className="w-full  mb-4">
                 <label
                     className="block text-gray-700 text-sm lg:text-md font-bold mb-2"
-                    htmlFor="gender">Gender</label>
+                    htmlFor="genre">Genre</label>
                 <div className="relative">
                     <select
                         className="block appearance-none w-full bg-gray-200 border
                         text-md lg:text-lg
                      border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight
                       focus:outline-none focus:bg-white focus:border-gray-500"
-                        name="gender"
+                        name="genre"
                         defaultValue={"male"}>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
@@ -135,7 +135,7 @@ const SignUpForm: React.FC = () => {
                     </div>
                 </div>
             </div>
-            {state?.fieldErrors?.gender && <InlineAlert errors={state.fieldErrors.gender} />}
+            {state?.fieldErrors?.genre && <InlineAlert errors={state.fieldErrors.genre} />}
             <div className="w-full  mb-4">
                 <label
                     className="block text-gray-700 text-sm lg:text-md font-bold mb-2"
@@ -182,7 +182,7 @@ const SignUpForm: React.FC = () => {
                         onChange={handleCountryChange}
                         name="countryId">
                         {
-                            data.Countries && data.Countries.map((c) => {
+                            data.countries && data.countries.map((c) => {
                                 if (c) {
                                     return (
                                         <option key={c.id} value={c.id!}>{c.name}</option>
@@ -210,7 +210,7 @@ const SignUpForm: React.FC = () => {
                         onChange={handleCountryStateChange}
                         name="countryStateId">
                         {
-                            countryStatesData && countryStatesData.CountryStates && countryStatesData.CountryStates.map((c) => {
+                            countryStatesData && countryStatesData.countryStates && countryStatesData.countryStates.map((c) => {
                                 if (c) {
                                     return (
                                         <option key={c.id} value={c.id!}>{c.name}</option>
@@ -239,7 +239,7 @@ const SignUpForm: React.FC = () => {
                      text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
                     >
                         {
-                            citiesData && citiesData.Cities && citiesData.Cities.map((c) => {
+                            citiesData && citiesData.cities && citiesData.cities.map((c) => {
                                 if (c) {
                                     return (
                                         <option key={c.id} value={c.id!}>{c.name}</option>
@@ -259,16 +259,16 @@ const SignUpForm: React.FC = () => {
             <div className="mb-4">
                 <label
                     className="block text-gray-700 text-sm lg:text-md font-bold mb-2"
-                    htmlFor="phone">Phone</label>
+                    htmlFor="phoneNumber">Phone</label>
                 <div className="w-full  flex mb-4">
                     <input
                         className="appearance-none border rounded w-full py-2 px-3 text-gray-700 
                         text-md lg:text-lg
                         leading-tight focus:outline-none focus:shadow-outline"
-                        name="phone" type="tel" placeholder="4321 567-8910" />
+                        name="phoneNumber" type="tel" placeholder="4321 567-8910" />
                 </div>
             </div>
-            {state?.fieldErrors?.phone && <InlineAlert errors={state.fieldErrors.phone} />}
+            {state?.fieldErrors?.phoneNumber && <InlineAlert errors={state.fieldErrors.phoneNumber} />}
             <div className="mb-4">
                 <div className="flex items-start">
                     <div className="flex items-center h-5">

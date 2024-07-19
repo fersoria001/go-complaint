@@ -14,11 +14,11 @@ func CreateEnterpriseResolver(params graphql.ResolveParams) (interface{}, error)
 		return false, err
 	}
 	command := commands.EnterpriseCommand{
-		OwnerID:        currentUser.Email,
-		Name:           params.Args["name"].(string),
-		Website:        params.Args["website"].(string),
-		Email:          params.Args["email"].(string),
-		PhoneCode:      params.Args["phoneCode"].(string),
+		OwnerID: currentUser.Email,
+		Name:    params.Args["name"].(string),
+		Website: params.Args["website"].(string),
+		Email:   params.Args["email"].(string),
+		//		PhoneCode:      params.Args["phoneCode"].(string),
 		Phone:          params.Args["phone"].(string),
 		CountryID:      params.Args["countryID"].(int),
 		CountryStateID: params.Args["countryStateID"].(int),

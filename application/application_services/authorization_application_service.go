@@ -202,10 +202,8 @@ func (aas AuthorizationApplicationService) ResourceAccess(
 		if resourceID == "" {
 			return credentials, nil
 		}
-
 		if resourceID != credentials.Email {
 			for _, v := range credentials.GrantedAuthorities {
-
 				if v.EnterpriseID == resourceID && requiredAuthoritiesSet.Contains(v.Authority) {
 					return credentials, nil
 				}

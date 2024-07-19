@@ -132,7 +132,7 @@ func CreateUser(
 		password,
 		registerDate,
 		person,
-		false,
+		true,
 		emptyUserRoles,
 	)
 	if err != nil {

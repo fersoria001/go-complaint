@@ -2,7 +2,7 @@ import { graphql } from "@/gql";
 
 const countriesQuery = graphql(`
     query Countries{
-        Countries{
+        countries{
             id
             name
             phoneCode

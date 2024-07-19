@@ -48,21 +48,20 @@ func (userCommand UserCommand) Register(ctx context.Context) error {
 		userCommand.FirstName == "" ||
 		userCommand.LastName == "" ||
 		userCommand.BirthDate == "" ||
-		userCommand.PhoneCode == "" ||
 		userCommand.Phone == "" {
 		return ErrBadRequest
 	}
 	domain.DomainEventPublisherInstance().Subscribe(
 		domain.DomainEventSubscriber{
 			HandleEvent: func(event domain.DomainEvent) error {
-				if castedEvent, ok := event.(*identity.UserCreated); ok {
-					SendEmailCommand{
-						ToEmail:           userCommand.Email,
-						ToName:            userCommand.FirstName + " " + userCommand.LastName,
-						ConfirmationToken: castedEvent.ConfirmationToken(),
-					}.Welcome(ctx)
-					return nil
-				}
+				// if castedEvent, ok := event.(*identity.UserCreated); ok {
+				// 	SendEmailCommand{
+				// 		ToEmail:           userCommand.Email,
+				// 		ToName:            userCommand.FirstName + " " + userCommand.LastName,
+				// 		ConfirmationToken: castedEvent.ConfirmationToken(),
+				// 	}.Welcome(ctx)
+				// 	return nil
+				// }
 				return nil
 			},
 			SubscribedToEventType: func() reflect.Type {
@@ -149,7 +148,6 @@ func (userCommand UserCommand) Register(ctx context.Context) error {
 		return err
 	}
 	cache.InMemoryCacheInstance().Set(token.Token(), false)
-	userCommand.FullName = newUser.FullName()
 	err = userMapper.Save(ctx, newUser)
 	if err != nil {
 		return err

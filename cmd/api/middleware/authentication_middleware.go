@@ -9,12 +9,11 @@ import (
 func GetTokenFromRequest(r *http.Request) (string, error) {
 	header := r.Header.Get("Authorization")
 	if header == "" {
-		header, err := r.Cookie("Authorization")
+		cookie, err := r.Cookie("jwt")
 		if err != nil {
 			return "", err
 		}
-
-		return checkAndSliceHeader(header.Value)
+		return checkAndSliceHeader(cookie.Value)
 	}
 	return checkAndSliceHeader(header)
 }
@@ -40,14 +39,12 @@ func startWith(s string, prefix string) bool {
 	}
 	return true
 }
-func AuthenticationMiddleware() Middleware {
-
-	middleware := func(next http.HandlerFunc) http.HandlerFunc {
-
-		handler := func(w http.ResponseWriter, r *http.Request) {
+func AuthenticationMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			jwtToken, err := GetTokenFromRequest(r)
 			if err != nil {
-				next(w, r)
+				next.ServeHTTP(w, r)
 				return
 			}
 			authorized, err := application_services.AuthorizationApplicationServiceInstance().Authorize(
@@ -55,17 +52,11 @@ func AuthenticationMiddleware() Middleware {
 				jwtToken,
 			)
 			if err != nil {
-				// next(w, r)
-				// return
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
-
 			r = r.WithContext(authorized)
-			next(w, r)
-		}
-
-		return handler
+			next.ServeHTTP(w, r)
+		})
 	}
-	return middleware
 }

@@ -52,3 +52,35 @@ func NewEnterprise(domainObj *enterprise.Enterprise) Enterprise {
 		Employees:      dereferencedList,
 	}
 }
+
+func NewEnterpriseDTO(domainObj enterprise.Enterprise) Enterprise {
+	casted := mapset.NewSet[employee.Employee]()
+	for emp := range domainObj.Employees().Iter() {
+		cast, ok := emp.(*employee.Employee)
+		if ok {
+			casted.Add(*cast)
+		}
+	}
+	list := NewEmployeeList(casted)
+	dereferencedList := make([]Employee, 0)
+	for _, emp := range list {
+		dereferencedList = append(dereferencedList, *emp)
+	}
+	return Enterprise{
+		Name:      domainObj.Name(),
+		LogoIMG:   domainObj.LogoIMG(),
+		BannerIMG: domainObj.BannerIMG(),
+		Website:   domainObj.Website(),
+		Email:     domainObj.Email(),
+		Phone:     domainObj.Phone(),
+		Address: Address{
+			Country: domainObj.Address().Country().Name(),
+			County:  domainObj.Address().CountryState().Name(),
+			City:    domainObj.Address().City().Name(),
+		},
+		Industry:       domainObj.Industry().Name(),
+		FoundationDate: domainObj.FoundationDate().StringRepresentation(),
+		OwnerID:        domainObj.Owner(),
+		Employees:      dereferencedList,
+	}
+}

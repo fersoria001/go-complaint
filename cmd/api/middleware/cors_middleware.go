@@ -9,9 +9,7 @@ import (
 )
 
 func CORS() Middleware {
-
 	return func(f http.HandlerFunc) http.HandlerFunc {
-
 		return func(w http.ResponseWriter, r *http.Request) {
 			origin := os.Getenv("ORIGIN")
 			origins := strings.Split(origin, ",")
@@ -35,5 +33,28 @@ func CORS() Middleware {
 			}))
 			handler.ServeHTTP(w, r)
 		}
+	}
+}
+
+func CORS1() Middleware1 {
+	return func(f http.Handler) http.Handler {
+		origin := os.Getenv("ORIGIN")
+		origins := strings.Split(origin, ",")
+		c := cors.New(cors.Options{
+			AllowedOrigins: origins,
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders: []string{
+				"authorization",
+				"content-type",
+				"x-csrf-token",
+				"subscription-id",
+				"upgrade",
+				"connection",
+				"sec-websocket-key",
+			},
+			ExposedHeaders:   []string{"x-csrf-token", "upgrade", "connection", "sec-websocket-accept"},
+			AllowCredentials: true,
+		})
+		return c.Handler(f)
 	}
 }

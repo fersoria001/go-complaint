@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-complaint/domain"
 	"go-complaint/dto"
+	"go-complaint/graph/model"
 	"go-complaint/infrastructure/cache"
 	"go-complaint/infrastructure/persistence/repositories"
 	"log"
@@ -22,6 +23,8 @@ type NotificationCommand struct {
 	Content     string `json:"content"`
 	Link        string `json:"link"`
 }
+
+var NotificationsChannel = make(chan *model.Notification)
 
 func (notificationCommand NotificationCommand) SaveNew(
 	ctx context.Context,
@@ -41,12 +44,16 @@ func (notificationCommand NotificationCommand) SaveNew(
 	}
 	notificationDto := dto.NewNotification(*newNotification)
 	notificationDto.Thumbnail = notificationCommand.Thumbnail
-	log.Println("notificationDto", notificationDto)
-	cache.RequestChannel <- cache.Request{
-		Key:     fmt.Sprintf("notifications:%s", notificationCommand.OwnerID),
-		Payload: notificationDto,
+	NotificationsChannel <- &model.Notification{
+		ID:         notificationDto.ID,
+		OwnerID:    notificationDto.OwnerID,
+		Thumbnail:  notificationDto.Thumbnail,
+		Title:      notificationDto.Title,
+		Content:    notificationDto.Content,
+		Link:       notificationDto.Link,
+		Seen:       notificationDto.Seen,
+		OccurredOn: notificationDto.OccurredOn,
 	}
-
 	return repositories.MapperRegistryInstance().Get("Notification").(repositories.NotificationRepository).Save(ctx, newNotification)
 }
 

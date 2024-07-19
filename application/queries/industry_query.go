@@ -5,6 +5,8 @@ import (
 	"go-complaint/dto"
 	industryfindall "go-complaint/infrastructure/persistence/finders/industry_findall"
 	"go-complaint/infrastructure/persistence/repositories"
+	"slices"
+	"strings"
 )
 
 type IndustryQuery struct {
@@ -29,5 +31,8 @@ func (industryQuery IndustryQuery) AllIndustries(
 	for industry := range industries.Iter() {
 		industryDTOs = append(industryDTOs, dto.NewIndustry(industry))
 	}
+	slices.SortStableFunc(industryDTOs, func(a, b dto.Industry) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	return industryDTOs, nil
 }

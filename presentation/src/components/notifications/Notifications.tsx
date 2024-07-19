@@ -1,12 +1,12 @@
 'use client'
 import { useRef, useState } from "react";
 import NotificationIcon from "../icons/NotificationIcon";
-import Notification from "./Notification";
+import NotificationLink from "./NotificationLink";
 import useClickOutside from "../../lib/hooks/useClickOutside";
 import clsx from 'clsx';
-import NotificationType from "../../lib/types/notificationType";
+import { Notification } from "@/gql/graphql";
 interface Props {
-    notifications: NotificationType[]
+    notifications: Notification[]
 }
 const Notifications: React.FC<Props> = ({ notifications }: Props) => {
     const [show, setShow] = useState<boolean>(false)
@@ -37,7 +37,7 @@ const Notifications: React.FC<Props> = ({ notifications }: Props) => {
                         {
                             notifications.length > 0 ? notifications.map(n =>
                                 <li key={n.id} className="first:pt-4 last:pb-0">
-                                    <Notification notification={n} />
+                                    <NotificationLink notification={n} />
                                 </li>
                             ) :
                                 <li className="p-4">

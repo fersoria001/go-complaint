@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"go-complaint/application"
-	"log"
 	"slices"
 
 	"go-complaint/application/application_services"
-	"go-complaint/application/commands"
 	"go-complaint/domain"
 	"go-complaint/domain/model/enterprise"
 	"go-complaint/domain/model/identity"
@@ -65,15 +63,14 @@ func (userQuery UserQuery) SignIn(
 	clientData := application_services.AuthorizationApplicationServiceInstance().ClientData(ctx)
 	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
 		HandleEvent: func(event domain.DomainEvent) error {
-			if userSignedIn, ok := event.(*identity.UserSignedIn); ok {
-				log.Println("userSignedIn", user.Email(), user.FullName(), userSignedIn.ConfirmationCode())
-				commands.SendEmailCommand{
-					ToEmail:          user.Email(),
-					ToName:           user.FullName(),
-					ConfirmationCode: userSignedIn.ConfirmationCode(),
-				}.VerifySignIn(ctx)
-			}
-			return &erros.ValueNotFoundError{}
+			// if userSignedIn, ok := event.(*identity.UserSignedIn); ok {
+			// 	commands.SendEmailCommand{
+			// 		ToEmail:          user.Email(),
+			// 		ToName:           user.FullName(),
+			// 		ConfirmationCode: userSignedIn.ConfirmationCode(),
+			// 	}.VerifySignIn(ctx)
+			// }
+			return nil
 		},
 		SubscribedToEventType: func() reflect.Type {
 			return reflect.TypeOf(&identity.UserSignedIn{})
@@ -115,7 +112,7 @@ func (userQuery UserQuery) UserDescriptor(
 func (userQuery UserQuery) Login(
 	ctx context.Context,
 ) (dto.JWTToken, error) {
-	if userQuery.Token == "" {
+	if userQuery.Token == "" || userQuery.ConfirmationCode < 1000000 || userQuery.ConfirmationCode > 9999999 {
 		return dto.JWTToken{}, &erros.ValueNotFoundError{}
 	}
 	confirmation, ok := cache.InMemoryCacheInstance().Get(userQuery.Token)
@@ -312,6 +309,14 @@ func (userQuery UserQuery) HiringInvitations(
 		c.SetEnterprise(*ep)
 		hiringInvitationsDTO = append(hiringInvitationsDTO, *c)
 	}
-
+	slices.SortStableFunc(hiringInvitationsDTO, func(i, j dto.HiringInvitation) int {
+		if i.GetOcurredOn().Before(j.GetOcurredOn()) {
+			return 1
+		}
+		if i.GetOcurredOn().After(j.GetOcurredOn()) {
+			return -1
+		}
+		return 0
+	})
 	return hiringInvitationsDTO, nil
 }

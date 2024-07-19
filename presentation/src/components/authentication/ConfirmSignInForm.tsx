@@ -1,11 +1,9 @@
 'use client'
-import { confirmSignIn } from "@/lib/actions/authentication";
-import confirmationCodeSchema from "@/lib/validation/confirmationCodeSchema";
+import { confirmSignIn, ConfirmSignInFormState } from "@/lib/actions/authentication";
 import { useFormState, useFormStatus } from "react-dom";
-import { z } from "zod";
 import InlineAlert from "../error/InlineAlert";
-type stateType = z.inferFlattenedErrors<typeof confirmationCodeSchema>
-const initialState: Partial<stateType> = {}
+
+const initialState: ConfirmSignInFormState = {}
 const ConfirmSignInForm: React.FC = () => {
     const { pending } = useFormStatus()
     const [state, formAction] = useFormState(confirmSignIn, initialState)

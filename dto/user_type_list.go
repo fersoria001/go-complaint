@@ -7,6 +7,7 @@ type UserTypeList struct {
 	Count         int    `json:"count"`
 	CurrentLimit  int    `json:"current_limit"`
 	CurrentOffset int    `json:"current_offset"`
+	NextCursor    int    `json:"nextCursor"`
 }
 
 func NewUserTypeList(domainObjects []identity.User, limit, offset int) *UserTypeList {

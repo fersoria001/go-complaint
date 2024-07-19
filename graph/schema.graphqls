@@ -1,0 +1,222 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type Country {
+  id: Int!
+  name: String!
+  phoneCode: String!
+}
+
+type CountryState {
+  id: Int!
+  name: String!
+}
+
+type City {
+  id: Int!
+  name: String!
+  countryCode: String!
+  latitude: Float!
+  longitude: Float!
+}
+
+input CreateUser {
+  userName: String!
+  password: String!
+  firstName: String!
+  lastName: String!
+  genre: String!
+  pronoun: String!
+  birthDate: String!
+  phoneNumber: String!
+  countryId: Int!
+  countryStateId: Int!
+  cityId: Int!
+}
+
+type Address {
+  country: String!
+  countryState: String!
+  city: String!
+}
+
+enum UserStatus {
+  OFFLINE
+  ONLINE
+}
+
+type Person {
+  profileImg: String!
+  email: String!
+  firstName: String!
+  lastName: String!
+  genre: String!
+  pronoun: String!
+  age: Int!
+  phoneNumber: String!
+  address: Address!
+}
+
+type User {
+  userName: String!
+  person: Person!
+  status: UserStatus!
+}
+
+type Notification {
+  id: String!
+  ownerId: String!
+  thumbnail: String!
+  title: String!
+  content: String!
+  link: String!
+  seen: Boolean!
+  occurredOn: String!
+}
+
+type GrantedAuthority {
+  enterpriseId: String!
+  authority: String!
+}
+
+type UserDescriptor {
+  userName: String!
+  fullName: String!
+  profileImg: String!
+  genre: String!
+  pronoun: String!
+  loginDate: String
+  ip: String
+  device: String
+  geolocation: String
+  authorities: [GrantedAuthority]
+}
+
+type ComplaintInfo {
+  received: Int!
+  resolved: Int!
+  reviewed: Int!
+  pending: Int!
+  avgRating: Float!
+  total: Int!
+}
+
+type Industry {
+  id: Int!
+  name: String!
+}
+
+input CreateEnterprise {
+  name: String!
+  website: String!
+  email: String!
+  phoneNumber: String!
+  countryId: Int!
+  countryStateId: Int!
+  cityId: Int!
+  industryId: Int!
+  foundationDate: String!
+}
+
+type Employee {
+  id: ID!
+  enterpriseId: String!
+  userId: String!
+  user: User!
+  hiringDate: String!
+  approvedHiring: Boolean!
+  approvedHiringAt: String!
+  enterprisePosition: String!
+}
+
+type Enterprise {
+  name: String!
+  logoImg: String!
+  bannerImg: String!
+  website: String!
+  email: String!
+  phoneNumber: String!
+  address: Address!
+  industry: String!
+  foundationDate: String!
+  ownerId: String!
+  employees: [Employee]!
+}
+
+type EnterpriseByAuthenticatedUser {
+  authority: GrantedAuthority!
+  enterprise: Enterprise
+}
+
+type EnterprisesByAuthenticatedUserResult {
+  enterprises: [EnterpriseByAuthenticatedUser!]!
+  offices: [EnterpriseByAuthenticatedUser!]!
+}
+
+enum HiringProccessState {
+  pending
+  accepted
+  rejected
+  user_accepted
+  canceled
+  hired
+  rated
+  waiting
+  fired
+  leaved
+}
+
+type UsersForHiringResult {
+  users: [User!]!
+  count: Int!
+  limit: Int!
+  offset: Int!
+  nextCursor: Int!
+  prevCursor: Int!
+}
+
+input SearchWithPagination {
+  id: String!
+  limit: Int!
+  offset: Int!
+  query: String!
+}
+
+type HiringInvitation {
+  eventId: String!
+  enterpriseId: String!
+  proposedPosition: String!
+  ownerId: String!
+  fullName: String!
+  enterpriseEmail: String!
+  enterprisePhone: String!
+  enterpriseLogoImg: String!
+  occurredOn: String!
+  seen: Boolean!
+  status: HiringProccessState!
+  reason: String!
+}
+
+type Query {
+  userDescriptor: UserDescriptor!
+  countries: [Country!]!
+  countryStates(id: Int!): [CountryState!]!
+  cities(id: Int!): [City!]!
+  industries: [Industry!]!
+  complaintsReceivedInfo(id: String!): ComplaintInfo!
+  enterpriseById(id: String!): Enterprise!
+  enterprisesByAuthenticatedUser: EnterprisesByAuthenticatedUserResult!
+  usersForHiring(input: SearchWithPagination!): UsersForHiringResult!
+  userById(id: String!): User!
+  hiringInvitationsByAuthenticatedUser: [HiringInvitation!]!
+}
+
+type Mutation {
+  createUser(input: CreateUser!): User!
+  createEnterprise(input: CreateEnterprise!): Enterprise!
+}
+
+type Subscription {
+  notifications(id: String!): Notification!
+}

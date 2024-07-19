@@ -2,13 +2,13 @@
 import Link from 'next/dist/client/link';
 import Image from 'next/image';
 import { useRef, useState } from 'react';
-import UserDescriptor from '../../lib/types/userDescriptorType';
 import useClickOutside from '../../lib/hooks/useClickOutside';
 import { logout } from '@/lib/actions/authentication';
-interface NavbarDropdownProps {
-    user: UserDescriptor;
+import { UserDescriptor } from '@/gql/graphql';
+interface Props {
+    user: UserDescriptor
 }
-const NavbarDropdown: React.FC<NavbarDropdownProps> = ({ user }: NavbarDropdownProps) => {
+const NavbarDropdown: React.FC<Props> = ({ user }: Props) => {
     const [isOpen, setIsOpen] = useState<boolean>(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     useClickOutside(dropdownRef, () => { setIsOpen(false) })
@@ -42,7 +42,7 @@ const NavbarDropdown: React.FC<NavbarDropdownProps> = ({ user }: NavbarDropdownP
                                 {user.fullName}
                             </p>
                             <p className="text-sm sm:text-md font-medium text-gray-900">
-                                {user.email}
+                                {user.userName}
                             </p>
                         </div>
                         <ul className="py-1">

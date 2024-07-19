@@ -3,7 +3,7 @@ import { passwordRegex } from "./regex";
 
 const signUpSchema = z
   .object({
-    email: z.string().email({ message: "Please enter a valid email" }),
+    userName: z.string().email({ message: "Please enter a valid email" }),
     password: z
       .string()
       .regex(
@@ -24,7 +24,7 @@ const signUpSchema = z
       .string()
       .min(2, { message: "Last name must be at least 2 characters long" })
       .max(50, { message: "Last name must be at most 50 characters long" }),
-    gender: z.enum(["male", "female", "non-declared"], {
+    genre: z.enum(["male", "female", "non-declared"], {
       message: "Please select a gender from the list provided",
     }),
     pronoun: z.enum(["he", "she", "they"], {
@@ -44,7 +44,7 @@ const signUpSchema = z
         }
         return stringDate;
       }),
-    phone: z
+    phoneNumber: z
       .string({ message: "We could not validate your phone number" })
       .min(10, { message: "We could not validate your phone number" })
       .transform((val, ctx) => {

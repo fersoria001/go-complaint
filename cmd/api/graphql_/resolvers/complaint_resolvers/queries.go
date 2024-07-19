@@ -27,6 +27,7 @@ func ComplaintsReceivedInfoResolver(params graphql.ResolveParams) (interface{}, 
 	}
 	return info, nil
 }
+
 func IsValidComplaintReceiverResolver(params graphql.ResolveParams) (interface{}, error) {
 	_, err := application_services.AuthorizationApplicationServiceInstance().Credentials(params.Context)
 	if err != nil {

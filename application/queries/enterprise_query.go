@@ -8,18 +8,22 @@ import (
 	"go-complaint/domain/model/identity"
 	"go-complaint/dto"
 	"go-complaint/infrastructure/cache"
+	"go-complaint/infrastructure/persistence/finders/find_all_enterprises"
 	"go-complaint/infrastructure/persistence/finders/find_all_events"
 	"go-complaint/infrastructure/persistence/finders/find_all_users"
 	"go-complaint/infrastructure/persistence/repositories"
 	"go-complaint/infrastructure/trie"
 	"log"
+	"math"
 	"slices"
+	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 )
 
 type EnterpriseQuery struct {
+	OwnerId        string `json:"owner_id"`
 	EnterpriseName string `json:"enterprise_name"`
 	UserID         string `json:"user_id"`
 	Limit          int    `json:"limit"`
@@ -57,6 +61,30 @@ func (enterpriseQuery EnterpriseQuery) Enterprise(
 		return dto.Enterprise{}, err
 	}
 	return dto.NewEnterprise(enterprise), nil
+}
+
+func (q EnterpriseQuery) EnterprisesByOwnerId(
+	ctx context.Context,
+) ([]dto.Enterprise, error) {
+	mapper, ok := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	enterprises, err := mapper.FindAll(ctx,
+		find_all_enterprises.ByOwnerId(q.OwnerId),
+	)
+	if err != nil {
+		return nil, err
+	}
+	s := enterprises.ToSlice()
+	result := make([]dto.Enterprise, 0, len(s))
+	for _, v := range s {
+		result = append(result, dto.NewEnterpriseDTO(v))
+	}
+	slices.SortStableFunc(result, func(a, b dto.Enterprise) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	return result, nil
 }
 
 func (enterpriseQuery EnterpriseQuery) HiringProcceses(
@@ -271,7 +299,6 @@ func (enterpriseQuery EnterpriseQuery) HiringProcceses(
 func (query EnterpriseQuery) UsersForHiring(
 	ctx context.Context,
 ) (dto.UserTypeList, error) {
-
 	if query.EnterpriseName == "" {
 		return dto.UserTypeList{}, ErrBadRequest
 	}
@@ -299,7 +326,6 @@ func (query EnterpriseQuery) UsersForHiring(
 	if err != nil {
 		return dto.UserTypeList{}, err
 	}
-
 	employeesIDs := mapset.NewSet[string]()
 	for emp := range dbEnterprise.Employees().Iter() {
 		employeesIDs.Add(emp.Email())
@@ -386,20 +412,34 @@ func (query EnterpriseQuery) UsersForHiring(
 	limit := query.Limit
 	length := len(result)
 	offsetLimit := offset + limit
+	nextCursor := math.Floor(float64(offset) / float64(limit))
 	//offset: 0 | < len | > len
 	//limit: 10 | < len | > len
+
+	//bad request
 	if offset > length {
-		return dto.UserTypeList{}, fmt.Errorf("offset is greater than the length of the list")
+		return dto.UserTypeList{
+			Users:         []dto.User{},
+			Count:         0,
+			CurrentLimit:  0,
+			CurrentOffset: 0,
+			NextCursor:    -1,
+		}, nil
 	}
+
+	//last page
 	if offset+limit > length {
 		offsetLimit = offset + (length - offset)
+		nextCursor = -1
 	}
+
 	result = result[offset:offsetLimit]
 	return dto.UserTypeList{
 		Users:         result,
 		Count:         len(result),
 		CurrentLimit:  query.Limit,
 		CurrentOffset: query.Offset,
+		NextCursor:    int(nextCursor),
 	}, nil
 }
 
