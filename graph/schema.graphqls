@@ -183,6 +183,12 @@ input SearchWithPagination {
   query: String!
 }
 
+input CreateHiringInvitation {
+  enterpriseId: String!
+  proposedPosition: String!
+  proposeTo: String!
+}
+
 type HiringInvitation {
   eventId: String!
   enterpriseId: String!

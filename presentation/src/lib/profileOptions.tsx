@@ -3,22 +3,22 @@ export const profileOptions = (descriptorID: string, id: string): { link: string
     // const sent = await countSentUnreads(descriptorID, id)
     return [
         {
-            link: `/send-complaint`,
+            link: `/complaints`,
             //icon: <SendComplaintIcon />,
-            title: "Complain",
+            title: "Complaints",
         },
-        {
-            link: `/inbox`,
-            //icon: <InboxIcon />,
-            title: "Inbox",
-            unread: 0
-        },
-        {
-            link: `/sent`,
-            //icon: <SentIcon />,
-            title: "Sent",
-            unread: 0
-        },
+        // {
+        //     link: `/inbox`,
+        //     //icon: <InboxIcon />,
+        //     title: "Inbox",
+        //     unread: 0
+        // },
+        // {
+        //     link: `/sent`,
+        //     //icon: <SentIcon />,
+        //     title: "Sent",
+        //     unread: 0
+        // },
         {
             link: `/enterprises`,
             //icon: <RegisterEnterpriseIcon />,

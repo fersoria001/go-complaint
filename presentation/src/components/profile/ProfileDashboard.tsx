@@ -8,11 +8,12 @@ import ComplaintsInfo from "./ComplaintsInfo";
 const ProfileDashboard = () => {
     const { data: user } = useSuspenseQuery({
         queryKey: ['userDescriptor'],
-        queryFn: async () => (await getGraphQLClient().request(userDescriptorQuery)).userDescriptor
+        queryFn: async () => await getGraphQLClient().request(userDescriptorQuery)
     })
+    
     return (
         <section>
-            <ComplaintsInfo id={user.userName} />
+            <ComplaintsInfo id={user.userDescriptor.userName} />
         </section>
     )
 }

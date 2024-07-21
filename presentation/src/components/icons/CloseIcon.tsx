@@ -1,5 +1,6 @@
 import IconsProps from "./IconsProps";
 
+//dont put the onClick on it, it's used inside some RSC
 const CloseIcon: React.FC<IconsProps> = ({ height = 0, width = 0, fill = "#5f6368", className = "" }: IconsProps) => {
     return (
         <svg

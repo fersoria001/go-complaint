@@ -43,7 +43,7 @@ const EnterpriseItem: React.FC<Props> = ({ data }: Props) => {
     return (
         <div
             onClick={() => setClicked(data.enterprise?.name)}
-            className={"bg-white hover:bg-gray-50 border border-gray-200 rounded-lg shadow"}>
+            className={"bg-white hover:bg-gray-50 border border-gray-200 rounded-lg shadow cursor-pointer"}>
             <div className="flex flex-col py-3 md:p-5">
                 <div className="flex self-start flex-col md:flex-row  md:justify-between w-full px-5">
                     <h5 className="pb-2 mb-2 text-2xl  text-center  font-bold tracking-tight text-gray-900">

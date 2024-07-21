@@ -3,6 +3,6 @@ interface props {
     width: number;
     fill: string;
     className: string;
-    onClick: () => void
+    onClick: () => void 
 }
 export default interface IconsProps extends Partial<props> { }

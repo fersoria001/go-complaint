@@ -29,12 +29,13 @@ export default async function RootLayout({
     queryKey: ['userDescriptor'],
     queryFn: async () => {
       try {
-        return getGraphQLClient().request(userDescriptorQuery)
+        return await gqlClient.request(userDescriptorQuery)
       } catch (e: any) {
         return null
       }
     },
-
+    staleTime: Infinity,
+    gcTime: Infinity
   })
 
   return (

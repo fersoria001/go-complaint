@@ -14,11 +14,13 @@ const Navbar: React.FC = () => {
         queryKey: ['userDescriptor'],
         queryFn: async () => {
             try {
-                return getGraphQLClient().request(userDescriptorQuery)
+                return await getGraphQLClient().request(userDescriptorQuery)
             } catch (e: any) {
                 return null
             }
         },
+        staleTime:Infinity,
+        gcTime:Infinity
     })
     const notifications: any = []
     const [show, setShow] = useState<boolean>(false)
@@ -89,7 +91,9 @@ const Navbar: React.FC = () => {
                         options.map((option) => {
                             return (
                                 <li key={option.title} className="py-4 rounded-b-md text-center font-bold text-gray-500 text-md md:text-xl">
+                                    <Link href={option.link}>
                                     {option.title}
+                                    </Link>
                                 </li>
                             )
                         })

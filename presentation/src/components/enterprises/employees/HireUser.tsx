@@ -2,6 +2,7 @@
 import getGraphQLClient from "@/graphql/graphQLClient";
 import userByIdQuery from "@/graphql/queries/userByIdQuery";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -14,25 +15,26 @@ const HireUser: React.FC = () => {
         queryFn: async ({ queryKey }) => getGraphQLClient().request(userByIdQuery, { id: queryKey[1] as string })
     })
     return (
-        <div className="flex flex-col justify-around items-center p-5 bg-white border border-gray-200 rounded-lg shadow">
-            <h1 className="mb-3 text-lg text-gray-500 md:text-xl">
+        <div className="flex flex-col justify-around items-center p-5 bg-white  border-gray-200 rounded-lg shadow-md">
+            <h1 className="mb-3 text-lg text-gray-700 md:text-xl xl:text-2xl font-bold">
                 You are about to invite {data.userById.person.firstName} {data.userById.person.firstName} {" "}
-                to your current enterprise {enterpriseName}
+                to {enterpriseName}
             </h1>
             <div className="mr-auto px-4">
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-gray-700 text-md lg:text-lg xl:text-xl">
                     There are a few things you should know before inviting a user to your enterprise
                 </p>
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-gray-700 text-md lg:text-lg xl:text-xl">
                     The current available positions are, choose one from the list:
                 </p>
-                <ul className="max-w-md space-y-1 p-4 text-gray-500 list-disc list-inside">
+                <ul className="max-w-md space-y-1 p-4 text-gray-700 text-md lg:text-lg xl:text-xl list-disc list-inside">
                     <li
                         onClick={() => { setSelectedPosition("Assistant"); }}
                         className={
-                            selectedPosition === "Assistant" ?
-                                "rounded-xl bg-cyan-500 text-gray-800 shadow p-2" :
-                                "rounded-xl hover:bg-gray-100 hover:cursor-pointer"
+                            clsx("rounded-xl", {
+                                'bg-gray-100 p-2 cursor-default': selectedPosition === "Assistant",
+                                'hover:bg-gray-100 cursor-pointer': selectedPosition !== "Assistant"
+                            })
                         }
                     >
                         Assistant: An assistant is a person who helps in the management of the enterprise.
@@ -42,9 +44,10 @@ const HireUser: React.FC = () => {
                     <li
                         onClick={() => { setSelectedPosition("Manager"); }}
                         className={
-                            selectedPosition === "Manager" ?
-                                "rounded-xl bg-cyan-500 text-gray-800 shadow p-2" :
-                                "rounded-xl hover:bg-gray-100 hover:cursor-pointer"
+                            clsx("rounded-xl", {
+                                'bg-gray-100 p-2 cursor-default': selectedPosition === "Manager",
+                                'hover:bg-gray-100 cursor-pointer': selectedPosition !== "Manager"
+                            })
                         }
                     >
                         Manager: A manager is a person who is responsible for the management of the enterprise
@@ -55,7 +58,7 @@ const HireUser: React.FC = () => {
                 </ul>
             </div>
             <div className="flex flex-col relative md:static">
-                <p className="p-4 text-gray-500 dark:text-gray-400">
+                <p className="p-4 text-gray-700 text-md lg:text-lg xl:text-xl">
                     Note that: every employee can be rated by the users if he has resolved a complaint and receive feedback
                     and private messages from the enterprise owner. While managers can invite new users and propose position changes,
                     it is the responsibility of the owner to accept or decline the changes.
@@ -63,7 +66,10 @@ const HireUser: React.FC = () => {
                 </p>
                 {/* {errors.position && <p className="self-center text-red-500 italic text-xs">{errors.position}</p>} */}
                 <span onClick={() => { }} className="self-center">
-                    <button type="button">Invite to project</button>
+                    <button
+                        type="button"
+                        className="bg-blue-500 text-white px-7 py-3 rounded-md font-bold hover:bg-blue-600 text-md lg:text-lg xl:text-xl"
+                    >Invite to project</button>
                 </span>
 
                 {/* {showModal && (
@@ -79,7 +85,7 @@ const HireUser: React.FC = () => {
                     />
                 )} */}
             </div>
-        </div>
+        </div >
     )
 }
 export default HireUser;

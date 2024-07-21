@@ -28,4 +28,5 @@ const EnterprisesMain: React.FC = () => {
         </div>
     )
 }
+
 export default EnterprisesMain

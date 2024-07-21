@@ -1,7 +1,6 @@
 import EnterprisesMain from "@/components/enterprises/EnterprisesMain"
 import getGraphQLClient from "@/graphql/graphQLClient"
 import enterprisesByAuthenticatedUserQuery from "@/graphql/queries/enterprisesByAuthenticatedUserQuery"
-import userDescriptorQuery from "@/graphql/queries/userDescriptorQuery"
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
 import { cookies } from "next/headers"
 
