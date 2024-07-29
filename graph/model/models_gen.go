@@ -22,13 +22,43 @@ type City struct {
 	Longitude   float64 `json:"longitude"`
 }
 
-type ComplaintInfo struct {
-	Received  int     `json:"received"`
-	Resolved  int     `json:"resolved"`
-	Reviewed  int     `json:"reviewed"`
-	Pending   int     `json:"pending"`
-	AvgRating float64 `json:"avgRating"`
-	Total     int     `json:"total"`
+type Complaint struct {
+	ID          string            `json:"id"`
+	Author      *Recipient        `json:"author"`
+	Receiver    *Recipient        `json:"receiver"`
+	Status      ComplaintStatus   `json:"status"`
+	Title       string            `json:"title"`
+	Description string            `json:"description"`
+	Rating      *Rating           `json:"rating"`
+	CreatedAt   string            `json:"createdAt"`
+	UpdatedAt   string            `json:"updatedAt"`
+	Replies     []*ComplaintReply `json:"replies"`
+}
+
+type ComplaintData struct {
+	ID          string            `json:"id"`
+	OwnerID     string            `json:"ownerId"`
+	ComplaintID string            `json:"complaintId"`
+	OccurredOn  string            `json:"occurredOn"`
+	DataType    ComplaintDataType `json:"dataType"`
+}
+
+type ComplaintReply struct {
+	ID          string     `json:"id"`
+	ComplaintID string     `json:"complaintId"`
+	Sender      *Recipient `json:"sender"`
+	Body        string     `json:"body"`
+	CreatedAt   string     `json:"createdAt"`
+	Read        bool       `json:"read"`
+	ReadAt      string     `json:"readAt"`
+	UpdatedAt   string     `json:"updatedAt"`
+}
+
+type ComplaintsInfo struct {
+	Received []*ComplaintData `json:"received"`
+	Resolved []*ComplaintData `json:"resolved"`
+	Reviewed []*ComplaintData `json:"reviewed"`
+	Sent     []*ComplaintData `json:"sent"`
 }
 
 type Country struct {
@@ -52,6 +82,12 @@ type CreateEnterprise struct {
 	CityID         int    `json:"cityId"`
 	IndustryID     int    `json:"industryId"`
 	FoundationDate string `json:"foundationDate"`
+}
+
+type CreateHiringInvitation struct {
+	EnterpriseID     string `json:"enterpriseId"`
+	ProposedPosition string `json:"proposedPosition"`
+	ProposeTo        string `json:"proposeTo"`
 }
 
 type CreateUser struct {
@@ -132,14 +168,14 @@ type Mutation struct {
 }
 
 type Notification struct {
-	ID         string `json:"id"`
-	OwnerID    string `json:"ownerId"`
-	Thumbnail  string `json:"thumbnail"`
-	Title      string `json:"title"`
-	Content    string `json:"content"`
-	Link       string `json:"link"`
-	Seen       bool   `json:"seen"`
-	OccurredOn string `json:"occurredOn"`
+	ID         string     `json:"id"`
+	Owner      *Recipient `json:"owner"`
+	Sender     *Recipient `json:"sender"`
+	Title      string     `json:"title"`
+	Content    string     `json:"content"`
+	Link       string     `json:"link"`
+	Seen       bool       `json:"seen"`
+	OccurredOn string     `json:"occurredOn"`
 }
 
 type Person struct {
@@ -155,6 +191,19 @@ type Person struct {
 }
 
 type Query struct {
+}
+
+type Rating struct {
+	ID      string `json:"id"`
+	Rate    int    `json:"rate"`
+	Comment string `json:"comment"`
+}
+
+type Recipient struct {
+	ID               string `json:"id"`
+	SubjectName      string `json:"subjectName"`
+	SubjectThumbnail string `json:"subjectThumbnail"`
+	IsEnterprise     bool   `json:"isEnterprise"`
 }
 
 type SearchWithPagination struct {
@@ -193,6 +242,102 @@ type UsersForHiringResult struct {
 	Offset     int     `json:"offset"`
 	NextCursor int     `json:"nextCursor"`
 	PrevCursor int     `json:"prevCursor"`
+}
+
+type ComplaintDataType string
+
+const (
+	ComplaintDataTypeSent     ComplaintDataType = "SENT"
+	ComplaintDataTypeResolved ComplaintDataType = "RESOLVED"
+	ComplaintDataTypeReviewed ComplaintDataType = "REVIEWED"
+	ComplaintDataTypeReceived ComplaintDataType = "RECEIVED"
+)
+
+var AllComplaintDataType = []ComplaintDataType{
+	ComplaintDataTypeSent,
+	ComplaintDataTypeResolved,
+	ComplaintDataTypeReviewed,
+	ComplaintDataTypeReceived,
+}
+
+func (e ComplaintDataType) IsValid() bool {
+	switch e {
+	case ComplaintDataTypeSent, ComplaintDataTypeResolved, ComplaintDataTypeReviewed, ComplaintDataTypeReceived:
+		return true
+	}
+	return false
+}
+
+func (e ComplaintDataType) String() string {
+	return string(e)
+}
+
+func (e *ComplaintDataType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ComplaintDataType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ComplaintDataType", str)
+	}
+	return nil
+}
+
+func (e ComplaintDataType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ComplaintStatus string
+
+const (
+	ComplaintStatusWriting      ComplaintStatus = "WRITING"
+	ComplaintStatusOpen         ComplaintStatus = "OPEN"
+	ComplaintStatusStarted      ComplaintStatus = "STARTED"
+	ComplaintStatusInDiscussion ComplaintStatus = "IN_DISCUSSION"
+	ComplaintStatusInReview     ComplaintStatus = "IN_REVIEW"
+	ComplaintStatusClosed       ComplaintStatus = "CLOSED"
+	ComplaintStatusInHistory    ComplaintStatus = "IN_HISTORY"
+)
+
+var AllComplaintStatus = []ComplaintStatus{
+	ComplaintStatusWriting,
+	ComplaintStatusOpen,
+	ComplaintStatusStarted,
+	ComplaintStatusInDiscussion,
+	ComplaintStatusInReview,
+	ComplaintStatusClosed,
+	ComplaintStatusInHistory,
+}
+
+func (e ComplaintStatus) IsValid() bool {
+	switch e {
+	case ComplaintStatusWriting, ComplaintStatusOpen, ComplaintStatusStarted, ComplaintStatusInDiscussion, ComplaintStatusInReview, ComplaintStatusClosed, ComplaintStatusInHistory:
+		return true
+	}
+	return false
+}
+
+func (e ComplaintStatus) String() string {
+	return string(e)
+}
+
+func (e *ComplaintStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ComplaintStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ComplaintStatus", str)
+	}
+	return nil
+}
+
+func (e ComplaintStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 type HiringProccessState string

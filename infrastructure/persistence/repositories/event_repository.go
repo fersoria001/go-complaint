@@ -5,7 +5,6 @@ import (
 	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/datasource"
 
-	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -68,7 +67,7 @@ func (r EventRepository) Get(ctx context.Context, id uuid.UUID) (*dto.StoredEven
 	return r.load(ctx, row)
 }
 
-func (r EventRepository) FindAll(ctx context.Context, source StatementSource) (mapset.Set[*dto.StoredEvent], error) {
+func (r EventRepository) FindAll(ctx context.Context, source StatementSource) ([]*dto.StoredEvent, error) {
 	var conn, err = r.schema.Acquire(ctx)
 	if err != nil {
 		return nil, err
@@ -100,14 +99,14 @@ func (r EventRepository) load(
 func (r EventRepository) loadAll(
 	_ context.Context,
 	rows pgx.Rows,
-) (mapset.Set[*dto.StoredEvent], error) {
-	var events = mapset.NewSet[*dto.StoredEvent]()
+) ([]*dto.StoredEvent, error) {
+	var events = make([]*dto.StoredEvent, 0)
 	for rows.Next() {
 		e, err := r.load(context.Background(), rows)
 		if err != nil {
 			return nil, err
 		}
-		events.Add(e)
+		events = append(events, e)
 	}
 	return events, nil
 }

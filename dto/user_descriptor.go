@@ -8,31 +8,27 @@ import (
 )
 
 type UserDescriptor struct {
+	Id                 string             `json:"id"`
 	Email              string             `json:"email"`
 	FullName           string             `json:"full_name"`
-	ProfileIMG         string             `json:"profile_img"`
-	Gender             string             `json:"gender"`
+	ProfileImg         string             `json:"profile_img"`
+	Genre              string             `json:"gender"`
 	Pronoun            string             `json:"pronoun"`
 	ClientData         ClientData         `json:"client_data"`
-	RememberMe         bool               `json:"remember_me"`
 	GrantedAuthorities []GrantedAuthority `json:"authorities"`
 	jwt.StandardClaims
 }
 
-func NewUserDescriptor(
-	clientData ClientData,
-	user identity.User,
-	rememberMe bool,
-) UserDescriptor {
+func NewUserDescriptor(clientData ClientData, user identity.User) *UserDescriptor {
 	thisDate := time.Now()
-	ud := UserDescriptor{
+	ud := &UserDescriptor{
+		Id:                 user.Id().String(),
 		Email:              user.Email(),
 		FullName:           user.FullName(),
-		ProfileIMG:         user.ProfileIMG(),
-		Gender:             user.Gender(),
+		ProfileImg:         user.ProfileIMG(),
+		Genre:              user.Genre(),
 		Pronoun:            user.Pronoun(),
 		ClientData:         clientData,
-		RememberMe:         rememberMe,
 		GrantedAuthorities: NewGrantedAuthorities(user.Authorities()),
 	}
 	ud.IssuedAt = thisDate.Unix()

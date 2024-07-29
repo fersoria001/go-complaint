@@ -11,10 +11,10 @@ import (
 // Package enterprise
 // <<Domain event>> implements domain.DomainEvent
 type EmployeeFired struct {
-	emitedBy         string
+	emitedBy         uuid.UUID
 	id               uuid.UUID
-	enterpriseID     string
-	userID           string
+	enterpriseId     uuid.UUID
+	userId           uuid.UUID
 	hiringDate       time.Time
 	approvedHiring   bool
 	approvedHiringAt time.Time
@@ -22,12 +22,12 @@ type EmployeeFired struct {
 	occurredOn       time.Time
 }
 
-func NewEmployeeFired(emitedBy string, employee Employee) *EmployeeFired {
+func NewEmployeeFired(emitedBy uuid.UUID, employee *Employee) *EmployeeFired {
 	return &EmployeeFired{
 		emitedBy:         emitedBy,
-		id:               employee.ID(),
-		enterpriseID:     employee.EnterpriseID(),
-		userID:           employee.Email(),
+		id:               employee.Id(),
+		enterpriseId:     employee.EnterpriseId(),
+		userId:           employee.Id(),
 		hiringDate:       employee.HiringDate().Date(),
 		approvedHiring:   employee.ApprovedHiring(),
 		approvedHiringAt: employee.ApprovedHiringAt().Date(),
@@ -36,20 +36,20 @@ func NewEmployeeFired(emitedBy string, employee Employee) *EmployeeFired {
 	}
 }
 
-func (ef *EmployeeFired) EmitedBy() string {
+func (ef *EmployeeFired) EmitedBy() uuid.UUID {
 	return ef.emitedBy
 }
 
-func (ef *EmployeeFired) ID() uuid.UUID {
+func (ef *EmployeeFired) Id() uuid.UUID {
 	return ef.id
 }
 
-func (ef *EmployeeFired) EnterpriseID() string {
-	return ef.enterpriseID
+func (ef *EmployeeFired) EnterpriseId() uuid.UUID {
+	return ef.enterpriseId
 }
 
-func (ef *EmployeeFired) UserID() string {
-	return ef.userID
+func (ef *EmployeeFired) UserId() uuid.UUID {
+	return ef.userId
 }
 
 func (ef *EmployeeFired) HiringDate() time.Time {
@@ -74,20 +74,20 @@ func (ef *EmployeeFired) OccurredOn() time.Time {
 
 func (ef *EmployeeFired) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
-		ID               string `json:"id"`
-		EmitedBy         string `json:"emited_by"`
-		EnterpriseID     string `json:"enterprise_id"`
-		UserID           string `json:"user_id"`
-		HiringDate       string `json:"hiring_date"`
-		ApprovedHiring   bool   `json:"approved_hiring"`
-		ApprovedHiringAt string `json:"approved_hiring_at"`
-		Position         string `json:"position"`
-		OccurredOn       string `json:"occurred_on"`
+		Id               uuid.UUID `json:"id"`
+		EmitedBy         uuid.UUID `json:"emited_by"`
+		EnterpriseId     uuid.UUID `json:"enterprise_id"`
+		UserId           uuid.UUID `json:"user_id"`
+		HiringDate       string    `json:"hiring_date"`
+		ApprovedHiring   bool      `json:"approved_hiring"`
+		ApprovedHiringAt string    `json:"approved_hiring_at"`
+		Position         string    `json:"position"`
+		OccurredOn       string    `json:"occurred_on"`
 	}{
-		ID:               ef.id.String(),
+		Id:               ef.id,
 		EmitedBy:         ef.emitedBy,
-		EnterpriseID:     ef.enterpriseID,
-		UserID:           ef.userID,
+		EnterpriseId:     ef.enterpriseId,
+		UserId:           ef.userId,
 		HiringDate:       common.StringDate(ef.hiringDate),
 		ApprovedHiring:   ef.approvedHiring,
 		ApprovedHiringAt: common.StringDate(ef.approvedHiringAt),
@@ -102,27 +102,24 @@ func (ef *EmployeeFired) MarshalJSON() ([]byte, error) {
 
 func (ef *EmployeeFired) UnmarshalJSON(data []byte) error {
 	aux := struct {
-		ID               string `json:"id"`
-		EmitedBy         string `json:"emited_by"`
-		EnterpriseID     string `json:"enterprise_id"`
-		UserID           string `json:"user_id"`
-		HiringDate       string `json:"hiring_date"`
-		ApprovedHiring   bool   `json:"approved_hiring"`
-		ApprovedHiringAt string `json:"approved_hiring_at"`
-		Position         string `json:"position"`
-		OccurredOn       string `json:"occurred_on"`
+		Id               uuid.UUID `json:"id"`
+		EmitedBy         uuid.UUID `json:"emited_by"`
+		EnterpriseId     uuid.UUID `json:"enterprise_id"`
+		UserId           uuid.UUID `json:"user_id"`
+		HiringDate       string    `json:"hiring_date"`
+		ApprovedHiring   bool      `json:"approved_hiring"`
+		ApprovedHiringAt string    `json:"approved_hiring_at"`
+		Position         string    `json:"position"`
+		OccurredOn       string    `json:"occurred_on"`
 	}{}
 	err := json.Unmarshal(data, &aux)
 	if err != nil {
 		return err
 	}
-	ef.id, err = uuid.Parse(aux.ID)
-	if err != nil {
-		return err
-	}
+	ef.id = aux.Id
 	ef.emitedBy = aux.EmitedBy
-	ef.enterpriseID = aux.EnterpriseID
-	ef.userID = aux.UserID
+	ef.enterpriseId = aux.EnterpriseId
+	ef.userId = aux.UserId
 
 	ef.hiringDate, err = common.ParseDate(aux.HiringDate)
 	if err != nil {
@@ -134,7 +131,7 @@ func (ef *EmployeeFired) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	position := ParsePosition(aux.Position)
-	if position == NOT_EXISTS {
+	if position < 0 {
 		return ErrPositionNotExists
 	}
 	ef.position = position

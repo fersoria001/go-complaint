@@ -2,7 +2,7 @@ package dto
 
 import (
 	"go-complaint/domain/model/common"
-	"go-complaint/domain/model/employee"
+	"go-complaint/domain/model/enterprise"
 )
 
 type EnterpriseNotifications struct {
@@ -22,13 +22,13 @@ type EmployeeWaitingForApproval struct {
 }
 
 func NewEmployeeWaitingForApproval(id string,
-	seen bool, domainEvent employee.EmployeeWaitingForApproval) EmployeeWaitingForApproval {
+	seen bool, domainEvent enterprise.EmployeeWaitingForApproval) EmployeeWaitingForApproval {
 	return EmployeeWaitingForApproval{
 		ID:               id,
-		EnterpriseID:     domainEvent.EnterpriseID(),
-		InvitedUserID:    domainEvent.InvitedUserID(),
+		EnterpriseID:     domainEvent.EnterpriseId().String(),
+		InvitedUserID:    domainEvent.InvitedUserId().String(),
 		ProposedPosition: domainEvent.ProposedPosition().String(),
-		InvitationID:     domainEvent.InvitationID().String(),
+		InvitationID:     domainEvent.InvitationId().String(),
 		OccurredOn:       common.NewDate(domainEvent.OccurredOn()).StringRepresentation(),
 		Seen:             seen,
 	}

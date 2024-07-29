@@ -9,43 +9,43 @@ import (
 )
 
 type FeedbackDone struct {
-	feedbackID   uuid.UUID
-	complaintID  uuid.UUID
-	enterpriseID string
-	reviewedID   string
+	feedbackId   uuid.UUID
+	complaintId  uuid.UUID
+	enterpriseId uuid.UUID
+	reviewedId   uuid.UUID
 	occurredOn   time.Time
 }
 
 func NewFeedbackDone(
-	feedbackID,
-	complaintID uuid.UUID,
-	enterpriseID string,
-	reviewedID string,
+	feedbackId,
+	complaintId,
+	enterpriseId,
+	reviewedId uuid.UUID,
 	occurredOn time.Time,
 ) *FeedbackDone {
 	return &FeedbackDone{
-		feedbackID:   feedbackID,
-		complaintID:  complaintID,
-		enterpriseID: enterpriseID,
-		reviewedID:   reviewedID,
+		feedbackId:   feedbackId,
+		complaintId:  complaintId,
+		enterpriseId: enterpriseId,
+		reviewedId:   reviewedId,
 		occurredOn:   occurredOn,
 	}
 }
 
-func (f *FeedbackDone) ReviewedID() string {
-	return f.reviewedID
+func (f *FeedbackDone) ReviewedId() uuid.UUID {
+	return f.reviewedId
 }
 
-func (f *FeedbackDone) FeedbackID() uuid.UUID {
-	return f.feedbackID
+func (f *FeedbackDone) FeedbackId() uuid.UUID {
+	return f.feedbackId
 }
 
-func (f *FeedbackDone) ComplaintID() uuid.UUID {
-	return f.complaintID
+func (f *FeedbackDone) ComplaintId() uuid.UUID {
+	return f.complaintId
 }
 
-func (f *FeedbackDone) EnterpriseID() string {
-	return f.enterpriseID
+func (f *FeedbackDone) EnterpriseId() uuid.UUID {
+	return f.enterpriseId
 }
 
 func (f *FeedbackDone) OccurredOn() time.Time {
@@ -54,42 +54,36 @@ func (f *FeedbackDone) OccurredOn() time.Time {
 
 func (f *FeedbackDone) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		FeedbackID   string `json:"feedback_id"`
-		ComplaintID  string `json:"complaint_id"`
-		EnterpriseID string `json:"enterprise_id"`
-		ReviewedID   string `json:"reviewed_id"`
-		OccurredOn   string `json:"occurred_on"`
+		FeedbackId   uuid.UUID `json:"feedback_id"`
+		ComplaintId  uuid.UUID `json:"complaint_id"`
+		EnterpriseId uuid.UUID `json:"enterprise_id"`
+		ReviewedId   uuid.UUID `json:"reviewed_id"`
+		OccurredOn   string    `json:"occurred_on"`
 	}{
-		FeedbackID:   f.feedbackID.String(),
-		ComplaintID:  f.complaintID.String(),
-		EnterpriseID: f.enterpriseID,
-		ReviewedID:   f.reviewedID,
+		FeedbackId:   f.feedbackId,
+		ComplaintId:  f.complaintId,
+		EnterpriseId: f.enterpriseId,
+		ReviewedId:   f.reviewedId,
 		OccurredOn:   common.StringDate(f.occurredOn),
 	})
 }
 
 func (f *FeedbackDone) UnmarshalJSON(data []byte) error {
 	aux := struct {
-		FeedbackID   string `json:"feedback_id"`
-		ComplaintID  string `json:"complaint_id"`
-		EnterpriseID string `json:"enterprise_id"`
-		ReviewedID   string `json:"reviewed_id"`
-		OccurredOn   string `json:"occurred_on"`
+		FeedbackId   uuid.UUID `json:"feedback_id"`
+		ComplaintId  uuid.UUID `json:"complaint_id"`
+		EnterpriseId uuid.UUID `json:"enterprise_id"`
+		ReviewedId   uuid.UUID `json:"reviewed_id"`
+		OccurredOn   string    `json:"occurred_on"`
 	}{}
 	err := json.Unmarshal(data, &aux)
 	if err != nil {
 		return err
 	}
-	f.reviewedID = aux.ReviewedID
-	f.feedbackID, err = uuid.Parse(aux.FeedbackID)
-	if err != nil {
-		return err
-	}
-	f.complaintID, err = uuid.Parse(aux.ComplaintID)
-	if err != nil {
-		return err
-	}
-	f.enterpriseID = aux.EnterpriseID
+	f.reviewedId = aux.ReviewedId
+	f.feedbackId = aux.FeedbackId
+	f.complaintId = aux.ComplaintId
+	f.enterpriseId = aux.EnterpriseId
 	f.occurredOn, err = common.ParseDate(aux.OccurredOn)
 	if err != nil {
 		return err

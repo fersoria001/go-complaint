@@ -29,7 +29,7 @@ func (query FeedbackQuery) FeedbackLastReply(
 		return dto.FeedbackAnswer{}, ErrBadRequest
 	}
 	objectID := "feedbackLastReply:" + query.ReplyID
-	v, ok := cache.InMemoryCacheInstance().Get(objectID)
+	v, ok := cache.InMemoryInstance().Get(objectID)
 	if !ok {
 		return dto.FeedbackAnswer{}, fmt.Errorf("complaint not found in cache %v", objectID)
 	}
@@ -93,8 +93,12 @@ func (query FeedbackQuery) FindByRevieweeID(ctx context.Context) ([]dto.Feedback
 	if err != nil {
 		return nil, err
 	}
-	s := storedEvents.ToSlice()
+	s := storedEvents
 	s1 := make([]uuid.UUID, 0)
+	revieweeId, err := uuid.Parse(query.RevieweeID)
+	if err != nil {
+		return nil, err
+	}
 	for _, v := range s {
 		if v.TypeName == "*feedback.FeedbackDone" {
 			var e feedback.FeedbackDone
@@ -102,8 +106,8 @@ func (query FeedbackQuery) FindByRevieweeID(ctx context.Context) ([]dto.Feedback
 			if err != nil {
 				return nil, err
 			}
-			if e.ReviewedID() == query.RevieweeID {
-				s1 = append(s1, e.FeedbackID())
+			if e.ReviewedId() == revieweeId {
+				s1 = append(s1, e.FeedbackId())
 			}
 		}
 	}

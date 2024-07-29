@@ -11,41 +11,41 @@ import (
 // Package complaint
 // << Domain Event >>
 type ComplaintSentToHistory struct {
-	complaintID uuid.UUID
-	triggeredBy string
+	complaintId uuid.UUID
+	triggeredBy uuid.UUID
 	occurredOn  time.Time
 }
 
 func NewComplaintSentToHistory(
-	complaintID uuid.UUID,
-	triggeredBy string,
+	complaintId uuid.UUID,
+	triggeredBy uuid.UUID,
 ) *ComplaintSentToHistory {
 	return &ComplaintSentToHistory{
-		complaintID: complaintID,
+		complaintId: complaintId,
 		triggeredBy: triggeredBy,
 		occurredOn:  time.Now(),
 	}
 }
 
-func (cr ComplaintSentToHistory) ComplaintID() uuid.UUID {
-	return cr.complaintID
+func (cr ComplaintSentToHistory) ComplaintId() uuid.UUID {
+	return cr.complaintId
 }
 
 func (cr ComplaintSentToHistory) OccurredOn() time.Time {
 	return cr.occurredOn
 }
 
-func (cr ComplaintSentToHistory) TriggeredBy() string {
+func (cr ComplaintSentToHistory) TriggeredBy() uuid.UUID {
 	return cr.triggeredBy
 }
 
 func (cr *ComplaintSentToHistory) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
-		ComplaintID string
-		TriggeredBy string
+		ComplaintId uuid.UUID
+		TriggeredBy uuid.UUID
 		OccurredOn  string
 	}{
-		ComplaintID: cr.complaintID.String(),
+		ComplaintId: cr.complaintId,
 		TriggeredBy: cr.triggeredBy,
 		OccurredOn:  common.StringDate(cr.occurredOn),
 	})
@@ -58,19 +58,15 @@ func (cr *ComplaintSentToHistory) MarshalJSON() ([]byte, error) {
 func (cr *ComplaintSentToHistory) UnmarshalJSON(data []byte) error {
 	var err error
 	aux := struct {
-		ComplaintID string
-		TriggeredBy string
+		ComplaintId uuid.UUID
+		TriggeredBy uuid.UUID
 		OccurredOn  string
 	}{}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
 	cr.triggeredBy = aux.TriggeredBy
-
-	cr.complaintID, err = uuid.Parse(aux.ComplaintID)
-	if err != nil {
-		return err
-	}
+	cr.complaintId = aux.ComplaintId
 	cr.occurredOn, err = common.ParseDate(aux.OccurredOn)
 	if err != nil {
 		return err

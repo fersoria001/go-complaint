@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"go-complaint/domain/model/common"
-	"go-complaint/domain/model/employee"
 	"go-complaint/domain/model/enterprise"
 	"go-complaint/infrastructure/persistence/datasource"
 
@@ -24,7 +23,7 @@ func NewEmployeeRepository(enterpriseSchema datasource.Schema) EmployeeRepositor
 
 func (er EmployeeRepository) DeleteAll(
 	ctx context.Context,
-	id string,
+	id uuid.UUID,
 ) error {
 	conn, err := er.schema.Acquire(ctx)
 	if err != nil {
@@ -32,7 +31,7 @@ func (er EmployeeRepository) DeleteAll(
 	}
 	deleteCommand := string(`
 	DELETE FROM employee
-	WHERE employee.enterprise_id = $1
+	WHERE enterprise_id = $1
 	`)
 
 	_, err = conn.Exec(
@@ -51,7 +50,7 @@ func (er EmployeeRepository) DeleteAll(
 
 func (er EmployeeRepository) UpdateAll(
 	ctx context.Context,
-	employees mapset.Set[employee.Employee],
+	employees mapset.Set[enterprise.Employee],
 ) error {
 	conn, err := er.schema.Acquire(ctx)
 	if err != nil {
@@ -68,7 +67,7 @@ func (er EmployeeRepository) UpdateAll(
 		approved_hiring = $5,
 		approved_hiring_at = $6,
 		job_position = $7
-		WHERE employee.employee_id = $1
+		WHERE enterprise.employee_id = $1
 		`,
 	)
 	tx, err := conn.Begin(ctx)
@@ -77,9 +76,9 @@ func (er EmployeeRepository) UpdateAll(
 	}
 	for employee := range employees.Iter() {
 		var (
-			employeeID       uuid.UUID = employee.ID()
-			enterpriseID     string    = employee.EnterpriseID()
-			userID           string    = employee.Email()
+			employeeId       uuid.UUID = employee.ID()
+			enterpriseId     uuid.UUID = employee.EnterpriseId()
+			userId           uuid.UUID = employee.User.Id()
 			hiringDate       string    = employee.HiringDate().StringRepresentation()
 			approvedHiring   bool      = employee.ApprovedHiring()
 			approvedHiringAt string    = employee.ApprovedHiringAt().StringRepresentation()
@@ -88,9 +87,9 @@ func (er EmployeeRepository) UpdateAll(
 		_, err := tx.Exec(
 			ctx,
 			updateCommand,
-			&employeeID,
-			&enterpriseID,
-			&userID,
+			&employeeId,
+			&enterpriseId,
+			&userId,
 			&hiringDate,
 			&approvedHiring,
 			&approvedHiringAt,
@@ -113,7 +112,7 @@ func (er EmployeeRepository) Get(
 	ctx context.Context,
 	employeeID uuid.UUID,
 ) (
-	*employee.Employee, error) {
+	*enterprise.Employee, error) {
 	conn, err := er.schema.Acquire(ctx)
 	if err != nil {
 		return nil, err
@@ -140,16 +139,16 @@ func (er EmployeeRepository) Get(
 }
 func (er EmployeeRepository) Save(
 	ctx context.Context,
-	employee *employee.Employee,
+	employee *enterprise.Employee,
 ) error {
 	conn, err := er.schema.Acquire(ctx)
 	if err != nil {
 		return err
 	}
 	var (
-		employeeID       uuid.UUID = employee.ID()
-		enterpriseID     string    = employee.EnterpriseID()
-		userID           string    = employee.Email()
+		employeeId       uuid.UUID = employee.ID()
+		enterpriseId     uuid.UUID = employee.EnterpriseId()
+		userId           uuid.UUID = employee.User.Id()
 		hiringDate       string    = employee.HiringDate().StringRepresentation()
 		approvedHiring   bool      = employee.ApprovedHiring()
 		approvedHiringAt string    = employee.ApprovedHiringAt().StringRepresentation()
@@ -168,9 +167,9 @@ func (er EmployeeRepository) Save(
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
-		employeeID,
-		enterpriseID,
-		userID,
+		employeeId,
+		enterpriseId,
+		userId,
 		hiringDate,
 		approvedHiring,
 		approvedHiringAt,
@@ -185,7 +184,7 @@ func (er EmployeeRepository) Save(
 
 func (er EmployeeRepository) SaveAll(
 	ctx context.Context,
-	employees mapset.Set[employee.Employee],
+	employees mapset.Set[enterprise.Employee],
 ) error {
 	conn, err := er.schema.Acquire(ctx)
 	if err != nil {
@@ -206,22 +205,22 @@ func (er EmployeeRepository) SaveAll(
 	if err != nil {
 		return err
 	}
-	for employee := range employees.Iter() {
+	for emp := range employees.Iter() {
 		var (
-			employeeID       uuid.UUID = employee.ID()
-			enterpriseID     string    = employee.EnterpriseID()
-			userID           string    = employee.Email()
-			hiringDate       string    = employee.HiringDate().StringRepresentation()
-			approvedHiring   bool      = employee.ApprovedHiring()
-			approvedHiringAt string    = employee.ApprovedHiringAt().StringRepresentation()
-			jobPosition      string    = employee.Position().String()
+			employeeId       uuid.UUID = emp.ID()
+			enterpriseId     uuid.UUID = emp.EnterpriseId()
+			userId           uuid.UUID = emp.User.Id()
+			hiringDate       string    = emp.HiringDate().StringRepresentation()
+			approvedHiring   bool      = emp.ApprovedHiring()
+			approvedHiringAt string    = emp.ApprovedHiringAt().StringRepresentation()
+			jobPosition      string    = emp.Position().String()
 		)
 		_, err = tx.Exec(
 			ctx,
 			insertCommand,
-			employeeID,
-			enterpriseID,
-			userID,
+			employeeId,
+			enterpriseId,
+			userId,
 			hiringDate,
 			approvedHiring,
 			approvedHiringAt,
@@ -243,7 +242,7 @@ func (er EmployeeRepository) SaveAll(
 func (er EmployeeRepository) FindAll(
 	ctx context.Context,
 	statementSource StatementSource,
-) (mapset.Set[*employee.Employee], error) {
+) (mapset.Set[*enterprise.Employee], error) {
 	conn, err := er.schema.Acquire(ctx)
 	if err != nil {
 		return nil, err
@@ -270,8 +269,8 @@ func (er EmployeeRepository) FindAll(
 func (er EmployeeRepository) loadAll(
 	ctx context.Context,
 	rows pgx.Rows,
-) (mapset.Set[*employee.Employee], error) {
-	employees := mapset.NewSet[*employee.Employee]()
+) (mapset.Set[*enterprise.Employee], error) {
+	employees := mapset.NewSet[*enterprise.Employee]()
 	for rows.Next() {
 		employee, err := er.load(ctx, rows)
 		if err != nil {
@@ -283,11 +282,11 @@ func (er EmployeeRepository) loadAll(
 }
 
 func (er EmployeeRepository) load(ctx context.Context, row pgx.Row) (
-	*employee.Employee, error) {
+	*enterprise.Employee, error) {
 	var (
 		employeeId       uuid.UUID
-		enterpriseID     string
-		userID           string
+		enterpriseId     uuid.UUID
+		userId           uuid.UUID
 		hiringDate       string
 		approvedHiring   bool
 		approvedHiringAt string
@@ -304,8 +303,8 @@ func (er EmployeeRepository) load(ctx context.Context, row pgx.Row) (
 
 	err := row.Scan(
 		&employeeId,
-		&enterpriseID,
-		&userID,
+		&enterpriseId,
+		&userId,
 		&hiringDate,
 		&approvedHiring,
 		&approvedHiringAt,
@@ -315,7 +314,7 @@ func (er EmployeeRepository) load(ctx context.Context, row pgx.Row) (
 		return nil, err
 	}
 	parsedJobPosition := enterprise.ParsePosition(jobPosition)
-	if parsedJobPosition == enterprise.NOT_EXISTS {
+	if parsedJobPosition < 0 {
 		return nil, enterprise.ErrPositionNotExists
 	}
 	commonHiringDate, err := common.NewDateFromString(hiringDate)
@@ -326,13 +325,13 @@ func (er EmployeeRepository) load(ctx context.Context, row pgx.Row) (
 	if err != nil {
 		return nil, err
 	}
-	user, err := userRepository.Get(ctx, userID)
+	user, err := userRepository.Get(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
-	return employee.NewEmployee(
+	return enterprise.NewEmployee(
 		employeeId,
-		enterpriseID,
+		enterpriseId,
 		user,
 		parsedJobPosition,
 		commonHiringDate,

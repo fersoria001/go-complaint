@@ -84,19 +84,19 @@ type HiringProccessList struct {
 
 type HiringProccess struct {
 	EventID    string `json:"event_id"`
-	User       User   `json:"user"`
+	User       *User  `json:"user"`
 	Position   string `json:"position"`
 	Status     string `json:"status"`
 	Reason     string `json:"reason"`
 	EmitedByID string `json:"emited_by_id"`
-	EmitedBy   User   `json:"emited_by"`
+	EmitedBy   *User  `json:"emited_by"`
 	OccurredOn string `json:"occurred_on"`
 	LastUpdate string `json:"last_update"`
 }
 
 func NewHiringProccess(
 	occurredOn time.Time,
-	user identity.User,
+	user *identity.User,
 	position enterprise.Position,
 	emitedByID string,
 ) *HiringProccess {
@@ -126,7 +126,7 @@ func (hiringProccess *HiringProccess) SetEmitedByID(emitedByID string) {
 	hiringProccess.EmitedByID = emitedByID
 }
 
-func (hiringProccess *HiringProccess) SetEmitedBy(user identity.User) {
+func (hiringProccess *HiringProccess) SetEmitedBy(user *identity.User) {
 	hiringProccess.EmitedBy = NewUser(user)
 }
 

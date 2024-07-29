@@ -6,15 +6,12 @@ type Position int
 
 //There's more roles to be added
 const (
-	NOT_EXISTS Position = iota
-	ASSISTANT
+	ASSISTANT Position = iota
 	MANAGER
 )
 
 func (p Position) String() string {
 	switch p {
-	case NOT_EXISTS:
-		return "NOT_EXISTS"
 	case ASSISTANT:
 		return "ASSISTANT"
 	case MANAGER:
@@ -31,6 +28,6 @@ func ParsePosition(s string) Position {
 	case "MANAGER":
 		return MANAGER
 	default:
-		return NOT_EXISTS
+		return -1
 	}
 }

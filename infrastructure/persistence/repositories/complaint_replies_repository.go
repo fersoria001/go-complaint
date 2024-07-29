@@ -35,15 +35,11 @@ func (rr ComplaintRepliesRepository) Get(
 	complaint_id,
 	author_id,
 	body,
-	read_status,
+	is_read,
 	read_at,
 	created_at,
-	updated_at,
-	is_enterprise,
-	enterprise_id
-	FROM
-	complaint_replies
-	WHERE id = $1
+	updated_at
+	FROM complaint_replies WHERE id = $1
 	`)
 	row := conn.QueryRow(ctx, selectQuery, replyID)
 	reply, err := rr.load(ctx, row)
@@ -93,33 +89,80 @@ func (rr ComplaintRepliesRepository) loadAll(
 
 func (rr ComplaintRepliesRepository) DeleteAll(
 	ctx context.Context,
-	replies mapset.Set[complaint.Reply],
+	id uuid.UUID,
 ) error {
 	conn, err := rr.complaintSchema.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	deleteCommand := string(`
-	DELETE FROM complaint_replies
-	WHERE id = $1;
-	`)
-	for reply := range replies.Iter() {
-		var replyID = reply.ID()
-		_, err = tx.Exec(ctx, deleteCommand, replyID)
-		if err != nil {
-			tx.Rollback(ctx)
-			return err
-		}
-	}
-	err = tx.Commit(ctx)
-	if err != nil {
-		return err
-	}
 	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	deleteCommand := string(`DELETE FROM complaint_replies WHERE complaint_id = $1;`)
+	_, err = conn.Exec(ctx, deleteCommand, &id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rr ComplaintRepliesRepository) Remove(
+	ctx context.Context,
+	id uuid.UUID,
+) error {
+	conn, err := rr.complaintSchema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	deleteCommand := string(`DELETE FROM complaint_replies WHERE id = $1;`)
+	_, err = conn.Exec(ctx, deleteCommand, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (crr ComplaintRepliesRepository) Save(ctx context.Context, reply complaint.Reply) error {
+	conn, err := crr.complaintSchema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	insertCommand := string(`
+	INSERT INTO complaint_replies (
+		id,
+		complaint_id,
+		author_id,
+		body,
+		is_read,
+		read_at,
+		created_at,
+		updated_at
+	) VALUES ($1,$2, $3, $4, $5, $6, $7, $8);`)
+	var (
+		id          uuid.UUID = reply.ID()
+		complaintId uuid.UUID = reply.ComplaintId()
+		authorId    uuid.UUID = reply.Sender().Id()
+		body        string    = reply.Body()
+		isRead      bool      = reply.Read()
+		readAt      string    = reply.ReadAt().StringRepresentation()
+		createdAt   string    = reply.CreatedAt().StringRepresentation()
+		updatedAt   string    = reply.UpdatedAt().StringRepresentation()
+	)
+	_, err = conn.Exec(
+		ctx,
+		insertCommand,
+		&id,
+		&complaintId,
+		&authorId,
+		&body,
+		&isRead,
+		&readAt,
+		&createdAt,
+		&updatedAt,
+	)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -128,6 +171,7 @@ func (rr ComplaintRepliesRepository) SaveAll(
 	replies mapset.Set[complaint.Reply],
 ) error {
 	conn, err := rr.complaintSchema.Acquire(ctx)
+	defer conn.Release()
 	if err != nil {
 		return err
 	}
@@ -140,43 +184,37 @@ func (rr ComplaintRepliesRepository) SaveAll(
 		complaint_id,
 		author_id,
 		body,
-		read_status,
+		is_read,
 		read_at,
 		created_at,
-		updated_at,
-		is_enterprise,
-		enterprise_id
-	) VALUES ($1,$2, $3, $4, $5, $6, $7, $8, $9, $10);`)
+		updated_at
+	) VALUES ($1,$2, $3, $4, $5, $6, $7, $8);`)
 	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	for reply := range replies.Iter() {
 		var (
-			id           uuid.UUID = reply.ID()
-			complaintID  uuid.UUID = reply.ComplaintID()
-			authorID     string    = reply.SenderID()
-			body         string    = reply.Body()
-			readStatus   bool      = reply.Read()
-			readAt       string    = reply.ReadAt().StringRepresentation()
-			createdAt    string    = reply.CreatedAt().StringRepresentation()
-			updatedAt    string    = reply.UpdatedAt().StringRepresentation()
-			isEnterprise bool      = reply.IsEnterprise()
-			enterpriseID string    = reply.EnterpriseID()
+			id          uuid.UUID = reply.ID()
+			complaintId uuid.UUID = reply.ComplaintId()
+			authorId    uuid.UUID = reply.Sender().Id()
+			body        string    = reply.Body()
+			isRead      bool      = reply.Read()
+			readAt      string    = reply.ReadAt().StringRepresentation()
+			createdAt   string    = reply.CreatedAt().StringRepresentation()
+			updatedAt   string    = reply.UpdatedAt().StringRepresentation()
 		)
 		_, err = tx.Exec(
 			ctx,
 			insertCommand,
 			&id,
-			&complaintID,
-			&authorID,
+			&complaintId,
+			&authorId,
 			&body,
-			&readStatus,
+			&isRead,
 			&readAt,
 			&createdAt,
 			&updatedAt,
-			&isEnterprise,
-			&enterpriseID,
 		)
 		if err != nil {
 			return err
@@ -186,7 +224,6 @@ func (rr ComplaintRepliesRepository) SaveAll(
 	if err != nil {
 		return err
 	}
-	defer conn.Release()
 	return nil
 }
 
@@ -201,13 +238,11 @@ func (rr ComplaintRepliesRepository) UpdateAll(
 	insertCommand := string(`
 	UPDATE complaint_replies
 	SET
-		body=$4,
-		read_status=$5,
-		read_at=$6,
-		created_at=$7,
-		updated_at=$8,
-		is_enterprise=$9,
-		enterprise_id=$10
+		body=$2,
+		is_read=$3,
+		read_at=$4,
+		created_at=$5,
+		updated_at=$6,
 	WHERE id = $1;`)
 	tx, err := conn.Begin(ctx)
 	if err != nil {
@@ -215,30 +250,22 @@ func (rr ComplaintRepliesRepository) UpdateAll(
 	}
 	for reply := range replies.Iter() {
 		var (
-			id           uuid.UUID = reply.ID()
-			complaintID  uuid.UUID = reply.ComplaintID()
-			authorID     string    = reply.SenderID()
-			body         string    = reply.Body()
-			readStatus   bool      = reply.Read()
-			readAt       string    = reply.ReadAt().StringRepresentation()
-			createdAt    string    = reply.CreatedAt().StringRepresentation()
-			updatedAt    string    = reply.UpdatedAt().StringRepresentation()
-			isEnterprise bool      = reply.IsEnterprise()
-			enterpriseID string    = reply.EnterpriseID()
+			id         uuid.UUID = reply.ID()
+			body       string    = reply.Body()
+			readStatus bool      = reply.Read()
+			readAt     string    = reply.ReadAt().StringRepresentation()
+			createdAt  string    = reply.CreatedAt().StringRepresentation()
+			updatedAt  string    = reply.UpdatedAt().StringRepresentation()
 		)
 		_, err = tx.Exec(
 			ctx,
 			insertCommand,
 			&id,
-			&complaintID,
-			&authorID,
 			&body,
 			&readStatus,
 			&readAt,
 			&createdAt,
 			&updatedAt,
-			&isEnterprise,
-			&enterpriseID,
 		)
 		if err != nil {
 			return err
@@ -253,67 +280,39 @@ func (rr ComplaintRepliesRepository) UpdateAll(
 }
 
 func (rr ComplaintRepliesRepository) load(ctx context.Context, row pgx.Row) (*complaint.Reply, error) {
-	mapper := MapperRegistryInstance().Get("User")
-	if mapper == nil {
-		return nil, ErrMapperNotRegistered
-	}
-	userRepository, ok := mapper.(UserRepository)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
-	mapper = MapperRegistryInstance().Get("Enterprise")
-	if mapper == nil {
-		return nil, ErrMapperNotRegistered
-	}
-	enterpriseRepository, ok := mapper.(EnterpriseRepository)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
 	var (
-		id           uuid.UUID
-		complaintID  uuid.UUID
-		authorID     string
-		body         string
-		readStatus   bool
-		readAt       string
-		createdAt    string
-		updatedAt    string
-		isEnterprise bool
-		enterpriseID string
-		authorIMG    string
-		authorName   string
+		id          uuid.UUID
+		complaintId uuid.UUID
+		authorId    uuid.UUID
+		body        string
+		isRead      bool
+		readAt      string
+		createdAt   string
+		updatedAt   string
 	)
 
 	err := row.Scan(
 		&id,
-		&complaintID,
-		&authorID,
+		&complaintId,
+		&authorId,
 		&body,
-		&readStatus,
+		&isRead,
 		&readAt,
 		&createdAt,
 		&updatedAt,
-		&isEnterprise,
-		&enterpriseID,
 	)
 	if err != nil {
 		return nil, err
 	}
-	author, err := userRepository.Get(ctx, authorID)
+	reg := MapperRegistryInstance()
+	recipientRepository, ok := reg.Get("Recipient").(RecipientRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	author, err := recipientRepository.Get(ctx, authorId)
 	if err != nil {
 		return nil, err
 	}
-	authorIMG = author.ProfileIMG()
-	authorName = author.FullName()
-	if isEnterprise {
-		dbEnterprise, err := enterpriseRepository.Get(ctx, enterpriseID)
-		if err != nil {
-
-			return nil, err
-		}
-		authorIMG = dbEnterprise.LogoIMG()
-	}
-
 	commonCreatedAt, err := common.NewDateFromString(createdAt)
 	if err != nil {
 		return nil, err
@@ -329,17 +328,13 @@ func (rr ComplaintRepliesRepository) load(ctx context.Context, row pgx.Row) (*co
 
 	reply, err := complaint.NewReply(
 		id,
-		complaintID,
-		authorID,
-		authorIMG,
-		authorName,
+		complaintId,
+		*author,
 		body,
-		readStatus,
+		isRead,
 		commonCreatedAt,
 		commonReadAt,
 		commonUpdatedAt,
-		isEnterprise,
-		enterpriseID,
 	)
 	if err != nil {
 		return nil, err

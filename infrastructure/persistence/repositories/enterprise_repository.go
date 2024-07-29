@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 	"go-complaint/domain/model/common"
-	"go-complaint/domain/model/employee"
+
 	"go-complaint/domain/model/enterprise"
 	"go-complaint/infrastructure/persistence/datasource"
 	employeefindall "go-complaint/infrastructure/persistence/finders/employee_findall"
@@ -54,19 +54,11 @@ func (er EnterpriseRepository) Update(
 	if err != nil {
 		return err
 	}
-	castedEmployees := mapset.NewSet[employee.Employee]()
-	for emp := range updatedEnterprise.Employees().Iter() {
-		cast, ok := emp.(*employee.Employee)
-		if !ok {
-			return ErrWrongTypeAssertion
-		}
-		castedEmployees.Add(*cast)
-	}
-	err = employeeRepository.DeleteAll(ctx, updatedEnterprise.Name())
+	err = employeeRepository.DeleteAll(ctx, updatedEnterprise.Id())
 	if err != nil {
 		return err
 	}
-	err = employeeRepository.SaveAll(ctx, castedEmployees)
+	err = employeeRepository.SaveAll(ctx, updatedEnterprise.Employees())
 	if err != nil {
 		return err
 	}
@@ -88,21 +80,23 @@ func (er EnterpriseRepository) Update(
 		`,
 	)
 	var (
-		name           string = updatedEnterprise.Name()
-		owner          string = updatedEnterprise.Owner()
-		logoIMG        string = updatedEnterprise.LogoIMG()
-		bannerIMG      string = updatedEnterprise.BannerIMG()
-		website        string = updatedEnterprise.Website()
-		email          string = updatedEnterprise.Email()
-		phone          string = updatedEnterprise.Phone()
-		industryID     int    = updatedEnterprise.Industry().ID()
-		createdAt      string = updatedEnterprise.CreatedAt().StringRepresentation()
-		updatedAt      string = updatedEnterprise.UpdatedAt().StringRepresentation()
-		foundationDate string = updatedEnterprise.FoundationDate().StringRepresentation()
+		id             uuid.UUID = updatedEnterprise.Id()
+		name           string    = updatedEnterprise.Name()
+		owner          uuid.UUID = updatedEnterprise.OwnerId()
+		logoIMG        string    = updatedEnterprise.LogoIMG()
+		bannerIMG      string    = updatedEnterprise.BannerIMG()
+		website        string    = updatedEnterprise.Website()
+		email          string    = updatedEnterprise.Email()
+		phone          string    = updatedEnterprise.Phone()
+		industryID     int       = updatedEnterprise.Industry().ID()
+		createdAt      string    = updatedEnterprise.CreatedAt().StringRepresentation()
+		updatedAt      string    = updatedEnterprise.UpdatedAt().StringRepresentation()
+		foundationDate string    = updatedEnterprise.FoundationDate().StringRepresentation()
 	)
 	_, err = conn.Exec(
 		ctx,
 		updateCommand,
+		&id,
 		&name,
 		&owner,
 		&logoIMG,
@@ -122,11 +116,41 @@ func (er EnterpriseRepository) Update(
 	return nil
 }
 
+func (er EnterpriseRepository) Remove(ctx context.Context, id uuid.UUID) error {
+	conn, err := er.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	addressRepository, ok := MapperRegistryInstance().Get("Address").(AddressRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	err = addressRepository.Remove(ctx, id)
+	if err != nil {
+		return err
+	}
+	employeesRepository, ok := MapperRegistryInstance().Get("Employee").(EmployeeRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	err = employeesRepository.DeleteAll(ctx, id)
+	if err != nil {
+		return err
+	}
+	_, err = conn.Exec(ctx, "DELETE FROM ENTERPRISE WHERE ENTERPRISE_ID=$1", &id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (er EnterpriseRepository) Save(
 	ctx context.Context,
 	enterprise *enterprise.Enterprise,
 ) error {
 	conn, err := er.schema.Acquire(ctx)
+	defer conn.Release()
 	if err != nil {
 		return err
 	}
@@ -145,13 +169,13 @@ func (er EnterpriseRepository) Save(
 	insertCommand := string(
 		`INSERT INTO enterprise(
 		enterprise_id,
+		enterprise_name,
 		owner_user_id,
 		logo_img,
 		banner_img,
 		website,
 		email,
 		phone,
-		address_id,
 		industry_id,
 		created_at,
 		updated_at,
@@ -159,15 +183,15 @@ func (er EnterpriseRepository) Save(
 		) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,$12)`,
 	)
 	var (
+		id             uuid.UUID = enterprise.Id()
 		name           string    = enterprise.Name()
-		owner          string    = enterprise.Owner()
-		logoIMG        string    = enterprise.LogoIMG()
-		bannerIMG      string    = enterprise.BannerIMG()
+		ownerId        uuid.UUID = enterprise.OwnerId()
+		logoImg        string    = enterprise.LogoIMG()
+		bannerImg      string    = enterprise.BannerIMG()
 		website        string    = enterprise.Website()
 		email          string    = enterprise.Email()
 		phone          string    = enterprise.Phone()
-		addressID      uuid.UUID = enterprise.Address().ID()
-		industryID     int       = enterprise.Industry().ID()
+		industryId     int       = enterprise.Industry().ID()
 		createdAt      string    = enterprise.CreatedAt().StringRepresentation()
 		updatedAt      string    = enterprise.UpdatedAt().StringRepresentation()
 		foundationDate string    = enterprise.FoundationDate().StringRepresentation()
@@ -175,15 +199,15 @@ func (er EnterpriseRepository) Save(
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
+		&id,
 		&name,
-		&owner,
-		&logoIMG,
-		&bannerIMG,
+		&ownerId,
+		&logoImg,
+		&bannerImg,
 		&website,
 		&email,
 		&phone,
-		&addressID,
-		&industryID,
+		&industryId,
 		&createdAt,
 		&updatedAt,
 		&foundationDate,
@@ -191,14 +215,22 @@ func (er EnterpriseRepository) Save(
 	if err != nil {
 		return err
 	}
-
-	defer conn.Release()
 	return nil
+}
+
+func (er EnterpriseRepository) Find(ctx context.Context, src StatementSource) (*enterprise.Enterprise, error) {
+	conn, err := er.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return nil, err
+	}
+	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
+	return er.load(ctx, row)
 }
 
 func (er EnterpriseRepository) Get(
 	ctx context.Context,
-	enterpriseID string,
+	enterpriseID uuid.UUID,
 ) (*enterprise.Enterprise, error) {
 	conn, err := er.schema.Acquire(ctx)
 	if err != nil {
@@ -207,13 +239,13 @@ func (er EnterpriseRepository) Get(
 	selectQuery := string(
 		`SELECT
 		enterprise_id,
+		enterprise_name,
 		owner_user_id,
 		logo_img,
 		banner_img,
 		website,
 		email,
 		phone,
-		address_id,
 		industry_id,
 		created_at,
 		updated_at,
@@ -297,29 +329,29 @@ func (er EnterpriseRepository) load(
 		return nil, ErrWrongTypeAssertion
 	}
 	var (
-		enterpriseId string
-		ownerUserID  string
-		logoImg      string
-		bannerImg    string
-		website      string
-		email        string
-		phone        string
-		addressID    uuid.UUID
-		industryID   int
-		createdAt    string
-		updatedAt    string
-		foundation   string
+		id          uuid.UUID
+		name        string
+		ownerUserId uuid.UUID
+		logoImg     string
+		bannerImg   string
+		website     string
+		email       string
+		phone       string
+		industryId  int
+		createdAt   string
+		updatedAt   string
+		foundation  string
 	)
 	err := row.Scan(
-		&enterpriseId,
-		&ownerUserID,
+		&id,
+		&name,
+		&ownerUserId,
 		&logoImg,
 		&bannerImg,
 		&website,
 		&email,
 		&phone,
-		&addressID,
-		&industryID,
+		&industryId,
 		&createdAt,
 		&updatedAt,
 		&foundation,
@@ -342,28 +374,25 @@ func (er EnterpriseRepository) load(
 	}
 	employees, err := employeeRepository.FindAll(
 		ctx,
-		employeefindall.NewByEnterpriseID(enterpriseId),
+		employeefindall.ByEnterpriseId(id),
 	)
 	if err != nil {
 
 		return nil, err
 	}
-	castToEmployeeInterface := mapset.NewSet[enterprise.Employee]()
-	for emp := range employees.Iter() {
-		castToEmployeeInterface.Add(emp)
-	}
-	address, err := addressRepository.Get(ctx, addressID)
+	address, err := addressRepository.Get(ctx, id)
 	if err != nil {
 
 		return nil, err
 	}
-	industry, err := industryRepository.Get(ctx, industryID)
+	industry, err := industryRepository.Get(ctx, industryId)
 	if err != nil {
 		return nil, err
 	}
 	return enterprise.NewEnterprise(
-		ownerUserID,
-		enterpriseId,
+		id,
+		ownerUserId,
+		name,
 		logoImg,
 		bannerImg,
 		website,
@@ -374,6 +403,6 @@ func (er EnterpriseRepository) load(
 		commonCreatedAt,
 		commonUpdatedAt,
 		commonFoundation,
-		castToEmployeeInterface,
+		employees,
 	)
 }

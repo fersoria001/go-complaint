@@ -2,6 +2,8 @@ package dto
 
 import (
 	"go-complaint/domain/model/identity"
+
+	"github.com/google/uuid"
 )
 
 type GrantedAuthority struct {
@@ -20,12 +22,12 @@ func NewGrantedAuthority(
 }
 
 func NewGrantedAuthorities(
-	domainObjs map[string][]identity.GrantedAuthority,
+	domainObjs map[uuid.UUID][]identity.GrantedAuthority,
 ) []GrantedAuthority {
 	var dtos []GrantedAuthority
 	for key, domainObj := range domainObjs {
 		for _, value := range domainObj {
-			dtos = append(dtos, NewGrantedAuthority(key, value))
+			dtos = append(dtos, NewGrantedAuthority(key.String(), value))
 		}
 	}
 	return dtos

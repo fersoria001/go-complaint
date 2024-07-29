@@ -6,22 +6,22 @@ import (
 )
 
 type Notification struct {
-	ID         string `json:"id"`
-	OwnerID    string `json:"ownerID"`
-	Thumbnail  string `json:"thumbnail"`
-	Title      string `json:"title"`
-	Content    string `json:"content"`
-	Link       string `json:"link"`
-	Seen       bool   `json:"seen"`
-	OccurredOn string `json:"occurredOn"`
+	Id         string    `json:"id"`
+	Owner      Recipient `json:"owner"`
+	Sender     Recipient `json:"sender"`
+	Title      string    `json:"title"`
+	Content    string    `json:"content"`
+	Link       string    `json:"link"`
+	Seen       bool      `json:"seen"`
+	OccurredOn string    `json:"occurredOn"`
 }
 
-func NewNotification(domainObj domain.Notification) Notification {
+func NewNotification(domainObj domain.Notification) *Notification {
 	ms := common.StringDate(domainObj.OccurredOn())
-	return Notification{
-		ID:         domainObj.ID().String(),
-		OwnerID:    domainObj.OwnerID(),
-		Thumbnail:  domainObj.Thumbnail(),
+	return &Notification{
+		Id:         domainObj.ID().String(),
+		Owner:      *NewRecipient(domainObj.Owner()),
+		Sender:     *NewRecipient(domainObj.Sender()),
 		Title:      domainObj.Title(),
 		Content:    domainObj.Content(),
 		Link:       domainObj.Link(),

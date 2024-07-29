@@ -29,8 +29,8 @@ func NewHiringInvitation(
 	stringDate := common.NewDate(domainEvent.OccurredOn()).StringRepresentation()
 	return &HiringInvitation{
 		EventID:          eventID,
-		OwnerID:          domainEvent.ProposedTo(),
-		EnterpriseID:     domainEvent.EnterpriseID(),
+		OwnerID:          domainEvent.ProposedTo().String(),
+		EnterpriseID:     domainEvent.EnterpriseId().String(),
 		ProposedPosition: domainEvent.ProposalPosition().String(),
 		OccurredOn:       stringDate,
 		Seen:             false,

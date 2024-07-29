@@ -13,24 +13,24 @@ Package feedback
 implements domain.DomainEvent interface
 */
 type AddedFeedback struct {
-	feedbackID  uuid.UUID
-	complaintID uuid.UUID
-	reviewerID  string
-	reviewedID  string
+	feedbackId  uuid.UUID
+	complaintId uuid.UUID
+	reviewerId  uuid.UUID
+	reviewedId  uuid.UUID
 	occurredOn  time.Time
 }
 
 func NewAddedFeedback(
-	feedbackID uuid.UUID,
-	complaintID uuid.UUID,
-	reviewerID string,
-	reviewedID string,
+	feedbackId,
+	complaintId,
+	reviewerId,
+	reviewedId uuid.UUID,
 ) *AddedFeedback {
 	return &AddedFeedback{
-		feedbackID:  feedbackID,
-		complaintID: complaintID,
-		reviewerID:  reviewerID,
-		reviewedID:  reviewedID,
+		feedbackId:  feedbackId,
+		complaintId: complaintId,
+		reviewerId:  reviewerId,
+		reviewedId:  reviewedId,
 		occurredOn:  time.Now(),
 	}
 }
@@ -41,65 +41,55 @@ func (f *AddedFeedback) OccurredOn() time.Time {
 
 func (f *AddedFeedback) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		FeedbackID  string `json:"feedback_id"`
-		ComplaintID string `json:"complaint_id"`
-		ReviewerID  string `json:"reviewer_id"`
-		ReviewedID  string `json:"reviewed_id"`
-		OccurredOn  string `json:"occurred_on"`
+		FeedbackId  uuid.UUID `json:"feedback_id"`
+		ComplaintId uuid.UUID `json:"complaint_id"`
+		ReviewerId  uuid.UUID `json:"reviewer_id"`
+		ReviewedId  uuid.UUID `json:"reviewed_id"`
+		OccurredOn  string    `json:"occurred_on"`
 	}{
-		FeedbackID:  f.feedbackID.String(),
-		ComplaintID: f.complaintID.String(),
-		ReviewerID:  f.reviewerID,
-		ReviewedID:  f.reviewedID,
+		FeedbackId:  f.feedbackId,
+		ComplaintId: f.complaintId,
+		ReviewerId:  f.reviewerId,
+		ReviewedId:  f.reviewedId,
 		OccurredOn:  common.StringDate(f.occurredOn),
 	})
 }
 
 func (f *AddedFeedback) UnmarshalJSON(data []byte) error {
 	aux := struct {
-		FeedbackID  string `json:"feedback_id"`
-		ComplaintID string `json:"complaint_id"`
-		ReviewerID  string `json:"reviewer_id"`
-		ReviewedID  string `json:"reviewed_id"`
-		OccurredOn  string `json:"occurred_on"`
+		FeedbackId  uuid.UUID `json:"feedback_id"`
+		ComplaintId uuid.UUID `json:"complaint_id"`
+		ReviewerId  uuid.UUID `json:"reviewer_id"`
+		ReviewedId  uuid.UUID `json:"reviewed_id"`
+		OccurredOn  string    `json:"occurred_on"`
 	}{}
-
 	err := json.Unmarshal(data, &aux)
 	if err != nil {
 		return err
 	}
-	feedbackID, err := uuid.Parse(aux.FeedbackID)
-	if err != nil {
-		return err
-	}
-	f.feedbackID = feedbackID
-	complaintID, err := uuid.Parse(aux.ComplaintID)
-	if err != nil {
-		return err
-	}
-	f.complaintID = complaintID
-	f.reviewerID = aux.ReviewerID
-	f.reviewedID = aux.ReviewedID
+	f.feedbackId = aux.FeedbackId
+	f.complaintId = aux.ComplaintId
+	f.reviewerId = aux.ReviewerId
+	f.reviewedId = aux.ReviewedId
 	f.occurredOn, err = common.ParseDate(aux.OccurredOn)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (f AddedFeedback) FeedbackID() uuid.UUID {
-	return f.feedbackID
+func (f AddedFeedback) FeedbackId() uuid.UUID {
+	return f.feedbackId
 }
 
-func (f AddedFeedback) ComplaintID() uuid.UUID {
-	return f.complaintID
+func (f AddedFeedback) ComplaintId() uuid.UUID {
+	return f.complaintId
 }
 
-func (f AddedFeedback) ReviewerID() string {
-	return f.reviewerID
+func (f AddedFeedback) ReviewerId() uuid.UUID {
+	return f.reviewerId
 }
 
-func (f AddedFeedback) ReviewedID() string {
-	return f.reviewedID
+func (f AddedFeedback) ReviewedId() uuid.UUID {
+	return f.reviewedId
 }

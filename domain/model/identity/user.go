@@ -10,13 +10,15 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/google/uuid"
 )
 
 // Package identity
 // <<Aggregate>> User
 type User struct {
+	id           uuid.UUID
 	registerDate common.Date
-	email        string
+	userName     string
 	password     string
 	userRoles    mapset.Set[*UserRole]
 	isConfirmed  bool
@@ -25,7 +27,7 @@ type User struct {
 
 func (user *User) RejectHiringInvitation(
 	ctx context.Context,
-	enterpriseID string,
+	enterpriseId uuid.UUID,
 	rejectionReason string,
 	proposedPosition RolesEnum,
 ) error {
@@ -36,8 +38,8 @@ func (user *User) RejectHiringInvitation(
 	err = publisher.Publish(
 		ctx,
 		NewHiringInvitationRejected(
-			enterpriseID,
-			user.Email(),
+			enterpriseId,
+			user.Id(),
 			rejectionReason,
 			proposedPosition,
 		),
@@ -50,7 +52,7 @@ func (user *User) RejectHiringInvitation(
 
 func (user *User) AcceptHiringInvitation(
 	ctx context.Context,
-	enterpriseID string,
+	enterpriseId uuid.UUID,
 	proposedPosition RolesEnum,
 ) error {
 	var (
@@ -60,8 +62,8 @@ func (user *User) AcceptHiringInvitation(
 	err = publisher.Publish(
 		ctx,
 		NewHiringInvitationAccepted(
-			enterpriseID,
-			user.Email(),
+			enterpriseId,
+			user.Id(),
 			proposedPosition,
 		),
 	)
@@ -89,14 +91,14 @@ func (user *User) SignIn(ctx context.Context, code int, ip string,
 
 // factory method and publisher
 
-func (u User) Authorities() map[string][]GrantedAuthority {
-	authorities := make(map[string][]GrantedAuthority, 0)
+func (u User) Authorities() map[uuid.UUID][]GrantedAuthority {
+	authorities := make(map[uuid.UUID][]GrantedAuthority, 0)
 	for userRole := range u.userRoles.Iter() {
-		if _, ok := authorities[userRole.EnterpriseID()]; !ok {
-			authorities[userRole.EnterpriseID()] = make([]GrantedAuthority, 0)
+		if _, ok := authorities[userRole.EnterpriseId()]; !ok {
+			authorities[userRole.EnterpriseId()] = make([]GrantedAuthority, 0)
 		}
-		authorities[userRole.EnterpriseID()] = append(
-			authorities[userRole.EnterpriseID()],
+		authorities[userRole.EnterpriseId()] = append(
+			authorities[userRole.EnterpriseId()],
 			NewAuthority(
 				userRole.GetRole().String(),
 			),
@@ -120,7 +122,8 @@ func (u *User) VerifyEmail(ctx context.Context) error {
 
 func CreateUser(
 	ctx context.Context,
-	email string,
+	id uuid.UUID,
+	userName string,
 	password string,
 	emailVerificationToken string,
 	registerDate common.Date,
@@ -128,7 +131,8 @@ func CreateUser(
 ) (*User, error) {
 	emptyUserRoles := mapset.NewSet[*UserRole]()
 	u, err := NewUser(
-		email,
+		id,
+		userName,
 		password,
 		registerDate,
 		person,
@@ -151,7 +155,8 @@ func CreateUser(
 }
 
 func NewUser(
-	email string,
+	id uuid.UUID,
+	userName string,
 	password string,
 	registerDate common.Date,
 	person *Person,
@@ -160,11 +165,12 @@ func NewUser(
 ) (*User, error) {
 	var user = new(User)
 	var err error
+	user.id = id
 	err = user.setRegisterDate(registerDate)
 	if err != nil {
 		return nil, err
 	}
-	err = user.setEmail(email)
+	err = user.setUserName(userName)
 	if err != nil {
 		return nil, err
 	}
@@ -185,33 +191,33 @@ func NewUser(
 Intended to use to construct a User object, it's different from
 the domain method AddRole that has more business logic
 */
-func (u *User) AddRoles(ctx context.Context, roles map[string][]Role) error {
+func (u *User) AddRoles(ctx context.Context, roles map[uuid.UUID][]Role) error {
 	if roles == nil {
 		return &erros.NullValueError{}
 	}
-	for enterprise, role := range roles {
+	for enterpriseId, role := range roles {
 		for _, r := range role {
-			if !u.userRoles.Add(NewUserRole(r, u.email, enterprise)) {
+			if !u.userRoles.Add(NewUserRole(r, u.id, enterpriseId)) {
 				return &erros.AlreadyExistsError{}
 			}
 		}
 	}
-
 	return nil
 }
+
 func (u *User) RemoveUserRole(
 	ctx context.Context,
 	role RolesEnum,
-	enterpriseID string) error {
+	enterpriseId uuid.UUID) error {
 	publisher := domain.DomainEventPublisherInstance()
-	target, err := u.findUserRole(role, enterpriseID)
+	target, err := u.findUserRole(role, enterpriseId)
 	if err != nil {
 		return err
 	}
 	u.userRoles.Remove(target)
 	publisher.Publish(
 		ctx,
-		NewRoleRemoved(u.Email(), enterpriseID, role.String()))
+		NewRoleRemoved(u.Id(), enterpriseId, role.String()))
 	return nil
 }
 
@@ -225,9 +231,9 @@ func (u User) UserRoles() mapset.Set[UserRole] {
 
 func (u *User) findUserRole(
 	role RolesEnum,
-	enterpriseID string) (*UserRole, error) {
+	enterpriseId uuid.UUID) (*UserRole, error) {
 	for userRole := range u.userRoles.Iter() {
-		if userRole.GetRole().String() == role.String() && userRole.EnterpriseID() == enterpriseID {
+		if userRole.GetRole().String() == role.String() && userRole.EnterpriseId() == enterpriseId {
 			return userRole, nil
 		}
 	}
@@ -237,17 +243,17 @@ func (u *User) findUserRole(
 func (u *User) AddRole(
 	ctx context.Context,
 	role RolesEnum,
-	enterpriseID string) error {
+	enterpriseId uuid.UUID) error {
 	publisher := domain.DomainEventPublisherInstance()
 	newRole, err := NewRole(role.String())
 	if err != nil {
 		return err
 	}
-	userRole := NewUserRole(newRole, u.email, enterpriseID)
+	userRole := NewUserRole(newRole, u.id, enterpriseId)
 	if u.userRoles.Add(userRole) {
 		err := publisher.Publish(
 			ctx,
-			NewRoleAdded(u.Email(), enterpriseID, userRole.GetRole().String()),
+			NewRoleAdded(u.Id(), enterpriseId, userRole.GetRole().String()),
 		)
 		if err != nil {
 			return err
@@ -258,8 +264,8 @@ func (u *User) AddRole(
 	domain.DomainEventPublisherInstance().Publish(
 		ctx,
 		NewRoleAdded(
-			u.Email(),
-			enterpriseID,
+			u.Id(),
+			enterpriseId,
 			role.String(),
 		),
 	)
@@ -278,6 +284,7 @@ func (u *User) ResetPassword(ctx context.Context, randomGeneratedPassword, hash 
 	}
 	return publisher.Publish(ctx, event)
 }
+
 func (u *User) ChangePassword(ctx context.Context, oldPassword, newPassword, newHash string) error {
 	publisher := domain.DomainEventPublisherInstance()
 	if oldPassword == newPassword {
@@ -316,30 +323,30 @@ func (u *User) setRegisterDate(registerDate common.Date) error {
 	return nil
 }
 
-func (u *User) setEmail(email string) error {
-	if email == "" {
+func (u *User) setUserName(userName string) error {
+	if userName == "" {
 		return &erros.NullValueError{}
 	}
-	valid, err := mail.ParseAddress(email)
+	valid, err := mail.ParseAddress(userName)
 	if err != nil {
 		return &erros.InvalidEmailError{}
 	}
 	if valid == nil {
 		return &erros.NullValueError{}
 	}
-	u.email = email
+	u.userName = userName
 	return nil
 }
 
-func (u User) ProfileIMG() string {
-	return u.profileIMG
+func (u User) Id() uuid.UUID {
+	return u.id
 }
 
 func (u User) RegisterDate() common.Date {
 	return u.registerDate
 }
 
-func (u User) Email() string {
+func (u User) UserName() string {
 	return u.email
 }
 

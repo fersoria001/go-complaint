@@ -5,7 +5,8 @@ import "go-complaint/erros"
 type Status int
 
 const (
-	OPEN Status = iota
+	WRITING Status = iota
+	OPEN
 	STARTED
 	IN_DISCUSSION
 	IN_REVIEW
@@ -15,6 +16,8 @@ const (
 
 func (s Status) String() string {
 	switch s {
+	case WRITING:
+		return "WRITING"
 	case OPEN:
 		return "OPEN"
 	case STARTED:
@@ -34,6 +37,8 @@ func (s Status) String() string {
 
 func ParseStatus(s string) (Status, error) {
 	switch s {
+	case "WRITING":
+		return WRITING, nil
 	case "OPEN":
 		return OPEN, nil
 	case "STARTED":

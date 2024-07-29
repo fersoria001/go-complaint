@@ -6,9 +6,10 @@ import (
 	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/identity"
 	"go-complaint/infrastructure/persistence/datasource"
-	userrolefindall "go-complaint/infrastructure/persistence/finders/user_role_findall"
+	"go-complaint/infrastructure/persistence/finders/find_all_user_roles"
 
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -31,26 +32,26 @@ func (ur UserRepository) Update(
 		return err
 	}
 	insertCommand := string(`
-		UPDATE public.user
+		UPDATE users
 		SET
 			password = $2,
 			register_date = $3,
 			is_confirmed = $4
-		WHERE email = $1
+		WHERE id = $1
 		`)
 	if user == nil {
 		return errors.New("user is nil")
 	}
 	var (
-		email        string = user.Email()
-		password     string = user.Password()
-		registerDate string = user.RegisterDate().StringRepresentation()
-		isConfirmed  bool   = user.IsConfirmed()
+		id           uuid.UUID = user.Id()
+		password     string    = user.Password()
+		registerDate string    = user.RegisterDate().StringRepresentation()
+		isConfirmed  bool      = user.IsConfirmed()
 	)
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
-		&email,
+		&id,
 		&password,
 		&registerDate,
 		&isConfirmed,
@@ -78,7 +79,7 @@ func (ur UserRepository) Update(
 	if err != nil {
 		return err
 	}
-	err = userRoleRepository.RemoveAll(ctx, user.Email())
+	err = userRoleRepository.RemoveAll(ctx, user.Id())
 	if err != nil {
 		return err
 	}
@@ -87,6 +88,35 @@ func (ur UserRepository) Update(
 		return err
 	}
 
+	return nil
+}
+
+func (ur UserRepository) Remove(ctx context.Context, id uuid.UUID) error {
+	conn, err := ur.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	_, err = conn.Exec(ctx, "DELETE FROM USERS WHERE ID=$1", &id)
+	if err != nil {
+		return err
+	}
+	personRepository, ok := MapperRegistryInstance().Get("Person").(PersonRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	rolesRepository, ok := MapperRegistryInstance().Get("UserRole").(UserRoleRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	err = personRepository.Remove(ctx, id)
+	if err != nil {
+		return err
+	}
+	err = rolesRepository.RemoveAll(ctx, id)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -101,23 +131,26 @@ func (ur UserRepository) Save(
 	//
 	insertCommand := string(`
 		INSERT INTO 
-		public.user (
-			email,
+		users (
+			id,
+			username,
 			password,
 			register_date,
 			is_confirmed
 		)
-		VALUES ($1, $2, $3, $4)`)
+		VALUES ($1, $2, $3, $4, $5)`)
 	var (
-		email        string = user.Email()
-		password     string = user.Password()
-		registerDate string = user.RegisterDate().StringRepresentation()
-		isConfirmed  bool   = user.IsConfirmed()
+		id           uuid.UUID = user.Id()
+		userName     string    = user.UserName()
+		password     string    = user.Password()
+		registerDate string    = user.RegisterDate().StringRepresentation()
+		isConfirmed  bool      = user.IsConfirmed()
 	)
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
-		&email,
+		&id,
+		&userName,
 		&password,
 		&registerDate,
 		&isConfirmed,
@@ -145,16 +178,29 @@ func (ur UserRepository) Save(
 	if err != nil {
 		return err
 	}
-	err = personRepository.Save(ctx, user.GetPerson())
+	err = personRepository.Save(ctx, *user.Person)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+func (ur UserRepository) Find(
+	ctx context.Context,
+	src StatementSource,
+) (*identity.User, error) {
+	conn, err := ur.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return nil, err
+	}
+	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
+	return ur.load(ctx, row)
+}
+
 func (ur UserRepository) Get(
 	ctx context.Context,
-	userEmail string,
+	id uuid.UUID,
 ) (*identity.User, error) {
 	conn, err := ur.schema.Acquire(ctx)
 	if err != nil {
@@ -164,22 +210,24 @@ func (ur UserRepository) Get(
 	//
 	selectQuery := string(`
 		SELECT 
-		email,
+		id,
+		username,
 		password,
 		register_date,
 		is_confirmed
-		FROM public.user
-		WHERE email = $1
+		FROM users
+		WHERE id = $1
 		`)
 
 	row := conn.QueryRow(
 		ctx,
 		selectQuery,
-		userEmail,
+		id,
 	)
 	defer conn.Release()
 	return ur.load(ctx, row)
 }
+
 func (ur UserRepository) FindAll(
 	ctx context.Context,
 	source StatementSource,
@@ -202,6 +250,7 @@ func (ur UserRepository) FindAll(
 	}()
 	return users, nil
 }
+
 func (ur UserRepository) loadAll(
 	ctx context.Context,
 	rows pgx.Rows,
@@ -221,19 +270,20 @@ func (ur UserRepository) load(
 	row pgx.Row,
 ) (*identity.User, error) {
 	var (
-		email        string
+		id           uuid.UUID
+		userName     string
 		password     string
 		registerDate string
 		isConfirmed  bool
 	)
 	err := row.Scan(
-		&email,
+		&id,
+		&userName,
 		&password,
 		&registerDate,
 		&isConfirmed,
 	)
 	if err != nil {
-
 		return nil, err
 	}
 	mapper := MapperRegistryInstance().Get("Person")
@@ -246,14 +296,13 @@ func (ur UserRepository) load(
 	}
 	mapper = MapperRegistryInstance().Get("UserRole")
 	if mapper == nil {
-
 		return nil, ErrMapperNotRegistered
 	}
 	userRoleRepository, ok := mapper.(UserRoleRepository)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
-	person, err := personRepository.Get(ctx, email)
+	person, err := personRepository.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +312,7 @@ func (ur UserRepository) load(
 	}
 	userRoles, err := userRoleRepository.FindAll(
 		ctx,
-		userrolefindall.NewByUserID(email),
+		find_all_user_roles.ByUserId(id),
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -273,7 +322,8 @@ func (ur UserRepository) load(
 		}
 	}
 	return identity.NewUser(
-		email,
+		id,
+		userName,
 		password,
 		commonRegisterDate,
 		person,

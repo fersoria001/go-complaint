@@ -20,44 +20,39 @@ func (s UserStatus) String() string {
 	}
 }
 
-type User struct {
-	ProfileIMG string  `json:"profileIMG"`
-	Email      string  `json:"email"`
+type Person struct {
+	ProfileImg string  `json:"profileImg"`
 	FirstName  string  `json:"firstName"`
 	LastName   string  `json:"lastName"`
-	Gender     string  `json:"gender"`
+	Email      string  `json:"email"`
+	Genre      string  `json:"genre"`
 	Pronoun    string  `json:"pronoun"`
 	Age        int     `json:"age"`
 	Phone      string  `json:"phone"`
 	Address    Address `json:"address"`
-	Status     string  `json:"status"`
+}
+type User struct {
+	Id       string  `json:"id"`
+	Username string  `json:"username"`
+	Person   *Person `json:"person"`
+	Status   string  `json:"status"`
 }
 
-func NewUser(domainObj identity.User) User {
-	return User{
-		ProfileIMG: domainObj.ProfileIMG(),
-		Email:      domainObj.Email(),
-		FirstName:  domainObj.FirstName(),
-		LastName:   domainObj.LastName(),
-		Gender:     domainObj.Gender(),
-		Pronoun:    domainObj.Pronoun(),
-		Age:        domainObj.Age(),
-		Phone:      domainObj.Phone(),
-		Address:    NewAddress(domainObj.Address()),
-	}
-}
-
-func NewUserPtr(domainObj identity.User) *User {
+func NewUser(obj *identity.User) *User {
 	return &User{
-		ProfileIMG: domainObj.ProfileIMG(),
-		Email:      domainObj.Email(),
-		FirstName:  domainObj.FirstName(),
-		LastName:   domainObj.LastName(),
-		Gender:     domainObj.Gender(),
-		Pronoun:    domainObj.Pronoun(),
-		Age:        domainObj.Age(),
-		Phone:      domainObj.Phone(),
-		Address:    NewAddress(domainObj.Address()),
+		Id:       obj.Id().String(),
+		Username: obj.UserName(),
+		Person: &Person{
+			ProfileImg: obj.ProfileIMG(),
+			Email:      obj.Email(),
+			FirstName:  obj.FirstName(),
+			LastName:   obj.LastName(),
+			Genre:      obj.Genre(),
+			Pronoun:    obj.Pronoun(),
+			Age:        obj.Age(),
+			Phone:      obj.Phone(),
+			Address:    NewAddress(obj.Address()),
+		},
 	}
 }
 

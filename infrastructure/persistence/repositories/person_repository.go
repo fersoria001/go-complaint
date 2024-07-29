@@ -19,7 +19,7 @@ func NewPersonRepository(schema datasource.Schema) PersonRepository {
 
 func (pr PersonRepository) Get(
 	ctx context.Context,
-	personEmail string,
+	id uuid.UUID,
 ) (*identity.Person, error) {
 	conn, err := pr.schema.Acquire(ctx)
 	if err != nil {
@@ -27,10 +27,10 @@ func (pr PersonRepository) Get(
 	}
 	//
 	selectQuery := string(`
-		SELECT 
+		SELECT
 		email,
 		profile_img,
-		gender,
+		genre,
 		pronoun,
 		first_name,
 		last_name,
@@ -38,7 +38,7 @@ func (pr PersonRepository) Get(
 		phone,
 		address_id
 		FROM person
-		WHERE email = $1
+		WHERE id = $1
 		`)
 	var (
 		email      string
@@ -54,7 +54,7 @@ func (pr PersonRepository) Get(
 	err = conn.QueryRow(
 		ctx,
 		selectQuery,
-		personEmail,
+		id,
 	).Scan(
 		&email,
 		&profileIMG,
@@ -86,6 +86,7 @@ func (pr PersonRepository) Get(
 		return nil, err
 	}
 	person, err := identity.NewPerson(
+		id,
 		email,
 		profileIMG,
 		gender,
@@ -122,9 +123,10 @@ func (pr PersonRepository) Save(
 	insertCommand := string(`
 		INSERT INTO 
 		person (
+			id,
 			email,
 			profile_img,
-			gender,
+			genre,
 			pronoun,
 			first_name,
 			last_name,
@@ -132,11 +134,12 @@ func (pr PersonRepository) Save(
 			phone,
 			address_id
 			)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`)
 	var (
+		id         uuid.UUID = person.Id()
 		email      string    = person.Email()
 		profileIMG string    = person.ProfileIMG()
-		gender     string    = person.Gender()
+		gender     string    = person.Genre()
 		pronoun    string    = person.Pronoun()
 		firstName  string    = person.FirstName()
 		lastName   string    = person.LastName()
@@ -147,6 +150,7 @@ func (pr PersonRepository) Save(
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
+		&id,
 		&email,
 		&profileIMG,
 		&gender,
@@ -165,6 +169,27 @@ func (pr PersonRepository) Save(
 		return err
 	}
 	defer conn.Release()
+	return nil
+}
+
+func (pr PersonRepository) Remove(
+	ctx context.Context,
+	id uuid.UUID,
+) error {
+	conn, err := pr.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	_, err = conn.Exec(ctx, "DELETE FROM PERSON WHERE PERSON.ID=$1", &id)
+	if err != nil {
+		return err
+	}
+	addressRepository := MapperRegistryInstance().Get("Address").(AddressRepository)
+	err = addressRepository.Remove(ctx, id)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -187,18 +212,18 @@ func (pr PersonRepository) Update(
 	insertCommand := string(`
 		UPDATE person
 		SET profile_img=$2,
-			gender=$3 ,
+			genre=$3 ,
 			pronoun=$4 ,
 			first_name=$5,
 			last_name=$6,
 			birth_date=$7,
 			phone=$8,
 			address_id=$9
-		WHERE email = $1`)
+		WHERE id = $1`)
 	var (
-		email      string    = person.Email()
+		id         uuid.UUID = person.Id()
 		profileIMG string    = person.ProfileIMG()
-		gender     string    = person.Gender()
+		gender     string    = person.Genre()
 		pronoun    string    = person.Pronoun()
 		firstName  string    = person.FirstName()
 		lastName   string    = person.LastName()
@@ -209,7 +234,7 @@ func (pr PersonRepository) Update(
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
-		&email,
+		&id,
 		&profileIMG,
 		&gender,
 		&pronoun,

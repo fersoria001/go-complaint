@@ -8,19 +8,19 @@ import (
 
 // Package identity
 // <<Domain event>>
-type PersonGenderChanged struct {
+type PersonGenreChanged struct {
 	userID     string
 	oldValue   string
 	newValue   string
 	occurredOn time.Time
 }
 
-func NewPersonGenderChanged(
+func NewPersonGenreChanged(
 	userID string,
 	oldValue string,
 	newValue string,
-) (*PersonGenderChanged, error) {
-	var event = new(PersonGenderChanged)
+) (*PersonGenreChanged, error) {
+	var event = new(PersonGenreChanged)
 	event.userID = userID
 	event.oldValue = oldValue
 	event.newValue = newValue
@@ -28,11 +28,11 @@ func NewPersonGenderChanged(
 	return event, nil
 }
 
-func (eu *PersonGenderChanged) OccurredOn() time.Time {
+func (eu *PersonGenreChanged) OccurredOn() time.Time {
 	return eu.occurredOn
 }
 
-func (eu *PersonGenderChanged) MarshalJSON() ([]byte, error) {
+func (eu *PersonGenreChanged) MarshalJSON() ([]byte, error) {
 	commonDate := common.NewDate(eu.occurredOn)
 	return json.Marshal(map[string]interface{}{
 		"user_id":     eu.userID,
@@ -42,7 +42,7 @@ func (eu *PersonGenderChanged) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (eu *PersonGenderChanged) UnmarshalJSON(b []byte) error {
+func (eu *PersonGenreChanged) UnmarshalJSON(b []byte) error {
 	var v struct {
 		UserID     string `json:"user_id"`
 		OldValue   string `json:"old_value"`

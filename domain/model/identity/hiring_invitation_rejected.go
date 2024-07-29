@@ -4,25 +4,27 @@ import (
 	"encoding/json"
 	"go-complaint/domain/model/common"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type HiringInvitationRejected struct {
-	enterpriseID     string
-	invitedUserID    string
+	enterpriseId     uuid.UUID
+	invitedUserId    uuid.UUID
 	rejectionReason  string
 	proposedPosition RolesEnum
 	occurredOn       time.Time
 }
 
 func NewHiringInvitationRejected(
-	enterpriseID,
-	invitedUserID string,
+	enterpriseId,
+	invitedUserId uuid.UUID,
 	rejectionReason string,
 	proposedPosition RolesEnum,
 ) *HiringInvitationRejected {
 	return &HiringInvitationRejected{
-		enterpriseID:     enterpriseID,
-		invitedUserID:    invitedUserID,
+		enterpriseId:     enterpriseId,
+		invitedUserId:    invitedUserId,
 		rejectionReason:  rejectionReason,
 		proposedPosition: proposedPosition,
 		occurredOn:       time.Now(),
@@ -33,12 +35,12 @@ func (event HiringInvitationRejected) OccurredOn() time.Time {
 	return event.occurredOn
 }
 
-func (event HiringInvitationRejected) EnterpriseID() string {
-	return event.enterpriseID
+func (event HiringInvitationRejected) EnterpriseId() uuid.UUID {
+	return event.enterpriseId
 }
 
-func (event HiringInvitationRejected) InvitedUserID() string {
-	return event.invitedUserID
+func (event HiringInvitationRejected) InvitedUserId() uuid.UUID {
+	return event.invitedUserId
 }
 
 func (event HiringInvitationRejected) ProposedPosition() RolesEnum {
@@ -53,13 +55,13 @@ func (event *HiringInvitationRejected) MarshalJSON() ([]byte, error) {
 	commonDate := common.NewDate(event.occurredOn)
 	stringDate := commonDate.StringRepresentation()
 	return json.Marshal(struct {
-		EnterpriseID     string `json:"enterprise_id"`
-		InvitedUserID    string `json:"invited_user_id"`
-		ProposedPosition string `json:"proposed_position"`
-		OccurredOn       string `json:"occurred_on"`
+		EnterpriseId     uuid.UUID `json:"enterprise_id"`
+		InvitedUserId    uuid.UUID `json:"invited_user_id"`
+		ProposedPosition string    `json:"proposed_position"`
+		OccurredOn       string    `json:"occurred_on"`
 	}{
-		EnterpriseID:     event.enterpriseID,
-		InvitedUserID:    event.invitedUserID,
+		EnterpriseId:     event.enterpriseId,
+		InvitedUserId:    event.invitedUserId,
 		ProposedPosition: event.proposedPosition.String(),
 		OccurredOn:       stringDate,
 	})
@@ -68,17 +70,17 @@ func (event *HiringInvitationRejected) MarshalJSON() ([]byte, error) {
 
 func (event *HiringInvitationRejected) UnmarshalJSON(data []byte) error {
 	var raw struct {
-		EnterpriseID     string `json:"enterprise_id"`
-		InvitedUserID    string `json:"invited_user_id"`
-		ProposedPosition string `json:"proposed_position"`
-		OccurredOn       string `json:"occurred_on"`
+		EnterpriseId     uuid.UUID `json:"enterprise_id"`
+		InvitedUserId    uuid.UUID `json:"invited_user_id"`
+		ProposedPosition string    `json:"proposed_position"`
+		OccurredOn       string    `json:"occurred_on"`
 	}
 	err := json.Unmarshal(data, &raw)
 	if err != nil {
 		return err
 	}
-	event.enterpriseID = raw.EnterpriseID
-	event.invitedUserID = raw.InvitedUserID
+	event.enterpriseId = raw.EnterpriseId
+	event.invitedUserId = raw.InvitedUserId
 	event.proposedPosition, err = ParseRole(raw.ProposedPosition)
 	if err != nil {
 		return err

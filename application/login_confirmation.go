@@ -11,7 +11,7 @@ func NewLoginConfirmation(email string, token JWTToken, isConfirmed bool) *Login
 	lc := &LoginConfirmation{
 		JWTToken:    token,
 		isConfirmed: isConfirmed,
-		retry:       0,
+		retry:       3,
 		email:       email,
 	}
 	return lc
@@ -22,10 +22,10 @@ func (lc *LoginConfirmation) Confirm() {
 }
 
 func (lc *LoginConfirmation) RetryConfirmation() error {
-	if lc.retry >= 3 {
+	if lc.retry <= 0 {
 		return ErrConfirmationRetryLimit
 	} else {
-		lc.retry++
+		lc.retry--
 	}
 	return nil
 }

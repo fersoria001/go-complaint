@@ -1,8 +1,13 @@
 package complaint
 
-import "go-complaint/erros"
+import (
+	"go-complaint/erros"
+
+	"github.com/google/uuid"
+)
 
 type Rating struct {
+	id      uuid.UUID
 	rate    int
 	comment string
 }
@@ -12,8 +17,9 @@ type Rating struct {
 Comment is optional and can be empty,
 Rate is required and must be between 0 and 5
 */
-func NewRating(rate int, comment string) (Rating, error) {
-	var r *Rating = &Rating{}
+func NewRating(id uuid.UUID, rate int, comment string) (Rating, error) {
+	r := new(Rating)
+	r.id = id
 	err := r.setRate(rate)
 	if err != nil {
 		return *r, err
@@ -53,6 +59,10 @@ func (r *Rating) setComment(comment string) error {
 	}
 	r.comment = comment
 	return nil
+}
+
+func (r Rating) Id() uuid.UUID {
+	return r.id
 }
 
 func (r Rating) Rate() int {

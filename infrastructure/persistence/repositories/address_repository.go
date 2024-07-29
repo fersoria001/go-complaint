@@ -53,7 +53,21 @@ func (ar AddressRepository) Update(
 	defer conn.Release()
 	return nil
 }
-
+func (ar AddressRepository) Remove(
+	ctx context.Context,
+	id uuid.UUID,
+) error {
+	conn, err := ar.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	_, err = conn.Exec(ctx, "DELETE FROM ADDRESS WHERE ID=$1", &id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func (ar AddressRepository) Save(
 	ctx context.Context,
 	address common.Address,

@@ -9,15 +9,15 @@ import (
 )
 
 type ComplaintStarted struct {
-	complaintID uuid.UUID
-	replyID     uuid.UUID
+	complaintId uuid.UUID
+	replyId     uuid.UUID
 	occurredOn  time.Time
 }
 
-func NewComplaintStarted(complaintID, replyID uuid.UUID, occuredOn time.Time) *ComplaintStarted {
+func NewComplaintStarted(complaintId, replyId uuid.UUID, occuredOn time.Time) *ComplaintStarted {
 	return &ComplaintStarted{
-		complaintID: complaintID,
-		replyID:     replyID,
+		complaintId: complaintId,
+		replyId:     replyId,
 		occurredOn:  occuredOn,
 	}
 }
@@ -28,12 +28,12 @@ func (cs *ComplaintStarted) OccurredOn() time.Time {
 
 func (cs *ComplaintStarted) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		ComplaintID string `json:"complaint_id"`
-		ReplyID     string `json:"reply_id"`
-		OccurredOn  string `json:"occurred_on"`
+		ComplaintId uuid.UUID `json:"complaint_id"`
+		ReplyId     uuid.UUID `json:"reply_id"`
+		OccurredOn  string    `json:"occurred_on"`
 	}{
-		ComplaintID: cs.complaintID.String(),
-		ReplyID:     cs.replyID.String(),
+		ComplaintId: cs.complaintId,
+		ReplyId:     cs.replyId,
 		OccurredOn:  common.StringDate(cs.occurredOn),
 	})
 }
@@ -41,21 +41,15 @@ func (cs *ComplaintStarted) MarshalJSON() ([]byte, error) {
 func (cs *ComplaintStarted) UnmarshalJSON(data []byte) error {
 	var err error
 	var aux struct {
-		ComplaintID string `json:"complaint_id"`
-		ReplyID     string `json:"reply_id"`
-		OccurredOn  string `json:"occurred_on"`
+		ComplaintId uuid.UUID `json:"complaint_id"`
+		ReplyId     uuid.UUID `json:"reply_id"`
+		OccurredOn  string    `json:"occurred_on"`
 	}
 	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	cs.complaintID, err = uuid.Parse(aux.ComplaintID)
-	if err != nil {
-		return err
-	}
-	cs.replyID, err = uuid.Parse(aux.ReplyID)
-	if err != nil {
-		return err
-	}
+	cs.complaintId = aux.ComplaintId
+	cs.replyId = aux.ReplyId
 	occurredOn, err := common.ParseDate(aux.OccurredOn)
 	if err != nil {
 		return err

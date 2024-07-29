@@ -9,21 +9,21 @@ import (
 )
 
 type FeedbackCreated struct {
-	feedbackID   uuid.UUID
-	complaintID  uuid.UUID
-	enterpriseID string
+	feedbackId   uuid.UUID
+	complaintId  uuid.UUID
+	enterpriseId uuid.UUID
 	occurredOn   time.Time
 }
 
 func NewFeedbackCreated(
-	feedbackID uuid.UUID,
-	complaintID uuid.UUID,
-	enterpriseID string,
+	feedbackId,
+	complaintId,
+	enterpriseId uuid.UUID,
 ) *FeedbackCreated {
 	return &FeedbackCreated{
-		feedbackID:   feedbackID,
-		complaintID:  complaintID,
-		enterpriseID: enterpriseID,
+		feedbackId:   feedbackId,
+		complaintId:  complaintId,
+		enterpriseId: enterpriseId,
 		occurredOn:   time.Now(),
 	}
 }
@@ -32,38 +32,38 @@ func (f FeedbackCreated) OccurredOn() time.Time {
 	return f.occurredOn
 }
 
-func (f FeedbackCreated) FeedbackID() uuid.UUID {
-	return f.feedbackID
+func (f FeedbackCreated) FeedbackId() uuid.UUID {
+	return f.feedbackId
 }
 
-func (f FeedbackCreated) ComplaintID() uuid.UUID {
-	return f.complaintID
+func (f FeedbackCreated) ComplaintId() uuid.UUID {
+	return f.complaintId
 }
 
-func (f FeedbackCreated) EnterpriseID() string {
-	return f.enterpriseID
+func (f FeedbackCreated) EnterpriseId() uuid.UUID {
+	return f.enterpriseId
 }
 
 func (f *FeedbackCreated) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		FeedbackID   string `json:"feedback_id"`
-		ComplaintID  string `json:"complaint_id"`
-		EnterpriseID string `json:"enterprise_id"`
-		OccurredOn   string `json:"occurred_on"`
+		FeedbackId   uuid.UUID `json:"feedback_id"`
+		ComplaintId  uuid.UUID `json:"complaint_id"`
+		EnterpriseId uuid.UUID `json:"enterprise_id"`
+		OccurredOn   string    `json:"occurred_on"`
 	}{
-		FeedbackID:   f.feedbackID.String(),
-		ComplaintID:  f.complaintID.String(),
-		EnterpriseID: f.enterpriseID,
+		FeedbackId:   f.feedbackId,
+		ComplaintId:  f.complaintId,
+		EnterpriseId: f.enterpriseId,
 		OccurredOn:   common.StringDate(f.occurredOn),
 	})
 }
 
 func (f *FeedbackCreated) UnmarshalJSON(data []byte) error {
 	var feedbackCreated struct {
-		FeedbackID   string `json:"feedback_id"`
-		ComplaintID  string `json:"complaint_id"`
-		EnterpriseID string `json:"enterprise_id"`
-		OccurredOn   string `json:"occurred_on"`
+		FeedbackId   uuid.UUID `json:"feedback_id"`
+		ComplaintId  uuid.UUID `json:"complaint_id"`
+		EnterpriseId uuid.UUID `json:"enterprise_id"`
+		OccurredOn   string    `json:"occurred_on"`
 	}
 	err := json.Unmarshal(data, &feedbackCreated)
 	if err != nil {
@@ -73,14 +73,8 @@ func (f *FeedbackCreated) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	f.feedbackID, err = uuid.Parse(feedbackCreated.FeedbackID)
-	if err != nil {
-		return err
-	}
-	f.complaintID, err = uuid.Parse(feedbackCreated.ComplaintID)
-	if err != nil {
-		return err
-	}
-	f.enterpriseID = feedbackCreated.EnterpriseID
+	f.feedbackId = feedbackCreated.FeedbackId
+	f.complaintId = feedbackCreated.ComplaintId
+	f.enterpriseId = feedbackCreated.EnterpriseId
 	return nil
 }

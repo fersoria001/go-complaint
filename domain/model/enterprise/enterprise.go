@@ -24,10 +24,11 @@ import (
 // id is the owner id and is not unique
 // Its name is unique and its the pk
 type Enterprise struct {
+	id             uuid.UUID
 	name           string
-	owner          string
-	logoIMG        string
-	bannerIMG      string
+	ownerId        uuid.UUID
+	logoImg        string
+	bannerImg      string
 	website        string
 	email          string
 	phone          string
@@ -36,23 +37,23 @@ type Enterprise struct {
 	registerAt     common.Date
 	updatedAt      common.Date
 	foundationDate common.Date
-	employees      mapset.Set[Employee]
+	employees      mapset.Set[*Employee]
 }
 
 func (e *Enterprise) PromoteEmployee(
 	ctx context.Context,
 	promotedBy string,
-	employeeID uuid.UUID,
+	employeeId uuid.UUID,
 	newPosition Position) (*identity.User, error) {
-	slice := e.Employees().ToSlice()
-	index, ok := slices.BinarySearchFunc(slice, employeeID, func(i Employee, j uuid.UUID) int {
-		if i.ID() == j {
+	slice := e.employees.ToSlice()
+	index, ok := slices.BinarySearchFunc(slice, employeeId, func(i *Employee, j uuid.UUID) int {
+		if i.Id() == j {
 			return 0
 		}
 		return -1
 	})
 	if !ok {
-		return nil, fmt.Errorf("employee with id %s not found", employeeID)
+		return nil, fmt.Errorf("employee with id %s not found", employeeId)
 	}
 	emp := slice[index]
 	if !emp.ApprovedHiring() {
@@ -69,14 +70,14 @@ func (e *Enterprise) PromoteEmployee(
 	}
 	urSlice := user.UserRoles().ToSlice()
 	for _, r := range urSlice {
-		if r.EnterpriseID() == e.name {
-			err = user.RemoveUserRole(ctx, r.GetRole(), e.name)
+		if r.EnterpriseId() == e.id {
+			err = user.RemoveUserRole(ctx, r.GetRole(), e.id)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
-	err = user.AddRole(ctx, role, e.name)
+	err = user.AddRole(ctx, role, e.id)
 	if err != nil {
 		return nil, err
 	}
@@ -88,16 +89,15 @@ func (e *Enterprise) PromoteEmployee(
 	return user, nil
 }
 
-func (e *Enterprise) EmployeeLeave(ctx context.Context,
-	employeeID uuid.UUID) (*identity.User, error) {
+func (e *Enterprise) EmployeeLeave(ctx context.Context, employeeId uuid.UUID) (*identity.User, error) {
 	var (
 		publisher = domain.DomainEventPublisherInstance()
 		err       error
 	)
-	var employee Employee
+	var employee *Employee
 	var user *identity.User
-	for emp := range e.Employees().Iter() {
-		if employeeID == emp.ID() {
+	for emp := range e.employees.Iter() {
+		if employeeId == emp.Id() {
 			if !emp.ApprovedHiring() {
 				return nil, &erros.ValidationError{Expected: "employee needs to be approved first"}
 			}
@@ -108,13 +108,13 @@ func (e *Enterprise) EmployeeLeave(ctx context.Context,
 			user = emp.GetUser()
 			err = emp.GetUser().RemoveUserRole(ctx,
 				role,
-				e.Name(),
+				e.Id(),
 			)
 			if err != nil {
 				return nil, err
 			}
 			employee = emp
-			e.Employees().Remove(emp)
+			e.employees.Remove(emp)
 		}
 	}
 
@@ -127,21 +127,21 @@ func (e *Enterprise) EmployeeLeave(ctx context.Context,
 
 func (e *Enterprise) FireEmployee(
 	ctx context.Context,
-	emitedBy string,
-	employeeID uuid.UUID) (*identity.User, error) {
+	emitedBy uuid.UUID,
+	employeeId uuid.UUID) (*identity.User, error) {
 	var (
 		publisher = domain.DomainEventPublisherInstance()
 		err       error
 	)
-	slice := e.Employees().ToSlice()
-	index, ok := slices.BinarySearchFunc(slice, employeeID, func(i Employee, j uuid.UUID) int {
-		if i.ID() == j {
+	slice := e.employees.ToSlice()
+	index, ok := slices.BinarySearchFunc(slice, employeeId, func(i *Employee, j uuid.UUID) int {
+		if i.Id() == j {
 			return 0
 		}
 		return -1
 	})
 	if !ok {
-		return nil, fmt.Errorf("employee with id %s not found", employeeID)
+		return nil, fmt.Errorf("employee with id %s not found", employeeId)
 	}
 	emp := slice[index]
 
@@ -155,14 +155,14 @@ func (e *Enterprise) FireEmployee(
 	user := emp.GetUser()
 	err = emp.GetUser().RemoveUserRole(ctx,
 		role,
-		e.Name(),
+		e.Id(),
 	)
 	if err != nil {
 		return nil, err
 	}
 	log.Println("befor remove employee from enterprise", len(slice))
-	slice = slices.DeleteFunc(slice, func(i Employee) bool {
-		return i.ID() == employeeID
+	slice = slices.DeleteFunc(slice, func(i *Employee) bool {
+		return i.Id() == employeeId
 	})
 	log.Println("after remove employee from enterprise", len(slice))
 	e.employees = mapset.NewSet(slice...)
@@ -175,16 +175,16 @@ func (e *Enterprise) FireEmployee(
 
 func (e *Enterprise) CancelHiringProccess(
 	ctx context.Context,
-	candidateID string,
-	emitedBy string,
+	candidateId,
+	emitedBy uuid.UUID,
 	reason string,
 	position Position,
 ) error {
 	return domain.DomainEventPublisherInstance().Publish(
 		ctx,
 		NewHiringProccessCanceled(
-			e.Name(),
-			candidateID,
+			e.id,
+			candidateId,
 			emitedBy,
 			reason,
 			position,
@@ -194,32 +194,32 @@ func (e *Enterprise) CancelHiringProccess(
 
 func (e *Enterprise) HireEmployee(
 	ctx context.Context,
-	emitedBy string,
-	employee Employee,
+	emitedBy uuid.UUID,
+	employee *Employee,
 ) error {
-	role, err := identity.ParseRole(employee.Position().String())
+	// role, err := identity.ParseRole(Position().String())
 
-	if err != nil {
-		return err
-	}
-	err = employee.GetUser().AddRole(
-		ctx,
-		role,
-		e.Name(),
-	)
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
+	// err = GetUser().AddRole(
+	// 	ctx,
+	// 	role,
+	// 	e.Id(),
+	// )
+	// if err != nil {
+	// 	return err
+	// }
 	employee.SetApprovedHiring(true)
-	err = e.AddEmployee(employee)
+	err := e.AddEmployee(employee)
 	if err != nil {
 		return err
 	}
 	domainEventPublisher := domain.DomainEventPublisherInstance()
 	ev := NewEmployeeHired(
-		e.Name(),
+		e.Id(),
 		emitedBy,
-		employee.ID(),
+		employee.Id(),
 		employee.Email(),
 		employee.Position(),
 	)
@@ -236,13 +236,13 @@ func (e *Enterprise) HireEmployee(
 
 func (e *Enterprise) InviteToProject(
 	ctx context.Context,
-	userID string,
-	proposedTo string,
+	userId uuid.UUID,
+	proposedTo uuid.UUID,
 	proposalPosition Position,
 ) error {
 	event := NewHiringInvitationSent(
-		e.name,
-		userID,
+		e.id,
+		userId,
 		proposedTo,
 		proposalPosition,
 	)
@@ -424,8 +424,11 @@ func (e *Enterprise) ChangeBannerIMG(ctx context.Context, bannerIMG string) erro
 // factory method and publisher
 func CreateEnterprise(
 	ctx context.Context,
-	owner *identity.User,
+	id,
+	ownerId uuid.UUID,
 	name,
+	logoImg,
+	bannerImg,
 	website,
 	email,
 	phone string,
@@ -434,12 +437,13 @@ func CreateEnterprise(
 	address common.Address,
 ) (*Enterprise, error) {
 	regat := common.NewDate(time.Now())
-	emptySet := mapset.NewSet[Employee]()
+	emptySet := mapset.NewSet[*Employee]()
 	e, err := NewEnterprise(
-		owner.Email(),
+		id,
+		ownerId,
 		name,
-		"/logo.jpg",
-		"/banner.jpg",
+		logoImg,
+		bannerImg,
 		website,
 		email,
 		phone,
@@ -454,7 +458,7 @@ func CreateEnterprise(
 		return nil, err
 	}
 	event, err := NewEnterpriseCreated(
-		e.Name(),
+		e.Id(),
 		e.Industry().ID(),
 		e.CreatedAt().Date(),
 	)
@@ -465,20 +469,16 @@ func CreateEnterprise(
 	if err != nil {
 		return nil, err
 	}
-	err = owner.AddRole(
-		ctx,
-		identity.OWNER,
-		name,
-	)
 	return e, err
 }
 
 // constructor
 func NewEnterprise(
-	ownerID,
+	id,
+	ownerId uuid.UUID,
 	name,
-	logoIMG,
-	bannerIMG,
+	logoImg,
+	bannerImg,
 	website,
 	email,
 	phone string,
@@ -487,28 +487,20 @@ func NewEnterprise(
 	registerAt,
 	updatedAt,
 	foundationDate common.Date,
-	employees mapset.Set[Employee],
+	employees mapset.Set[*Employee],
 ) (*Enterprise, error) {
 	e := new(Enterprise)
 	err := e.setName(name)
 	if err != nil {
 		return nil, err
 	}
-	_, err = mail.ParseAddress(ownerID)
-	if err != nil {
-		return nil, &erros.ValidationError{
-			Expected: "valid email as ownerID",
-		}
-	}
-	err = e.setOwner(ownerID)
+	e.id = id
+	e.ownerId = ownerId
+	err = e.setLogoIMG(logoImg)
 	if err != nil {
 		return nil, err
 	}
-	err = e.setLogoIMG(logoIMG)
-	if err != nil {
-		return nil, err
-	}
-	err = e.setBannerIMG(bannerIMG)
+	err = e.setBannerIMG(bannerImg)
 	if err != nil {
 		return nil, err
 	}
@@ -555,7 +547,7 @@ func NewEnterprise(
 // 	e.director.Changed(e)
 // }
 
-func (e *Enterprise) setEmployees(employees mapset.Set[Employee]) error {
+func (e *Enterprise) setEmployees(employees mapset.Set[*Employee]) error {
 	if employees == nil {
 		return &erros.NullValueError{}
 	}
@@ -563,19 +555,11 @@ func (e *Enterprise) setEmployees(employees mapset.Set[Employee]) error {
 	return nil
 }
 
-func (e *Enterprise) setOwner(owner string) error {
-	if owner == "" {
-		return &erros.NullValueError{}
-	}
-	e.owner = owner
-	return nil
-}
-
 func (e *Enterprise) setLogoIMG(logoIMG string) error {
 	if logoIMG == "" {
 		return &erros.NullValueError{}
 	}
-	e.logoIMG = logoIMG
+	e.logoImg = logoIMG
 	return nil
 }
 
@@ -583,7 +567,7 @@ func (e *Enterprise) setBannerIMG(bannerIMG string) error {
 	if bannerIMG == "" {
 		return &erros.NullValueError{}
 	}
-	e.bannerIMG = bannerIMG
+	e.bannerImg = bannerIMG
 	return nil
 }
 
@@ -627,7 +611,6 @@ func (e *Enterprise) setEmail(email string) error {
 }
 
 func (e *Enterprise) setPhone(phone string) error {
-
 	if phone == "" {
 		return &erros.NullValueError{}
 	}
@@ -682,12 +665,16 @@ func (e *Enterprise) setFoundationDate(foundationDate common.Date) error {
 	return nil
 }
 
+func (e Enterprise) Id() uuid.UUID {
+	return e.id
+}
+
 func (e Enterprise) LogoIMG() string {
-	return e.logoIMG
+	return e.logoImg
 }
 
 func (e Enterprise) BannerIMG() string {
-	return e.bannerIMG
+	return e.bannerImg
 }
 
 func (e Enterprise) Name() string {
@@ -723,17 +710,19 @@ func (e Enterprise) UpdatedAt() common.Date {
 func (e Enterprise) FoundationDate() common.Date {
 	return e.foundationDate
 }
-func (e Enterprise) Owner() string {
-	return e.owner
+func (e Enterprise) OwnerId() uuid.UUID {
+	return e.ownerId
 }
-
 func (e Enterprise) Employees() mapset.Set[Employee] {
-	return e.employees
+	valueCopy := mapset.NewSet[Employee]()
+	for v := range e.employees.Iter() {
+		valueCopy.Add(*v)
+	}
+	return valueCopy
 }
-
-func (e *Enterprise) AddEmployee(employee Employee) error {
+func (e *Enterprise) AddEmployee(employee *Employee) error {
 	if employee == nil {
-		return &erros.NullValueError{}
+		return ErrNilPointer
 	}
 	e.employees.Add(employee)
 	return nil

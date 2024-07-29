@@ -11,22 +11,22 @@ import (
 // Package complaint
 // << Domain Event >>
 type ComplaintRated struct {
-	complaintID     uuid.UUID
-	ratedBy         string
-	assistantUserID string
+	complaintId     uuid.UUID
+	ratedBy         uuid.UUID
+	assistantUserId uuid.UUID
 	occurredOn      time.Time
 }
 
 func NewComplaintRated(
-	complaintID uuid.UUID,
-	ratedBy string,
-	assistantUserID string,
+	complaintId uuid.UUID,
+	ratedBy uuid.UUID,
+	assistantUserId uuid.UUID,
 	occurredOn time.Time,
 ) *ComplaintRated {
 	return &ComplaintRated{
-		complaintID:     complaintID,
+		complaintId:     complaintId,
 		ratedBy:         ratedBy,
-		assistantUserID: assistantUserID,
+		assistantUserId: assistantUserId,
 		occurredOn:      occurredOn,
 	}
 }
@@ -37,15 +37,14 @@ func (cr *ComplaintRated) OccurredOn() time.Time {
 
 func (cr *ComplaintRated) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
-		ComplaintID     string
-		RatedBy         string
-		AssistantUserID string
+		ComplaintId     uuid.UUID
+		RatedBy         uuid.UUID
+		AssistantUserId uuid.UUID
 		OccurredOn      string
-		TypeName        string
 	}{
-		ComplaintID:     cr.complaintID.String(),
+		ComplaintId:     cr.complaintId,
 		RatedBy:         cr.ratedBy,
-		AssistantUserID: cr.assistantUserID,
+		AssistantUserId: cr.assistantUserId,
 		OccurredOn:      common.StringDate(cr.occurredOn),
 	})
 	if err != nil {
@@ -57,19 +56,16 @@ func (cr *ComplaintRated) MarshalJSON() ([]byte, error) {
 func (cr *ComplaintRated) UnmarshalJSON(data []byte) error {
 	var err error
 	aux := struct {
-		ComplaintID     string
-		RatedBy         string
-		AssistantUserID string
+		ComplaintId     uuid.UUID
+		RatedBy         uuid.UUID
+		AssistantUserId uuid.UUID
 		OccurredOn      string
 	}{}
 	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	cr.complaintID, err = uuid.Parse(aux.ComplaintID)
-	if err != nil {
-		return err
-	}
-	cr.assistantUserID = aux.AssistantUserID
+	cr.complaintId = aux.ComplaintId
+	cr.assistantUserId = aux.AssistantUserId
 	cr.ratedBy = aux.RatedBy
 	cr.occurredOn, err = common.ParseDate(aux.OccurredOn)
 	if err != nil {
@@ -78,14 +74,14 @@ func (cr *ComplaintRated) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (cr *ComplaintRated) ComplaintID() uuid.UUID {
-	return cr.complaintID
+func (cr *ComplaintRated) ComplaintId() uuid.UUID {
+	return cr.complaintId
 }
 
-func (cr *ComplaintRated) RatedBy() string {
+func (cr *ComplaintRated) RatedBy() uuid.UUID {
 	return cr.ratedBy
 }
 
-func (cr *ComplaintRated) AssistantUserID() string {
-	return cr.assistantUserID
+func (cr *ComplaintRated) AssistantUserId() uuid.UUID {
+	return cr.assistantUserId
 }

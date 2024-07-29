@@ -4,25 +4,27 @@ import (
 	"encoding/json"
 	"go-complaint/domain/model/common"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // userID is emitBy
 type HiringInvitationSent struct {
-	enterpriseID     string
-	userID           string
-	proposedTo       string
+	enterpriseId     uuid.UUID
+	userId           uuid.UUID
+	proposedTo       uuid.UUID
 	proposalPosition Position
 	occurredOn       time.Time
 }
 
 func NewHiringInvitationSent(
-	enterpriseID string,
-	userID string,
-	proposedTo string,
+	enterpriseId,
+	userId,
+	proposedTo uuid.UUID,
 	proposalPosition Position) *HiringInvitationSent {
 	return &HiringInvitationSent{
-		enterpriseID:     enterpriseID,
-		userID:           userID,
+		enterpriseId:     enterpriseId,
+		userId:           userId,
 		proposalPosition: proposalPosition,
 		proposedTo:       proposedTo,
 		occurredOn:       time.Now(),
@@ -35,14 +37,14 @@ func (h *HiringInvitationSent) OccurredOn() time.Time {
 
 func (h *HiringInvitationSent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		EnterpriseID     string `json:"enterprise_id"`
-		UserID           string `json:"user_id"`
-		ProposedTo       string `json:"proposed_to"`
-		ProposalPosition string `json:"position_proposal"`
-		OccurredOn       string `json:"occurred_on"`
+		EnterpriseId     uuid.UUID `json:"enterprise_id"`
+		UserId           uuid.UUID `json:"user_id"`
+		ProposedTo       uuid.UUID `json:"proposed_to"`
+		ProposalPosition string    `json:"position_proposal"`
+		OccurredOn       string    `json:"occurred_on"`
 	}{
-		EnterpriseID:     h.enterpriseID,
-		UserID:           h.userID,
+		EnterpriseId:     h.enterpriseId,
+		UserId:           h.userId,
 		ProposedTo:       h.proposedTo,
 		ProposalPosition: h.proposalPosition.String(),
 		OccurredOn:       common.StringDate(h.occurredOn),
@@ -51,20 +53,20 @@ func (h *HiringInvitationSent) MarshalJSON() ([]byte, error) {
 
 func (h *HiringInvitationSent) UnmarshalJSON(data []byte) error {
 	aux := &struct {
-		EnterpriseID     string `json:"enterprise_id"`
-		UserID           string `json:"user_id"`
-		ProposedTo       string `json:"proposed_to"`
-		ProposalPosition string `json:"position_proposal"`
-		OccurredOn       string `json:"occurred_on"`
+		EnterpriseId     uuid.UUID `json:"enterprise_id"`
+		UserId           uuid.UUID `json:"user_id"`
+		ProposedTo       uuid.UUID `json:"proposed_to"`
+		ProposalPosition string    `json:"position_proposal"`
+		OccurredOn       string    `json:"occurred_on"`
 	}{}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	h.enterpriseID = aux.EnterpriseID
-	h.userID = aux.UserID
+	h.enterpriseId = aux.EnterpriseId
+	h.userId = aux.UserId
 	h.proposedTo = aux.ProposedTo
 	h.proposalPosition = ParsePosition(aux.ProposalPosition)
-	if h.proposalPosition == NOT_EXISTS {
+	if h.proposalPosition < 0 {
 		return ErrPositionNotExists
 	}
 	occurredOn, err := common.ParseDate(aux.OccurredOn)
@@ -75,15 +77,15 @@ func (h *HiringInvitationSent) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (h *HiringInvitationSent) EnterpriseID() string {
-	return h.enterpriseID
+func (h *HiringInvitationSent) EnterpriseId() uuid.UUID {
+	return h.enterpriseId
 }
 
-func (h *HiringInvitationSent) UserID() string {
-	return h.userID
+func (h *HiringInvitationSent) UserID() uuid.UUID {
+	return h.userId
 }
 
-func (h *HiringInvitationSent) ProposedTo() string {
+func (h *HiringInvitationSent) ProposedTo() uuid.UUID {
 	return h.proposedTo
 }
 

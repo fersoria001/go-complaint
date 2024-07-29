@@ -86,7 +86,7 @@ func (fr FeedbackReplyReviewRepository) SaveAll(
 	for replyReview := range replyReviews.Iter() {
 		var (
 			ID         = replyReview.ID()
-			feedbackId = replyReview.FeedbackID()
+			feedbackId = replyReview.FeedbackId()
 			reviewerID = replyReview.Reviewer().Email()
 			reviewID   = replyReview.ID()
 			color      = replyReview.Color()
@@ -189,7 +189,7 @@ func (fr FeedbackReplyReviewRepository) load(
 	var (
 		ID         uuid.UUID
 		feedbackID uuid.UUID
-		reviewerID string
+		reviewerID uuid.UUID
 		reviewID   string
 		color      string
 		createdAt  string

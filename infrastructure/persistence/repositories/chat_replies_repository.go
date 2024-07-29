@@ -276,7 +276,7 @@ func (r ChatRepliesRepository) load(ctx context.Context, row pgx.Row) (*enterpri
 	var (
 		id        uuid.UUID
 		chatID    string
-		userID    string
+		userId    uuid.UUID
 		content   string
 		seen      bool
 		createdAt string
@@ -285,7 +285,7 @@ func (r ChatRepliesRepository) load(ctx context.Context, row pgx.Row) (*enterpri
 	err := row.Scan(
 		&id,
 		&chatID,
-		&userID,
+		&userId,
 		&content,
 		&seen,
 		&createdAt,
@@ -294,7 +294,7 @@ func (r ChatRepliesRepository) load(ctx context.Context, row pgx.Row) (*enterpri
 	if err != nil {
 		return nil, err
 	}
-	user, err := MapperRegistryInstance().Get("User").(UserRepository).Get(ctx, userID)
+	user, err := MapperRegistryInstance().Get("User").(UserRepository).Get(ctx, userId)
 	if err != nil {
 		return nil, err
 	}

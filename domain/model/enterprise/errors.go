@@ -11,6 +11,8 @@ var ErrPositionNotExists = errors.New("position not exists")
 var ErrForbidden = errors.New("either you don't belong to this enterprise or you don't have the necessary permissions")
 var ErrInvalidChatID = errors.New("invalid chat ID")
 var ErrReplyNotFound = errors.New("reply not found in enterprise chat")
+var ErrNilValue = errors.New("the value is nil")
+var ErrNilPointer = errors.New("the pointer to value is nil")
 
 type ValidationError struct {
 	Message string

@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"go-complaint/domain/model/employee"
+	"go-complaint/domain/model/enterprise"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -35,7 +35,7 @@ type Employee struct {
 	EmployeesFired          int       `json:"employees_fired"`
 }
 
-func NewEmployee(domainObj employee.Employee) *Employee {
+func NewEmployee(domainObj *enterprise.Employee) *Employee {
 	return &Employee{
 		ID:               domainObj.ID(),
 		ProfileIMG:       domainObj.ProfileIMG(),
@@ -101,10 +101,10 @@ func (e *Employee) SetEmployeesFired(employeesFired int) {
 	e.EmployeesFired = employeesFired
 }
 
-func NewEmployeeList(domainObjs mapset.Set[employee.Employee]) []*Employee {
+func NewEmployeeList(domainObjs mapset.Set[enterprise.Employee]) []*Employee {
 	employees := []*Employee{}
 	for domainObj := range domainObjs.Iter() {
-		employee := NewEmployee(domainObj)
+		employee := NewEmployee(&domainObj)
 		employees = append(employees, employee)
 	}
 	return employees

@@ -5,9 +5,7 @@ import (
 	"go-complaint/domain"
 	"go-complaint/domain/model/common"
 	"go-complaint/infrastructure/persistence/datasource"
-	"net/mail"
 
-	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -20,6 +18,20 @@ func NewNotificationRepository(schema datasource.Schema) NotificationRepository 
 	return NotificationRepository{schema: schema}
 }
 
+func (pr NotificationRepository) Remove(ctx context.Context, id uuid.UUID) error {
+	conn, err := pr.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	deleteCommand := string(`DELETE FROM NOTIFICATIONS WHERE ID=$1`)
+	_, err = conn.Exec(ctx, deleteCommand, &id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (pr NotificationRepository) Get(
 	ctx context.Context,
 	notificationID uuid.UUID,
@@ -30,16 +42,16 @@ func (pr NotificationRepository) Get(
 	}
 	selectQuery := string(`
 		SELECT
-			notification_id,
+			id,
 			owner_id,
-			thumbnail,
+			sender_id,
 			title,
 			content,
 			link,
 			occurred_on,
 			seen
-		FROM notification
-		WHERE notification_id = $1
+		FROM notifications
+		WHERE id = $1
 		`)
 	row := conn.QueryRow(
 		ctx,
@@ -57,8 +69,9 @@ func (pr NotificationRepository) Get(
 func (pr NotificationRepository) FindAll(
 	ctx context.Context,
 	source StatementSource,
-) (mapset.Set[*domain.Notification], error) {
+) ([]*domain.Notification, error) {
 	conn, err := pr.schema.Acquire(ctx)
+	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
@@ -74,21 +87,24 @@ func (pr NotificationRepository) FindAll(
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Release()
+	if rows.Err() != nil {
+		return nil, err
+	}
+	rows.Close()
 	return notifications, nil
 }
 
 func (pr NotificationRepository) loadAll(
 	ctx context.Context,
 	rows pgx.Rows,
-) (mapset.Set[*domain.Notification], error) {
-	notifications := mapset.NewSet[*domain.Notification]()
+) ([]*domain.Notification, error) {
+	notifications := make([]*domain.Notification, 0)
 	for rows.Next() {
 		notification, err := pr.load(ctx, rows)
 		if err != nil {
 			return nil, err
 		}
-		notifications.Add(notification)
+		notifications = append(notifications, notification)
 	}
 	return notifications, nil
 }
@@ -96,8 +112,8 @@ func (pr NotificationRepository) loadAll(
 func (pr NotificationRepository) load(ctx context.Context, row pgx.Row) (*domain.Notification, error) {
 	var (
 		id         uuid.UUID
-		ownerID    string
-		thumbnail  string
+		ownerId    uuid.UUID
+		senderId   uuid.UUID
 		title      string
 		content    string
 		link       string
@@ -106,8 +122,8 @@ func (pr NotificationRepository) load(ctx context.Context, row pgx.Row) (*domain
 	)
 	err := row.Scan(
 		&id,
-		&ownerID,
-		&thumbnail,
+		&ownerId,
+		&senderId,
 		&title,
 		&content,
 		&link,
@@ -115,58 +131,53 @@ func (pr NotificationRepository) load(ctx context.Context, row pgx.Row) (*domain
 		&seen,
 	)
 	if err != nil {
-
 		return nil, err
 	}
-	if _, err := mail.ParseAddress(thumbnail); err != nil {
-		ep, err := MapperRegistryInstance().Get("Enterprise").(EnterpriseRepository).Get(ctx, thumbnail)
-		if err != nil {
-			return nil, err
-		}
-		thumbnail = ep.LogoIMG()
-	} else {
-		user, err := MapperRegistryInstance().Get("User").(UserRepository).Get(ctx, thumbnail)
-		if err != nil {
-			return nil, err
-		}
-		thumbnail = user.ProfileIMG()
+	reg := MapperRegistryInstance()
+	recipientRepository, ok := reg.Get("Recipient").(RecipientRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
 	}
-
+	owner, err := recipientRepository.Get(ctx, ownerId)
+	if err != nil {
+		return nil, err
+	}
+	sender, err := recipientRepository.Get(ctx, senderId)
+	if err != nil {
+		return nil, err
+	}
 	occurredOnTime, err := common.NewDateFromString(occurredOn)
 	if err != nil {
-
 		return nil, err
 	}
-	notification, err := domain.NewNotification(
+	notification := domain.NewNotification(
 		id,
-		ownerID,
-		thumbnail,
+		*owner,
+		*sender,
 		title,
 		content,
 		link,
 		occurredOnTime.Date(),
 		seen,
 	)
-	if err != nil {
-		return nil, err
-	}
 	return notification, nil
 }
 
 func (pr NotificationRepository) Save(
 	ctx context.Context,
-	notification *domain.Notification,
+	notification domain.Notification,
 ) error {
 	conn, err := pr.schema.Acquire(ctx)
+	defer conn.Release()
 	if err != nil {
 		return err
 	}
 	insertCommand := string(`
 		INSERT INTO 
-		notification (
-			notification_id,
+		notifications (
+			id,
 			owner_id,
-			thumbnail,
+			sender_id,
 			title,
 			content,
 			link,
@@ -176,8 +187,8 @@ func (pr NotificationRepository) Save(
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`)
 	var (
 		id         uuid.UUID = notification.ID()
-		ownerID    string    = notification.OwnerID()
-		thumbnail  string    = notification.Thumbnail()
+		ownerId    uuid.UUID = notification.Owner().Id()
+		senderId   uuid.UUID = notification.Sender().Id()
 		title      string    = notification.Title()
 		content    string    = notification.Content()
 		link       string    = notification.Link()
@@ -188,8 +199,8 @@ func (pr NotificationRepository) Save(
 		ctx,
 		insertCommand,
 		&id,
-		&ownerID,
-		&thumbnail,
+		&ownerId,
+		&senderId,
 		&title,
 		&content,
 		&link,
@@ -199,7 +210,6 @@ func (pr NotificationRepository) Save(
 	if err != nil {
 		return err
 	}
-	defer conn.Release()
 	return nil
 }
 
@@ -208,14 +218,15 @@ func (pr NotificationRepository) Update(
 	notification domain.Notification,
 ) error {
 	conn, err := pr.schema.Acquire(ctx)
+	defer conn.Release()
 	if err != nil {
 		return err
 	}
 	insertCommand := string(`
-		UPDATE notification
+		UPDATE notifications
 		SET
 			seen = $1
-		WHERE notification_id = $2`)
+		WHERE id = $2`)
 	var (
 		seen bool      = notification.Seen()
 		id   uuid.UUID = notification.ID()
@@ -229,7 +240,5 @@ func (pr NotificationRepository) Update(
 	if err != nil {
 		return err
 	}
-
-	defer conn.Release()
 	return nil
 }

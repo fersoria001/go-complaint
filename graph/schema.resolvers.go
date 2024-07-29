@@ -6,53 +6,56 @@ package graph
 
 import (
 	"context"
+	"fmt"
+	"go-complaint/application"
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
 	"go-complaint/application/queries"
+	"go-complaint/dto"
 	"go-complaint/graph/model"
 )
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUser) (*model.User, error) {
-	c := commands.UserCommand{
-		Email:          input.UserName,
-		Password:       input.Password,
-		FirstName:      input.FirstName,
-		LastName:       input.LastName,
-		Gender:         input.Genre,
-		Pronoun:        input.Pronoun,
-		BirthDate:      input.BirthDate,
-		Phone:          input.PhoneNumber,
-		CountryID:      input.CountryID,
-		CountryStateID: input.CountryStateID,
-		CityID:         input.CityID,
-	}
-	err := c.Register(ctx)
+	c := commands.NewRegisterUserCommand(
+		input.UserName,
+		input.Password,
+		input.FirstName,
+		input.LastName,
+		input.Genre,
+		input.Pronoun,
+		input.BirthDate,
+		input.PhoneNumber,
+		"/default.jpg",
+		input.CountryID,
+		input.CityID,
+		input.CountryStateID,
+	)
+	err := c.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
-	q := queries.UserQuery{
-		Email: input.UserName,
-	}
-	user, err := q.User(ctx)
+	q := queries.NewUserByUsernameQuery(input.UserName)
+	user, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &model.User{
-		UserName: user.Email,
+		//Id: user.Id,
+		UserName: user.Username,
 		Person: &model.Person{
-			ProfileImg:  user.ProfileIMG,
-			Email:       user.Email,
-			FirstName:   user.FirstName,
-			LastName:    user.LastName,
-			Genre:       user.Gender,
-			Pronoun:     user.Pronoun,
-			Age:         user.Age,
-			PhoneNumber: user.Phone,
+			ProfileImg:  user.Person.ProfileImg,
+			Email:       user.Person.Email,
+			FirstName:   user.Person.FirstName,
+			LastName:    user.Person.LastName,
+			Genre:       user.Person.Genre,
+			Pronoun:     user.Person.Pronoun,
+			Age:         user.Person.Age,
+			PhoneNumber: user.Person.Phone,
 			Address: &model.Address{
-				Country:      user.Address.Country,
-				CountryState: user.Address.County,
-				City:         user.Address.City,
+				Country:      user.Person.Address.Country,
+				CountryState: user.Person.Address.County,
+				City:         user.Person.Address.City,
 			},
 		},
 		Status: model.UserStatusOffline,
@@ -65,26 +68,26 @@ func (r *mutationResolver) CreateEnterprise(ctx context.Context, input model.Cre
 	if err != nil {
 		return nil, err
 	}
-	c := commands.EnterpriseCommand{
-		OwnerID:        currentUser.Email,
-		Name:           input.Name,
-		Website:        input.Website,
-		Email:          input.Email,
-		Phone:          input.PhoneNumber,
-		CountryID:      input.CountryID,
-		CountryStateID: input.CountryStateID,
-		CityID:         input.CityID,
-		IndustryID:     input.IndustryID,
-		FoundationDate: input.FoundationDate,
-	}
-	err = c.Register(ctx)
+	c := commands.NewRegisterEnterpriseCommand(
+		currentUser.Email,
+		input.Name,
+		"/default.jpg",
+		"/banner.jpg",
+		input.Website,
+		input.Email,
+		input.PhoneNumber,
+		input.FoundationDate,
+		input.IndustryID,
+		input.CountryID,
+		input.CountryStateID,
+		input.CityID,
+	)
+	err = c.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
-	q := queries.EnterpriseQuery{
-		EnterpriseName: input.Name,
-	}
-	enterprise, err := q.Enterprise(ctx)
+	q := queries.NewEnterpriseByNameQuery(input.Name)
+	enterprise, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +154,8 @@ func (r *queryResolver) UserDescriptor(ctx context.Context) (*model.UserDescript
 	return &model.UserDescriptor{
 		UserName:    currentUser.Email,
 		FullName:    currentUser.FullName,
-		ProfileImg:  currentUser.ProfileIMG,
-		Genre:       currentUser.Gender,
+		ProfileImg:  currentUser.ProfileImg,
+		Genre:       currentUser.Genre,
 		Pronoun:     currentUser.Pronoun,
 		Authorities: authorities,
 	}, nil
@@ -160,15 +163,15 @@ func (r *queryResolver) UserDescriptor(ctx context.Context) (*model.UserDescript
 
 // Countries is the resolver for the countries field.
 func (r *queryResolver) Countries(ctx context.Context) ([]*model.Country, error) {
-	q := queries.AddressQuery{}
-	countries, err := q.AllCountries(ctx)
+	q := queries.NewAllCountriesQuery()
+	countries, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]*model.Country, 0, len(countries))
 	for _, v := range countries {
 		result = append(result, &model.Country{
-			ID:        v.ID,
+			ID:        v.Id,
 			Name:      v.Name,
 			PhoneCode: v.PhoneCode,
 		})
@@ -178,17 +181,15 @@ func (r *queryResolver) Countries(ctx context.Context) ([]*model.Country, error)
 
 // CountryStates is the resolver for the countryStates field.
 func (r *queryResolver) CountryStates(ctx context.Context, id int) ([]*model.CountryState, error) {
-	q := queries.AddressQuery{
-		CountryID: id,
-	}
-	countryStates, err := q.ProvideCountryStateByCountryID(ctx)
+	q := queries.NewCountryStatesByCountryIdQuery(id)
+	countryStates, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]*model.CountryState, 0, len(countryStates))
 	for _, v := range countryStates {
 		result = append(result, &model.CountryState{
-			ID:   v.ID,
+			ID:   v.Id,
 			Name: v.Name,
 		})
 	}
@@ -197,17 +198,15 @@ func (r *queryResolver) CountryStates(ctx context.Context, id int) ([]*model.Cou
 
 // Cities is the resolver for the cities field.
 func (r *queryResolver) Cities(ctx context.Context, id int) ([]*model.City, error) {
-	q := queries.AddressQuery{
-		CountryStateID: id,
-	}
-	cities, err := q.ProvideStateCitiesByStateID(ctx)
+	q := queries.NewCitiesByCountryStateIdQuery(id)
+	cities, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]*model.City, 0, len(cities))
 	for _, v := range cities {
 		result = append(result, &model.City{
-			ID:          v.ID,
+			ID:          v.Id,
 			Name:        v.Name,
 			CountryCode: v.CountryCode,
 			Latitude:    v.Latitude,
@@ -234,8 +233,8 @@ func (r *queryResolver) Industries(ctx context.Context) ([]*model.Industry, erro
 	return result, nil
 }
 
-// ComplaintsReceivedInfo is the resolver for the complaintsReceivedInfo field.
-func (r *queryResolver) ComplaintsReceivedInfo(ctx context.Context, id string) (*model.ComplaintInfo, error) {
+// ComplaintsInfo is the resolver for the complaintsInfo field.
+func (r *queryResolver) ComplaintsInfo(ctx context.Context, id string) (*model.ComplaintsInfo, error) {
 	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
 		ctx,
 		"rid",
@@ -246,30 +245,63 @@ func (r *queryResolver) ComplaintsReceivedInfo(ctx context.Context, id string) (
 	if err != nil {
 		return nil, err
 	}
-	q := queries.ComplaintQuery{
-		ID: id,
-	}
-	c, err := q.ComplaintsReceivedInfo(ctx)
+	q := queries.NewComplaintDataByOwnerIdQuery(id)
+	c, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
-	total := c.ComplaintsReceived + c.ComplaintsResolved + c.ComplaintsReviewed + c.ComplaintsPending
-	return &model.ComplaintInfo{
-		Received:  c.ComplaintsReceived,
-		Resolved:  c.ComplaintsResolved,
-		Reviewed:  c.ComplaintsReviewed,
-		Pending:   c.ComplaintsPending,
-		AvgRating: c.AverageRating,
-		Total:     total,
+	received := make([]*model.ComplaintData, 0)
+	resolved := make([]*model.ComplaintData, 0)
+	reviewed := make([]*model.ComplaintData, 0)
+	sent := make([]*model.ComplaintData, 0)
+	for _, v := range c.Received {
+		received = append(received, &model.ComplaintData{
+			ID:          v.Id,
+			OwnerID:     v.OwnerId,
+			ComplaintID: v.ComplaintId,
+			OccurredOn:  v.OccurredOn,
+			DataType:    model.ComplaintDataType(v.DataType),
+		})
+	}
+	for _, v := range c.Resolved {
+		resolved = append(resolved, &model.ComplaintData{
+			ID:          v.Id,
+			OwnerID:     v.OwnerId,
+			ComplaintID: v.ComplaintId,
+			OccurredOn:  v.OccurredOn,
+			DataType:    model.ComplaintDataType(v.DataType),
+		})
+	}
+	for _, v := range c.Reviewed {
+		reviewed = append(reviewed, &model.ComplaintData{
+			ID:          v.Id,
+			OwnerID:     v.OwnerId,
+			ComplaintID: v.ComplaintId,
+			OccurredOn:  v.OccurredOn,
+			DataType:    model.ComplaintDataType(v.DataType),
+		})
+	}
+	for _, v := range c.Sent {
+		sent = append(sent, &model.ComplaintData{
+			ID:          v.Id,
+			OwnerID:     v.OwnerId,
+			ComplaintID: v.ComplaintId,
+			OccurredOn:  v.OccurredOn,
+			DataType:    model.ComplaintDataType(v.DataType),
+		})
+	}
+	return &model.ComplaintsInfo{
+		Received: received,
+		Resolved: resolved,
+		Reviewed: reviewed,
+		Sent:     sent,
 	}, nil
 }
 
 // EnterpriseByID is the resolver for the enterpriseById field.
 func (r *queryResolver) EnterpriseByID(ctx context.Context, id string) (*model.Enterprise, error) {
-	q := queries.EnterpriseQuery{
-		EnterpriseName: id,
-	}
-	enterprise, err := q.Enterprise(ctx)
+	q := queries.NewEnterpriseByIdQuery(id)
+	enterprise, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -328,10 +360,8 @@ func (r *queryResolver) EnterprisesByAuthenticatedUser(ctx context.Context) (*mo
 	owned := make([]*model.EnterpriseByAuthenticatedUser, 0)
 	employed := make([]*model.EnterpriseByAuthenticatedUser, 0)
 	for _, v := range user.GrantedAuthorities {
-		q := queries.EnterpriseQuery{
-			EnterpriseName: v.EnterpriseID,
-		}
-		enterprise, err := q.Enterprise(ctx)
+		q := queries.NewEnterpriseByIdQuery(v.EnterpriseID)
+		enterprise, err := q.Execute(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -409,33 +439,33 @@ func (r *queryResolver) UsersForHiring(ctx context.Context, input model.SearchWi
 	if err != nil {
 		return nil, err
 	}
-	q := queries.EnterpriseQuery{
-		EnterpriseName: input.ID,
-		Limit:          input.Limit,
-		Offset:         input.Offset,
-		Term:           input.Query,
-	}
-	users, err := q.UsersForHiring(ctx)
+	q := queries.NewUsersForHiringQuery(
+		input.ID,
+		input.Query,
+		input.Limit,
+		input.Offset,
+	)
+	users, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 	results := make([]*model.User, 0, len(users.Users))
 	for _, v := range users.Users {
 		results = append(results, &model.User{
-			UserName: v.Email,
+			UserName: v.Username,
 			Person: &model.Person{
-				ProfileImg:  v.ProfileIMG,
-				Email:       v.Email,
-				FirstName:   v.FirstName,
-				LastName:    v.LastName,
-				Genre:       v.Gender,
-				Pronoun:     v.Pronoun,
-				Age:         v.Age,
-				PhoneNumber: v.Phone,
+				ProfileImg:  v.Person.ProfileImg,
+				Email:       v.Person.Email,
+				FirstName:   v.Person.FirstName,
+				LastName:    v.Person.LastName,
+				Genre:       v.Person.Genre,
+				Pronoun:     v.Person.Pronoun,
+				Age:         v.Person.Age,
+				PhoneNumber: v.Person.Phone,
 				Address: &model.Address{
-					Country:      v.Address.Country,
-					CountryState: v.Address.County,
-					City:         v.Address.City,
+					Country:      v.Person.Address.Country,
+					CountryState: v.Person.Address.County,
+					City:         v.Person.Address.City,
 				},
 			},
 			Status: model.UserStatusOffline,
@@ -453,28 +483,26 @@ func (r *queryResolver) UsersForHiring(ctx context.Context, input model.SearchWi
 
 // UserByID is the resolver for the userById field.
 func (r *queryResolver) UserByID(ctx context.Context, id string) (*model.User, error) {
-	q := queries.UserQuery{
-		Email: id,
-	}
-	user, err := q.User(ctx)
+	q := queries.NewUserByIdQuery(id)
+	user, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &model.User{
-		UserName: user.Email,
+		UserName: user.Username,
 		Person: &model.Person{
-			ProfileImg:  user.ProfileIMG,
-			Email:       user.Email,
-			FirstName:   user.FirstName,
-			LastName:    user.LastName,
-			Genre:       user.Gender,
-			Pronoun:     user.Pronoun,
-			Age:         user.Age,
-			PhoneNumber: user.Phone,
+			ProfileImg:  user.Person.ProfileImg,
+			Email:       user.Person.Email,
+			FirstName:   user.Person.FirstName,
+			LastName:    user.Person.LastName,
+			Genre:       user.Person.Genre,
+			Pronoun:     user.Person.Pronoun,
+			Age:         user.Person.Age,
+			PhoneNumber: user.Person.Phone,
 			Address: &model.Address{
-				Country:      user.Address.Country,
-				CountryState: user.Address.County,
-				City:         user.Address.City,
+				Country:      user.Person.Address.Country,
+				CountryState: user.Person.Address.County,
+				City:         user.Person.Address.City,
 			},
 		},
 		Status: model.UserStatusOffline,
@@ -483,52 +511,211 @@ func (r *queryResolver) UserByID(ctx context.Context, id string) (*model.User, e
 
 // HiringInvitationsByAuthenticatedUser is the resolver for the hiringInvitationsByAuthenticatedUser field.
 func (r *queryResolver) HiringInvitationsByAuthenticatedUser(ctx context.Context) ([]*model.HiringInvitation, error) {
-	user, err := application_services.AuthorizationApplicationServiceInstance().Credentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-	q := queries.UserQuery{
-		Email: user.Email,
-	}
-	hiringInvitations, err := q.HiringInvitations(ctx)
-	if err != nil {
-		return nil, err
-	}
-	results := make([]*model.HiringInvitation, 0, len(hiringInvitations))
-	for _, v := range hiringInvitations {
-		results = append(results, &model.HiringInvitation{
-			EventID:           v.EventID,
-			EnterpriseID:      v.EnterpriseID,
-			ProposedPosition:  v.ProposedPosition,
-			OwnerID:           v.OwnerID,
-			FullName:          v.FullName,
-			EnterpriseEmail:   v.EnterpriseEmail,
-			EnterprisePhone:   v.EnterprisePhone,
-			EnterpriseLogoImg: v.EnterpriseLogoIMG,
-			OccurredOn:        v.OccurredOn,
-			Seen:              v.Seen,
-			Status:            model.HiringProccessState(v.Status),
-			Reason:            v.Reason,
-		})
-	}
-	return results, nil
+	panic(fmt.Errorf("not implemented: HiringInvitationsByAuthenticatedUser - hiringInvitationsByAuthenticatedUser"))
 }
 
 // Notifications is the resolver for the notifications field.
 func (r *subscriptionResolver) Notifications(ctx context.Context, id string) (<-chan *model.Notification, error) {
-	in := commands.NotificationsChannel
+	q := queries.NewNotificationsByOwnerIdQuery(id)
+	stored, err := q.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	toModel := make([]*model.Notification, 0, len(stored))
+	for _, n := range stored {
+		toModel = append(toModel, &model.Notification{
+			ID: n.Id,
+			Owner: &model.Recipient{
+				ID:               n.Owner.Id,
+				SubjectName:      n.Owner.SubjectName,
+				SubjectThumbnail: n.Owner.SubjectThumbnail,
+				IsEnterprise:     n.Owner.IsEnterprise,
+			},
+			Sender: &model.Recipient{
+				ID:               n.Sender.Id,
+				SubjectName:      n.Sender.SubjectName,
+				SubjectThumbnail: n.Sender.SubjectThumbnail,
+				IsEnterprise:     n.Sender.IsEnterprise,
+			},
+			Title:      n.Title,
+			Content:    n.Content,
+			Link:       n.Link,
+			Seen:       n.Seen,
+			OccurredOn: n.OccurredOn,
+		})
+	}
+	in := make(chan application.ApplicationMessage)
+	r.Publisher.Subscribe(&application.Subscriber{
+		Id:   id,
+		Send: in,
+	})
 	ch := make(chan *model.Notification)
 	go func() {
-		defer close(ch)
+		defer func() {
+			r.Publisher.Unsubscribe(id)
+			close(ch)
+		}()
+		for i := range toModel {
+			ch <- toModel[i]
+		}
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case n := <-in:
-				//this will not work, when you read the message it is consumed from the channel,
-				//if the id is not equal the message will be lost
-				if n.ID == id {
-					ch <- n
+			case m := <-in:
+				if m.DataType() == "notification" {
+					n, ok := m.Value().(dto.Notification)
+					if ok {
+						ch <- &model.Notification{
+							ID: n.Id,
+							Owner: &model.Recipient{
+								ID:               n.Owner.Id,
+								SubjectName:      n.Owner.SubjectName,
+								SubjectThumbnail: n.Owner.SubjectThumbnail,
+								IsEnterprise:     n.Owner.IsEnterprise,
+							},
+							Sender: &model.Recipient{
+								ID:               n.Sender.Id,
+								SubjectName:      n.Sender.SubjectName,
+								SubjectThumbnail: n.Sender.SubjectThumbnail,
+								IsEnterprise:     n.Sender.IsEnterprise,
+							},
+							Title:      n.Title,
+							Content:    n.Content,
+							Link:       n.Link,
+							Seen:       n.Seen,
+							OccurredOn: n.OccurredOn,
+						}
+					}
+				}
+			}
+		}
+	}()
+	return ch, nil
+}
+
+// Complaints is the resolver for the complaints field.
+func (r *subscriptionResolver) Complaints(ctx context.Context, id string) (<-chan *model.Complaint, error) {
+	q := queries.NewComplaintsByAuthorOrReceiverIdQuery(id)
+	stored, err := q.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	toModel := make([]*model.Complaint, 0)
+	for _, v := range stored {
+		replies := make([]*model.ComplaintReply, 0, len(v.Replies))
+		for _, r := range replies {
+			replies = append(replies, &model.ComplaintReply{
+				ID:          r.ID,
+				ComplaintID: r.ComplaintID,
+				Sender: &model.Recipient{
+					ID:               r.Sender.ID,
+					SubjectName:      r.Sender.SubjectName,
+					SubjectThumbnail: r.Sender.SubjectThumbnail,
+					IsEnterprise:     r.Sender.IsEnterprise,
+				},
+				Body:      r.Body,
+				CreatedAt: r.CreatedAt,
+				Read:      r.Read,
+				ReadAt:    r.ReadAt,
+				UpdatedAt: r.UpdatedAt,
+			})
+		}
+		toModel = append(toModel, &model.Complaint{
+			ID: v.Id,
+			Author: &model.Recipient{
+				ID:               v.Author.Id,
+				SubjectName:      v.Author.SubjectName,
+				SubjectThumbnail: v.Author.SubjectThumbnail,
+				IsEnterprise:     v.Author.IsEnterprise,
+			},
+			Receiver: &model.Recipient{
+				ID:               v.Receiver.Id,
+				SubjectName:      v.Receiver.SubjectName,
+				SubjectThumbnail: v.Receiver.SubjectThumbnail,
+				IsEnterprise:     v.Receiver.IsEnterprise,
+			},
+			Status:      model.ComplaintStatus(v.Status),
+			Title:       v.Title,
+			Description: v.Description,
+			Rating: &model.Rating{
+				ID:      v.Rating.Id,
+				Rate:    v.Rating.Rate,
+				Comment: v.Rating.Comment,
+			},
+			CreatedAt: v.CreatedAt,
+			UpdatedAt: v.UpdatedAt,
+			Replies:   replies,
+		})
+	}
+	in := make(chan application.ApplicationMessage)
+	r.Publisher.Subscribe(&application.Subscriber{
+		Id:   id,
+		Send: in,
+	})
+	ch := make(chan *model.Complaint)
+	go func() {
+		defer func() {
+			r.Publisher.Unsubscribe(id)
+			close(ch)
+		}()
+		for _, v := range toModel {
+			ch <- v
+		}
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case m := <-in:
+				if m.DataType() == "complaint" {
+					v, ok := m.Value().(dto.Complaint)
+					if ok {
+						replies := make([]*model.ComplaintReply, 0, len(v.Replies))
+						for _, r := range replies {
+							replies = append(replies, &model.ComplaintReply{
+								ID:          r.ID,
+								ComplaintID: r.ComplaintID,
+								Sender: &model.Recipient{
+									ID:               r.Sender.ID,
+									SubjectName:      r.Sender.SubjectName,
+									SubjectThumbnail: r.Sender.SubjectThumbnail,
+									IsEnterprise:     r.Sender.IsEnterprise,
+								},
+								Body:      r.Body,
+								CreatedAt: r.CreatedAt,
+								Read:      r.Read,
+								ReadAt:    r.ReadAt,
+								UpdatedAt: r.UpdatedAt,
+							})
+						}
+						casted := &model.Complaint{
+							ID: v.Id,
+							Author: &model.Recipient{
+								ID:               v.Author.Id,
+								SubjectName:      v.Author.SubjectName,
+								SubjectThumbnail: v.Author.SubjectThumbnail,
+								IsEnterprise:     v.Author.IsEnterprise,
+							},
+							Receiver: &model.Recipient{
+								ID:               v.Receiver.Id,
+								SubjectName:      v.Receiver.SubjectName,
+								SubjectThumbnail: v.Receiver.SubjectThumbnail,
+								IsEnterprise:     v.Receiver.IsEnterprise,
+							},
+							Status:      model.ComplaintStatus(v.Status),
+							Title:       v.Title,
+							Description: v.Description,
+							Rating: &model.Rating{
+								ID:      v.Rating.Id,
+								Rate:    v.Rating.Rate,
+								Comment: v.Rating.Comment,
+							},
+							CreatedAt: v.CreatedAt,
+							UpdatedAt: v.UpdatedAt,
+							Replies:   replies,
+						}
+						ch <- casted
+					}
 				}
 			}
 		}

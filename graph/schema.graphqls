@@ -66,8 +66,8 @@ type User {
 
 type Notification {
   id: String!
-  ownerId: String!
-  thumbnail: String!
+  owner: Recipient!
+  sender: Recipient!
   title: String!
   content: String!
   link: String!
@@ -93,13 +93,73 @@ type UserDescriptor {
   authorities: [GrantedAuthority]
 }
 
-type ComplaintInfo {
-  received: Int!
-  resolved: Int!
-  reviewed: Int!
-  pending: Int!
-  avgRating: Float!
-  total: Int!
+type Recipient{
+  id: String!
+  subjectName: String!
+  subjectThumbnail: String!
+  isEnterprise: Boolean!
+}
+
+enum ComplaintStatus {
+  WRITING
+  OPEN
+  STARTED
+  IN_DISCUSSION
+  IN_REVIEW
+  CLOSED
+  IN_HISTORY
+}
+
+type Rating{
+  id: String!
+  rate: Int!
+  comment: String!
+}
+
+type ComplaintReply{
+  id: String!
+  complaintId: String!
+  sender: Recipient!
+  body: String!
+  createdAt: String!
+  read:Boolean!
+  readAt: String!
+  updatedAt: String!
+}
+
+type Complaint {
+  id: String!
+  author: Recipient!
+  receiver: Recipient!
+  status: ComplaintStatus!
+  title: String!
+  description: String!
+  rating: Rating!
+  createdAt: String!
+  updatedAt: String!
+  replies: [ComplaintReply!]!
+}
+
+enum ComplaintDataType {
+  SENT
+  RESOLVED
+  REVIEWED
+  RECEIVED
+}
+
+type ComplaintData {
+  id: String!
+  ownerId: String!
+  complaintId: String!
+  occurredOn: String!
+  dataType: ComplaintDataType!
+}
+
+type ComplaintsInfo {
+  received: [ComplaintData]!
+  resolved: [ComplaintData]!
+  reviewed: [ComplaintData]!
+  sent: [ComplaintData]!
 }
 
 type Industry {
@@ -210,7 +270,7 @@ type Query {
   countryStates(id: Int!): [CountryState!]!
   cities(id: Int!): [City!]!
   industries: [Industry!]!
-  complaintsReceivedInfo(id: String!): ComplaintInfo!
+  complaintsInfo(id: String!): ComplaintsInfo!
   enterpriseById(id: String!): Enterprise!
   enterprisesByAuthenticatedUser: EnterprisesByAuthenticatedUserResult!
   usersForHiring(input: SearchWithPagination!): UsersForHiringResult!
@@ -225,4 +285,5 @@ type Mutation {
 
 type Subscription {
   notifications(id: String!): Notification!
+  complaints(id: String!): Complaint!
 }

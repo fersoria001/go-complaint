@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"go-complaint/domain/model/identity"
+	"go-complaint/infrastructure/persistence/finders/find_user"
 	"go-complaint/infrastructure/persistence/repositories"
 	"sync"
 )
@@ -34,21 +35,22 @@ func NewAuthenticationService(repository repositories.UserRepository) *Authentic
 
 func (is AuthenticationService) AuthenticateUser(
 	ctx context.Context,
-	email, password string,
+	userName,
+	password string,
 	rememberMe bool,
-) (bool, error) {
+) error {
 	var (
 		err  error
 		user *identity.User
 	)
-	user, err = is.repository.Get(ctx, email)
+	user, err = is.repository.Find(ctx, find_user.ByUsername(userName))
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	err = EncryptionServiceInstance().Compare(user.Password(), password)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }

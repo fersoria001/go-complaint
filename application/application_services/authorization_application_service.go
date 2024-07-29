@@ -5,6 +5,7 @@ import (
 	"go-complaint/domain/model/common"
 	"go-complaint/dto"
 	"go-complaint/erros"
+	"go-complaint/infrastructure/persistence/finders/find_user"
 	"go-complaint/infrastructure/persistence/repositories"
 	"sync"
 	"time"
@@ -42,20 +43,21 @@ func NewAuthorizationApplicationService() *AuthorizationApplicationService {
 		authCtxKey:        "user_email",
 	}
 }
-func (aas AuthorizationApplicationService) Credentials(ctx context.Context) (dto.UserDescriptor, error) {
-	credentials, ok := ctx.Value(aas.authCtxKey).(dto.UserDescriptor)
+
+func (aas AuthorizationApplicationService) Credentials(ctx context.Context) (*dto.UserDescriptor, error) {
+	credentials, ok := ctx.Value(aas.authCtxKey).(*dto.UserDescriptor)
 	if !ok {
-		return dto.UserDescriptor{}, &erros.UnauthorizedError{}
+		return nil, ErrUnauthorized
 	}
-	user, err := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository).Get(ctx, credentials.Email)
+	repository, ok := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	user, err := repository.Find(ctx, find_user.ByUsername(credentials.Email))
 	if err != nil {
 		return credentials, err
 	}
-	credentials = dto.NewUserDescriptor(
-		aas.ClientData(ctx),
-		*user,
-		false,
-	)
+	credentials = dto.NewUserDescriptor(aas.ClientData(ctx), *user)
 	return credentials, nil
 }
 
@@ -127,10 +129,10 @@ func (aas AuthorizationApplicationService) ResourceAccess(
 	resourceID string,
 	accessLevel AccessLevel,
 	requiredAuthorities ...string,
-) (dto.UserDescriptor, error) {
+) (*dto.UserDescriptor, error) {
 	credentials, err := aas.Credentials(ctx)
 	if err != nil {
-		return credentials, ErrUnauthorized
+		return nil, ErrUnauthorized
 	}
 	if len(requiredAuthorities) == 0 {
 		return credentials, nil
@@ -151,10 +153,10 @@ func (aas AuthorizationApplicationService) ResourceAccess(
 		}
 		switch accessLevel {
 		case WRITE:
-			if dbComplaint.ReceiverID() != credentials.Email && dbComplaint.AuthorID() != credentials.Email {
+			if dbComplaint.Receiver().Id().String() != credentials.Id && dbComplaint.Author().Id().String() != credentials.Id {
 				for _, v := range credentials.GrantedAuthorities {
-					if (v.EnterpriseID == dbComplaint.ReceiverID() && requiredAuthoritiesSet.Contains(v.Authority)) ||
-						(v.EnterpriseID == dbComplaint.AuthorID() && requiredAuthoritiesSet.Contains(v.Authority)) {
+					if (v.EnterpriseID == dbComplaint.Receiver().Id().String() && requiredAuthoritiesSet.Contains(v.Authority)) ||
+						(v.EnterpriseID == dbComplaint.Author().Id().String() && requiredAuthoritiesSet.Contains(v.Authority)) {
 						return credentials, nil
 					}
 				}
@@ -174,18 +176,22 @@ func (aas AuthorizationApplicationService) ResourceAccess(
 		switch accessLevel {
 		case WRITE:
 			for _, v := range credentials.GrantedAuthorities {
-				if v.EnterpriseID == dbFeedback.EnterpriseID() && requiredAuthoritiesSet.Contains(v.Authority) {
+				if v.EnterpriseID == dbFeedback.EnterpriseId().String() && requiredAuthoritiesSet.Contains(v.Authority) {
 					return credentials, nil
 				}
 			}
 			return credentials, ErrUnauthorized
 		}
 	case "Enterprise":
-		enterprise, err := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository).Get(ctx, resourceID)
+		parsedRId, err := uuid.Parse(resourceID)
+		if err != nil {
+			return nil, ErrUnauthorized
+		}
+		enterprise, err := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository).Get(ctx, parsedRId)
 		if err != nil {
 			return credentials, err
 		}
-		if enterprise.Owner() != credentials.Email {
+		if enterprise.OwnerId().String() != credentials.Id {
 			for _, v := range credentials.GrantedAuthorities {
 				if v.EnterpriseID == resourceID && requiredAuthoritiesSet.Contains(v.Authority) {
 					for emp := range enterprise.Employees().Iter() {

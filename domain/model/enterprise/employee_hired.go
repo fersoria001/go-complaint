@@ -11,32 +11,32 @@ import (
 // Package enterprise
 // <<Domain event>> Implements domain.DomainEvent
 type EmployeeHired struct {
-	enterpriseName string
-	emitedBy       string
-	employeeID     uuid.UUID
-	employeeEmail  string
-	position       Position
-	occurredOn     time.Time
+	enterpriseId  uuid.UUID
+	emitedBy      uuid.UUID
+	employeeId    uuid.UUID
+	employeeEmail string
+	position      Position
+	occurredOn    time.Time
 }
 
 func NewEmployeeHired(
-	enterpriseName string,
-	emitedBy string,
-	employeeID uuid.UUID,
+	enterpriseId,
+	emitedBy,
+	employeeId uuid.UUID,
 	employeeEmail string,
 	position Position,
 ) *EmployeeHired {
 	return &EmployeeHired{
-		enterpriseName: enterpriseName,
-		emitedBy:       emitedBy,
-		employeeID:     employeeID,
-		employeeEmail:  employeeEmail,
-		position:       position,
-		occurredOn:     time.Now(),
+		enterpriseId:  enterpriseId,
+		emitedBy:      emitedBy,
+		employeeId:    employeeId,
+		employeeEmail: employeeEmail,
+		position:      position,
+		occurredOn:    time.Now(),
 	}
 }
 
-func (eh EmployeeHired) EmitedBy() string {
+func (eh EmployeeHired) EmitedBy() uuid.UUID {
 	return eh.emitedBy
 }
 
@@ -48,12 +48,12 @@ func (eh *EmployeeHired) Position() Position {
 	return eh.position
 }
 
-func (eh *EmployeeHired) EmployeeID() uuid.UUID {
-	return eh.employeeID
+func (eh *EmployeeHired) EmployeeId() uuid.UUID {
+	return eh.employeeId
 }
 
-func (eh *EmployeeHired) EnterpriseName() string {
-	return eh.enterpriseName
+func (eh *EmployeeHired) EnterpriseId() uuid.UUID {
+	return eh.enterpriseId
 }
 
 func (eh *EmployeeHired) OccurredOn() time.Time {
@@ -62,19 +62,19 @@ func (eh *EmployeeHired) OccurredOn() time.Time {
 
 func (eh *EmployeeHired) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
-		EnterpriseName string `json:"enterprise_name"`
-		EmitedBy       string `json:"emited_by"`
-		EmployeeID     string `json:"employee_id"`
-		EmployeeEmail  string `json:"employee_email"`
-		Position       string `json:"position"`
-		OccurredOn     string `json:"occurred_on"`
+		EnterpriseId  uuid.UUID `json:"enterprise_name"`
+		EmitedBy      uuid.UUID `json:"emited_by"`
+		EmployeeId    uuid.UUID `json:"employee_id"`
+		EmployeeEmail string    `json:"employee_email"`
+		Position      string    `json:"position"`
+		OccurredOn    string    `json:"occurred_on"`
 	}{
-		EnterpriseName: eh.enterpriseName,
-		EmitedBy:       eh.emitedBy,
-		EmployeeID:     eh.employeeID.String(),
-		EmployeeEmail:  eh.employeeEmail,
-		Position:       eh.position.String(),
-		OccurredOn:     common.StringDate(eh.occurredOn),
+		EnterpriseId:  eh.enterpriseId,
+		EmitedBy:      eh.emitedBy,
+		EmployeeId:    eh.employeeId,
+		EmployeeEmail: eh.employeeEmail,
+		Position:      eh.position.String(),
+		OccurredOn:    common.StringDate(eh.occurredOn),
 	})
 	if err != nil {
 		return nil, err
@@ -84,12 +84,12 @@ func (eh *EmployeeHired) MarshalJSON() ([]byte, error) {
 
 func (eh *EmployeeHired) UnmarshalJSON(data []byte) error {
 	aux := struct {
-		EnterpriseName string `json:"enterprise_name"`
-		EmitedBy       string `json:"emited_by"`
-		EmployeeID     string `json:"employee_id"`
-		EmployeeEmail  string `json:"employee_email"`
-		Position       string `json:"position"`
-		OccurredOn     string `json:"occurred_on"`
+		EnterpriseId  uuid.UUID `json:"enterprise_name"`
+		EmitedBy      uuid.UUID `json:"emited_by"`
+		EmployeeId    uuid.UUID `json:"employee_id"`
+		EmployeeEmail string    `json:"employee_email"`
+		Position      string    `json:"position"`
+		OccurredOn    string    `json:"occurred_on"`
 	}{}
 	err := json.Unmarshal(data, &aux)
 	if err != nil {
@@ -98,11 +98,8 @@ func (eh *EmployeeHired) UnmarshalJSON(data []byte) error {
 	eh.emitedBy = aux.EmitedBy
 	eh.employeeEmail = aux.EmployeeEmail
 	eh.position = ParsePosition(aux.Position)
-	eh.enterpriseName = aux.EnterpriseName
-	eh.employeeID, err = uuid.Parse(aux.EmployeeID)
-	if err != nil {
-		return err
-	}
+	eh.enterpriseId = aux.EnterpriseId
+	eh.employeeId = aux.EmployeeId
 	eh.occurredOn, err = common.ParseDate(aux.OccurredOn)
 	if err != nil {
 		return err

@@ -23,7 +23,7 @@ func (ed *EnterpriseDirector) Show() interface{} {
 		},
 		Industry:       ed.enterprise.Industry().Name(),
 		FoundationDate: ed.enterprise.FoundationDate().StringRepresentation(),
-		OwnerID:        ed.enterprise.Owner(),
+		OwnerId:        ed.enterprise.OwnerId(),
 	}
 }
 

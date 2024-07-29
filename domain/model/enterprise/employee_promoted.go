@@ -81,7 +81,7 @@ func (ep *EmployeePromoted) UnmarshalJSON(data []byte) error {
 	ep.managerID = j.ManagerID
 	ep.employeeID = j.EmployeeID
 	position := ParsePosition(j.Position)
-	if position == NOT_EXISTS {
+	if position < 0 {
 		return ErrPositionNotExists
 	}
 	ep.position = position

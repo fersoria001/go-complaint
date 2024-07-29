@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"go-complaint/cmd/api/middleware"
-	"go-complaint/cmd/server/authentication"
+	"go-complaint/application"
 	"go-complaint/graph"
+	"go-complaint/http_handlers"
 	"log"
 	"net/http"
 	"os"
@@ -36,15 +36,15 @@ func main() {
 		AllowedHeaders:   []string{"cookie", "content-type", "upgrade", "connection", "sec-websocket-key"},
 		ExposedHeaders:   []string{"set-cookie", "upgrade", "connection", "sec-websocket-accept"},
 	}).Handler)
-	r.Use(middleware.AuthenticationMiddleware())
-
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	r.Use(AuthenticationMiddleware())
+	publisher := application.ApplicationMessagePublisherInstance()
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Publisher: publisher}}))
 	srv.AddTransport(&transport.Websocket{})
 
 	r.Handle("/", playground.Handler("GoComplaint GraphQL", "/graphql"))
 	r.Handle("/graphql", srv)
-	r.HandleFunc("/sign-in", authentication.SignInHandler)
-	r.HandleFunc("/confirm-sign-in", authentication.ConfirmSignInHandler)
+	r.HandleFunc("/sign-in", http_handlers.SignInHandler)
+	r.HandleFunc("/confirm-sign-in", http_handlers.ConfirmSignInHandler)
 	err := http.ListenAndServe(port, r)
 	log.Println("server started")
 	if err != nil {

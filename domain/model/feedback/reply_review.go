@@ -19,7 +19,7 @@ import (
 // a feedback can have multiple reply reviews.
 type ReplyReview struct {
 	id         uuid.UUID
-	feedbackID uuid.UUID
+	feedbackId uuid.UUID
 	replies    mapset.Set[complaint.Reply]
 	review     *Review
 	reviewer   identity.User
@@ -29,16 +29,16 @@ type ReplyReview struct {
 
 func NewReplyReviewEntity(
 	id,
-	feedbackID uuid.UUID,
+	feedbackId uuid.UUID,
 	reviewer identity.User,
 	color string,
 ) *ReplyReview {
 	return &ReplyReview{
 		id:         id,
-		feedbackID: feedbackID,
+		feedbackId: feedbackId,
 		reviewer:   reviewer,
 		replies:    mapset.NewSet[complaint.Reply](),
-		review:     NewReview(feedbackID, id, ""),
+		review:     NewReview(feedbackId, id, ""),
 		color:      color,
 		createdAt:  time.Now(),
 	}
@@ -46,7 +46,7 @@ func NewReplyReviewEntity(
 
 func NewReplyReview(
 	id,
-	feedbackID uuid.UUID,
+	feedbackId uuid.UUID,
 	replies mapset.Set[complaint.Reply],
 	reviewer identity.User,
 	review *Review,
@@ -55,7 +55,7 @@ func NewReplyReview(
 ) (*ReplyReview, error) {
 	return &ReplyReview{
 		id:         id,
-		feedbackID: feedbackID,
+		feedbackId: feedbackId,
 		replies:    replies,
 		reviewer:   reviewer,
 		review:     review,
@@ -114,7 +114,7 @@ func (rr *ReplyReview) setFeedbackID(feedbackID uuid.UUID) error {
 	if feedbackID == uuid.Nil {
 		return &erros.NullValueError{}
 	}
-	rr.feedbackID = feedbackID
+	rr.feedbackId = feedbackID
 	return nil
 }
 
@@ -138,8 +138,8 @@ func (rr *ReplyReview) ID() uuid.UUID {
 	return rr.id
 }
 
-func (rr *ReplyReview) FeedbackID() uuid.UUID {
-	return rr.feedbackID
+func (rr *ReplyReview) FeedbackId() uuid.UUID {
+	return rr.feedbackId
 }
 
 func (rr *ReplyReview) Replies() mapset.Set[complaint.Reply] {

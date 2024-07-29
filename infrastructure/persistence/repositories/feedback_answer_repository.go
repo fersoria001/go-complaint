@@ -69,30 +69,30 @@ func (fr FeedbackAnswerRepository) Save(
 	}
 	for answer := range answers.Iter() {
 		var (
-			ID           = answer.ID()
-			FeedbackID   = answer.FeedbackID()
-			SenderID     = answer.SenderID()
+			Id           = answer.Id()
+			FeedbackId   = answer.FeedbackId()
+			SenderId     = answer.SenderId()
 			Body         = answer.Body()
 			CreatedAt    = answer.CreatedAt().StringRepresentation()
 			Read         = answer.Read()
 			ReadAt       = answer.ReadAt().StringRepresentation()
 			UpdatedAt    = answer.UpdatedAt().StringRepresentation()
 			IsEnterprise = answer.IsEnterprise()
-			EnterpriseID = answer.EnterpriseID()
+			EnterpriseId = answer.EnterpriseId()
 		)
 		_, err = tx.Exec(
 			ctx,
 			insertCommand,
-			&ID,
-			&FeedbackID,
-			&SenderID,
+			&Id,
+			&FeedbackId,
+			&SenderId,
 			&Body,
 			&CreatedAt,
 			&Read,
 			&ReadAt,
 			&UpdatedAt,
 			&IsEnterprise,
-			&EnterpriseID,
+			&EnterpriseId,
 		)
 		if err != nil {
 			tx.Rollback(ctx)
@@ -164,8 +164,8 @@ func (fr FeedbackAnswerRepository) load(
 	var (
 		id           uuid.UUID
 		feedbackId   uuid.UUID
-		senderID     string
-		senderIMG    string
+		senderId     uuid.UUID
+		senderImg    string
 		senderName   string
 		body         string
 		createdAt    string
@@ -173,40 +173,41 @@ func (fr FeedbackAnswerRepository) load(
 		readAt       string
 		updatedAt    string
 		isEnterprise bool
-		enterpriseID string
+		enterpriseId uuid.UUID
 	)
 
 	err := row.Scan(
 		&id,
 		&feedbackId,
-		&senderID,
+		&senderId,
 		&body,
 		&createdAt,
 		&read,
 		&readAt,
 		&updatedAt,
 		&isEnterprise,
-		&enterpriseID,
+		&enterpriseId,
 	)
 	if err != nil {
 		return nil, err
 	}
-	sender, err := userRepository.Get(ctx, senderID)
+	sender, err := userRepository.Get(ctx, senderId)
 	if err != nil {
 		return nil, err
 	}
 	senderName = sender.FullName()
+	enterpriseName := ""
 	if isEnterprise {
 		enterprise, err := enterpriseRepository.Get(
-			ctx, enterpriseID)
+			ctx, enterpriseId)
 		if err != nil {
 			return nil, err
 		}
-		senderIMG = enterprise.LogoIMG()
-		enterpriseID = enterprise.Name()
+		senderImg = enterprise.LogoIMG()
+		enterpriseName = enterprise.Name()
 	} else {
-		senderIMG = sender.ProfileIMG()
-		enterpriseID = ""
+		senderImg = sender.ProfileIMG()
+		enterpriseName = ""
 	}
 	createdAtDate, err := common.NewDateFromString(createdAt)
 	if err != nil {
@@ -223,8 +224,8 @@ func (fr FeedbackAnswerRepository) load(
 	return feedback.NewAnswer(
 		id,
 		feedbackId,
-		senderID,
-		senderIMG,
+		senderId,
+		senderImg,
 		senderName,
 		body,
 		createdAtDate,
@@ -232,6 +233,6 @@ func (fr FeedbackAnswerRepository) load(
 		readAtDate,
 		updatedAtDate,
 		isEnterprise,
-		enterpriseID,
+		enterpriseName,
 	)
 }

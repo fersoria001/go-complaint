@@ -7,7 +7,6 @@ import (
 	"go-complaint/domain/model/complaint"
 	"go-complaint/infrastructure/persistence/datasource"
 	"go-complaint/infrastructure/persistence/finders/find_all_complaint_replies"
-	"net/mail"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -37,17 +36,12 @@ func (pr ComplaintRepository) Get(
 	id,
 	author_id,
 	receiver_id,
-	complaint_status,
+	status,
 	title,
-	complaint_description,
-	body,
-	rating_rate,
-	rating_comment,
+	description,
 	created_at,
 	updated_at
-	FROM 
-	complaint
-	WHERE id = $1
+	FROM complaint WHERE id = $1
 	`)
 	row := conn.QueryRow(ctx, selectQuery, complaintID)
 	complaint, err := pr.load(ctx, row)
@@ -79,7 +73,7 @@ func (pr ComplaintRepository) Count(
 func (pr ComplaintRepository) FindAll(
 	ctx context.Context,
 	source StatementSource,
-) (mapset.Set[complaint.Complaint], error) {
+) ([]*complaint.Complaint, error) {
 	conn, err := pr.schema.Acquire(ctx)
 	if err != nil {
 		return nil, err
@@ -102,14 +96,14 @@ func (pr ComplaintRepository) FindAll(
 func (pr ComplaintRepository) loadAll(
 	ctx context.Context,
 	rows pgx.Rows,
-) (mapset.Set[complaint.Complaint], error) {
-	complaints := mapset.NewSet[complaint.Complaint]()
+) ([]*complaint.Complaint, error) {
+	complaints := make([]*complaint.Complaint, 0)
 	for rows.Next() {
 		complaint, err := pr.load(ctx, rows)
 		if err != nil {
 			return nil, err
 		}
-		complaints.Add(*complaint)
+		complaints = append(complaints, complaint)
 	}
 	return complaints, nil
 }
@@ -119,55 +113,41 @@ func (pr ComplaintRepository) load(
 	row pgx.Row,
 ) (*complaint.Complaint, error) {
 	var (
-		id                 uuid.UUID
-		authorID           string
-		authorFullName     string
-		authorProfileIMG   string
-		receiverID         string
-		receiverFullName   string
-		receiverProfileIMG string
-		status             string
-		title              string
-		description        string
-		body               string
-		ratingRate         int
-		ratingComment      string
-		createdAt          string
-		updatedAt          string
+		id          uuid.UUID
+		authorId    uuid.UUID
+		receiverId  uuid.UUID
+		status      string
+		title       string
+		description string
+		createdAt   string
+		updatedAt   string
 	)
 	err := row.Scan(
 		&id,
-		&authorID,
-		&receiverID,
+		&authorId,
+		&receiverId,
 		&status,
 		&title,
 		&description,
-		&body,
-		&ratingRate,
-		&ratingComment,
 		&createdAt,
 		&updatedAt,
 	)
 	if err != nil {
-
 		return nil, err
 	}
-	mapper := MapperRegistryInstance().Get("Reply")
-	if mapper == nil {
-		return nil, ErrMapperNotRegistered
-	}
-	complaintRepliesRepository, ok := mapper.(ComplaintRepliesRepository)
+	reg := MapperRegistryInstance()
+	complaintRepliesRepository, ok := reg.Get("Reply").(ComplaintRepliesRepository)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
-	if err != nil {
-		return nil, err
+	recipientRepository, ok := reg.Get("Recipient").(RecipientRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
 	}
 	parsedStatus, err := complaint.ParseStatus(status)
 	if err != nil {
 		return nil, err
 	}
-
 	commonCreatedAt, err := common.NewDateFromString(createdAt)
 	if err != nil {
 		return nil, err
@@ -175,58 +155,6 @@ func (pr ComplaintRepository) load(
 	commonUpdatedAt, err := common.NewDateFromString(updatedAt)
 	if err != nil {
 		return nil, err
-	}
-	message, err := complaint.NewMessage(
-		title,
-		description,
-		body,
-	)
-	if err != nil {
-		return nil, err
-	}
-	rating, err := complaint.NewRating(
-		ratingRate,
-		ratingComment,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := mail.ParseAddress(authorID); err != nil {
-		//user id is not an email address
-		author, err := MapperRegistryInstance().Get("Enterprise").(EnterpriseRepository).Get(ctx, authorID)
-		if err != nil {
-
-			return nil, err
-		}
-		authorFullName = author.Name()
-		authorProfileIMG = author.LogoIMG()
-	} else {
-		author, err := MapperRegistryInstance().Get("User").(UserRepository).Get(ctx, authorID)
-		if err != nil {
-
-			return nil, err
-		}
-		authorFullName = author.FullName()
-		authorProfileIMG = author.ProfileIMG()
-	}
-	if _, err := mail.ParseAddress(receiverID); err != nil {
-		//user id is not an email address
-		receiver, err := MapperRegistryInstance().Get("Enterprise").(EnterpriseRepository).Get(ctx, receiverID)
-		if err != nil {
-
-			return nil, err
-		}
-		receiverFullName = receiver.Name()
-		receiverProfileIMG = receiver.LogoIMG()
-	} else {
-		receiver, err := MapperRegistryInstance().Get("User").(UserRepository).Get(ctx, receiverID)
-		if err != nil {
-
-			return nil, err
-		}
-		receiverFullName = receiver.FullName()
-		receiverProfileIMG = receiver.ProfileIMG()
 	}
 	replies, err := complaintRepliesRepository.FindAll(
 		ctx,
@@ -239,16 +167,30 @@ func (pr ComplaintRepository) load(
 			return nil, err
 		}
 	}
+	author, err := recipientRepository.Get(ctx, authorId)
+	if err != nil {
+		return nil, err
+	}
+	receiver, err := recipientRepository.Get(ctx, receiverId)
+	if err != nil {
+		return nil, err
+	}
+	rating := complaint.Rating{}
+	ratingRepository, ok := reg.Get("Rating").(RatingRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	dbR, err := ratingRepository.Get(ctx, id)
+	if err == nil {
+		rating = *dbR
+	}
 	return complaint.NewComplaint(
 		id,
-		authorID,
-		authorFullName,
-		authorProfileIMG,
-		receiverID,
-		receiverFullName,
-		receiverProfileIMG,
+		*author,
+		*receiver,
 		parsedStatus,
-		message,
+		title,
+		description,
 		commonCreatedAt,
 		commonUpdatedAt,
 		rating,
@@ -256,11 +198,47 @@ func (pr ComplaintRepository) load(
 	)
 }
 
+func (pr ComplaintRepository) Remove(ctx context.Context, id uuid.UUID) error {
+	conn, err := pr.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	deleteCommand := string(`DELETE FROM complaint WHERE ID = $1`)
+	_, err = conn.Exec(
+		ctx,
+		deleteCommand,
+		&id,
+	)
+	if err != nil {
+		return err
+	}
+	reg := MapperRegistryInstance()
+	complaintRepliesRepository, ok := reg.Get("Reply").(ComplaintRepliesRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	err = complaintRepliesRepository.DeleteAll(ctx, id)
+	if err != nil {
+		return err
+	}
+	ratingRepository, ok := reg.Get("Rating").(RatingRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	err = ratingRepository.Remove(ctx, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (pr ComplaintRepository) Save(
 	ctx context.Context,
 	complaint *complaint.Complaint,
 ) error {
 	conn, err := pr.schema.Acquire(ctx)
+	defer conn.Release()
 	if err != nil {
 		return err
 	}
@@ -270,38 +248,29 @@ func (pr ComplaintRepository) Save(
 				id,
 				author_id,
 				receiver_id,
-				complaint_status,
+				status,
 				title,
-				complaint_description,
-				body,
-				rating_rate,
-				rating_comment,
+				description,
 				created_at,
 				updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`)
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
-		complaint.ID(),
-		complaint.AuthorID(),
-		complaint.ReceiverID(),
+		complaint.Id(),
+		complaint.Author().Id(),
+		complaint.Receiver().Id(),
 		complaint.Status().String(),
-		complaint.Message().Title(),
-		complaint.Message().Description(),
-		complaint.Message().Body(),
-		complaint.Rating().Rate(),
-		complaint.Rating().Comment(),
+		complaint.Title(),
+		complaint.Description(),
 		complaint.CreatedAt().StringRepresentation(),
 		complaint.UpdatedAt().StringRepresentation(),
 	)
 	if err != nil {
 		return err
 	}
-	mapper := MapperRegistryInstance().Get("Reply")
-	if mapper == nil {
-		return ErrMapperNotRegistered
-	}
-	complaintRepliesRepository, ok := mapper.(ComplaintRepliesRepository)
+	reg := MapperRegistryInstance()
+	complaintRepliesRepository, ok := reg.Get("Reply").(ComplaintRepliesRepository)
 	if !ok {
 		return ErrWrongTypeAssertion
 	}
@@ -309,7 +278,6 @@ func (pr ComplaintRepository) Save(
 	if err != nil {
 		return err
 	}
-	defer conn.Release()
 	return nil
 }
 
@@ -321,15 +289,12 @@ func (pr ComplaintRepository) Update(
 	if err != nil {
 		return err
 	}
-	mapper := MapperRegistryInstance().Get("Reply")
-	if mapper == nil {
-		return ErrMapperNotRegistered
-	}
-	complaintRepliesRepository, ok := mapper.(ComplaintRepliesRepository)
+	reg := MapperRegistryInstance()
+	complaintRepliesRepository, ok := reg.Get("Reply").(ComplaintRepliesRepository)
 	if !ok {
 		return ErrWrongTypeAssertion
 	}
-	err = complaintRepliesRepository.DeleteAll(ctx, updatedComplaint.Replies())
+	err = complaintRepliesRepository.DeleteAll(ctx, updatedComplaint.Id())
 	if err != nil {
 		return err
 	}
@@ -337,47 +302,47 @@ func (pr ComplaintRepository) Update(
 	if err != nil {
 		return err
 	}
+	ratingRepository, ok := reg.Get("Rating").(RatingRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	if updatedComplaint.Rating() != (complaint.Rating{}) {
+		err = ratingRepository.Save(ctx, updatedComplaint.Rating())
+		if err != nil {
+			return err
+		}
+	}
 	var (
-		id            uuid.UUID = updatedComplaint.ID()
-		authorID      string    = updatedComplaint.AuthorID()
-		receiverID    string    = updatedComplaint.ReceiverID()
-		status        string    = updatedComplaint.Status().String()
-		title         string    = updatedComplaint.Message().Title()
-		description   string    = updatedComplaint.Message().Description()
-		body          string    = updatedComplaint.Message().Body()
-		ratingRate    int       = updatedComplaint.Rating().Rate()
-		ratingComment string    = updatedComplaint.Rating().Comment()
-		createdAt     string    = updatedComplaint.CreatedAt().StringRepresentation()
-		updatedAt     string    = updatedComplaint.UpdatedAt().StringRepresentation()
+		id          uuid.UUID = updatedComplaint.Id()
+		authorId    uuid.UUID = updatedComplaint.Author().Id()
+		receiverId  uuid.UUID = updatedComplaint.Receiver().Id()
+		status      string    = updatedComplaint.Status().String()
+		title       string    = updatedComplaint.Title()
+		description string    = updatedComplaint.Description()
+		createdAt   string    = updatedComplaint.CreatedAt().StringRepresentation()
+		updatedAt   string    = updatedComplaint.UpdatedAt().StringRepresentation()
 	)
 	updateCommand := string(`
 	UPDATE complaint
 		SET
-		id=$1,
 		author_id=$2,
 		receiver_id=$3,
-		complaint_status=$4,
+		status=$4,
 		title=$5,
-		complaint_description=$6,
-		body=$7,
-		rating_rate=$8,
-		rating_comment=$9,
-		created_at=$10,
-		updated_at=$11
+		description=$6,
+		created_at=$7,
+		updated_at=$8
 	WHERE id = $1;`,
 	)
 	_, err = conn.Exec(
 		ctx,
 		updateCommand,
 		&id,
-		&authorID,
-		&receiverID,
+		&authorId,
+		&receiverId,
 		&status,
 		&title,
 		&description,
-		&body,
-		&ratingRate,
-		&ratingComment,
 		&createdAt,
 		&updatedAt,
 	)

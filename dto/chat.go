@@ -24,7 +24,7 @@ func NewChat(domain enterprise.Chat) *Chat {
 type ChatReply struct {
 	ID        string `json:"id"`
 	ChatID    string `json:"chatID"`
-	User      User   `json:"user"`
+	User      *User  `json:"user"`
 	Content   string `json:"content"`
 	Seen      bool   `json:"seen"`
 	CreatedAt string `json:"createdAt"`
@@ -32,10 +32,11 @@ type ChatReply struct {
 }
 
 func NewChatReply(domain enterprise.Reply) *ChatReply {
+	user := domain.User()
 	return &ChatReply{
 		ID:        domain.ID().String(),
 		ChatID:    domain.ChatID().String(),
-		User:      NewUser(domain.User()),
+		User:      NewUser(&user),
 		Content:   domain.Content(),
 		Seen:      domain.Seen(),
 		CreatedAt: common.StringDate(domain.CreatedAt()),

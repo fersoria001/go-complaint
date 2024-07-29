@@ -7,14 +7,17 @@ import (
 	"go-complaint/domain/model/common"
 	"go-complaint/erros"
 	"regexp"
+
+	"github.com/google/uuid"
 )
 
 // Package identityandaccess
 // <<Entity>> Person
 type Person struct {
-	gender     string
+	id         uuid.UUID
+	genre      string
 	pronoun    string
-	profileIMG string
+	profileImg string
 	email      string
 	firstName  string
 	lastName   string
@@ -43,16 +46,16 @@ func (p *Person) ChangePronoun(ctx context.Context, pronoun string) error {
 	return nil
 }
 
-func (p *Person) ChangeGender(ctx context.Context, gender string) error {
-	var oldValue = p.profileIMG
-	if oldValue == gender {
+func (p *Person) ChangeGenre(ctx context.Context, genre string) error {
+	var oldValue = p.profileImg
+	if oldValue == genre {
 		return nil
 	}
-	err := p.setGender(gender)
+	err := p.setGenre(genre)
 	if err != nil {
 		return err
 	}
-	eventt, err := NewPersonGenderChanged(p.email, oldValue, gender)
+	eventt, err := NewPersonGenreChanged(p.email, oldValue, genre)
 	if err != nil {
 		return err
 	}
@@ -62,16 +65,16 @@ func (p *Person) ChangeGender(ctx context.Context, gender string) error {
 	)
 	return nil
 }
-func (p *Person) ChangeProfileIMG(ctx context.Context, profileIMG string) error {
-	var oldValue = p.profileIMG
-	if oldValue == profileIMG {
+func (p *Person) ChangeProfileIMG(ctx context.Context, profileImg string) error {
+	var oldValue = p.profileImg
+	if oldValue == profileImg {
 		return nil
 	}
-	err := p.setProfileIMG(profileIMG)
+	err := p.setProfileIMG(profileImg)
 	if err != nil {
 		return err
 	}
-	eventt, err := NewPersonProfileIMGChanged(p.email, oldValue, profileIMG)
+	eventt, err := NewPersonProfileIMGChanged(p.email, oldValue, profileImg)
 	if err != nil {
 		return err
 	}
@@ -233,9 +236,10 @@ func (p *Person) ChangeFirstName(ctx context.Context, setFirstName string) error
 }
 
 func NewPerson(
+	id uuid.UUID,
 	email string,
-	profileIMG string,
-	gender string,
+	profileImg string,
+	genre string,
 	pronoun string,
 	firstName string,
 	lastName string,
@@ -245,6 +249,7 @@ func NewPerson(
 ) (*Person, error) {
 	var person = new(Person)
 	var err error
+	person.id = id
 	err = person.setEmail(email)
 	if err != nil {
 		return nil, err
@@ -269,7 +274,7 @@ func NewPerson(
 	if err != nil {
 		return nil, err
 	}
-	err = person.setGender(gender)
+	err = person.setGenre(genre)
 	if err != nil {
 		return nil, err
 	}
@@ -277,18 +282,18 @@ func NewPerson(
 	if err != nil {
 		return nil, err
 	}
-	err = person.setProfileIMG(profileIMG)
+	err = person.setProfileIMG(profileImg)
 	if err != nil {
 		return nil, err
 	}
 	return person, nil
 }
 
-func (p *Person) setGender(gender string) error {
-	if gender == "" {
+func (p *Person) setGenre(genre string) error {
+	if genre == "" {
 		return &erros.NullValueError{}
 	}
-	p.gender = gender
+	p.genre = genre
 	return nil
 }
 
@@ -300,11 +305,11 @@ func (p *Person) setPronoun(pronoun string) error {
 	return nil
 }
 
-func (p *Person) setProfileIMG(profileIMG string) error {
-	if profileIMG == "" {
+func (p *Person) setProfileIMG(profileImg string) error {
+	if profileImg == "" {
 		return &erros.NullValueError{}
 	}
-	p.profileIMG = profileIMG
+	p.profileImg = profileImg
 	return nil
 }
 
@@ -375,6 +380,10 @@ func (p Person) FullName() string {
 	return fmt.Sprintf(`%s %s`, p.firstName, p.lastName)
 }
 
+func (p Person) Id() uuid.UUID {
+	return p.id
+}
+
 func (p Person) Email() string {
 	return p.email
 }
@@ -403,8 +412,8 @@ func (p Person) Age() int {
 	return p.birthDate.Age()
 }
 
-func (p Person) Gender() string {
-	return p.gender
+func (p Person) Genre() string {
+	return p.genre
 }
 
 func (p Person) Pronoun() string {
@@ -412,5 +421,5 @@ func (p Person) Pronoun() string {
 }
 
 func (p Person) ProfileIMG() string {
-	return p.profileIMG
+	return p.profileImg
 }

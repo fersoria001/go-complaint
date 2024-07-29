@@ -4,23 +4,25 @@ import (
 	"encoding/json"
 	"go-complaint/domain/model/common"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type RoleAdded struct {
-	userID       string
-	enterpriseID string
+	userId       uuid.UUID
+	enterpriseId uuid.UUID
 	roleID       string
 	occurredOn   time.Time
 }
 
 func NewRoleAdded(
-	userID,
-	enterpriseID,
+	userId,
+	enterpriseId uuid.UUID,
 	roleID string,
 ) *RoleAdded {
 	return &RoleAdded{
-		userID:       userID,
-		enterpriseID: enterpriseID,
+		userId:       userId,
+		enterpriseId: enterpriseId,
 		roleID:       roleID,
 		occurredOn:   time.Now(),
 	}
@@ -32,13 +34,13 @@ func (ra *RoleAdded) OccurredOn() time.Time {
 
 func (ra *RoleAdded) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		UserID       string `json:"user_id"`
-		EnterpriseID string `json:"enterprise_id"`
-		RoleID       string `json:"role_id"`
-		OccurredOn   string `json:"occurred_on"`
+		UserId       uuid.UUID `json:"user_id"`
+		EnterpriseId uuid.UUID `json:"enterprise_id"`
+		RoleID       string    `json:"role_id"`
+		OccurredOn   string    `json:"occurred_on"`
 	}{
-		UserID:       ra.userID,
-		EnterpriseID: ra.enterpriseID,
+		UserId:       ra.userId,
+		EnterpriseId: ra.enterpriseId,
 		RoleID:       ra.roleID,
 		OccurredOn:   common.StringDate(ra.occurredOn),
 	})
@@ -46,16 +48,16 @@ func (ra *RoleAdded) MarshalJSON() ([]byte, error) {
 
 func (ra *RoleAdded) UnmarshalJSON(data []byte) error {
 	var aux struct {
-		UserID       string `json:"user_id"`
-		EnterpriseID string `json:"enterprise_id"`
-		RoleID       string `json:"role_id"`
-		OccurredOn   string `json:"occurred_on"`
+		UserId       uuid.UUID `json:"user_id"`
+		EnterpriseId uuid.UUID `json:"enterprise_id"`
+		RoleID       string    `json:"role_id"`
+		OccurredOn   string    `json:"occurred_on"`
 	}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	ra.userID = aux.UserID
-	ra.enterpriseID = aux.EnterpriseID
+	ra.userId = aux.UserId
+	ra.enterpriseId = aux.EnterpriseId
 	ra.roleID = aux.RoleID
 	ocurrOn, err := common.ParseDate(aux.OccurredOn)
 	if err != nil {

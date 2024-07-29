@@ -5,29 +5,31 @@ import (
 	"go-complaint/domain/model/common"
 	"go-complaint/erros"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type EnterpriseCreated struct {
-	enterpriseName string
-	industryID     int
-	ocurredOn      time.Time
+	enterpriseId uuid.UUID
+	industryId   int
+	occurredOn   time.Time
 }
 
 func (event EnterpriseCreated) OccurredOn() time.Time {
-	return event.ocurredOn
+	return event.occurredOn
 }
 
 func NewEnterpriseCreated(
-	enterpriseName string,
-	industryID int,
+	enterpriseId uuid.UUID,
+	industryId int,
 	occurredOn time.Time,
 ) (*EnterpriseCreated, error) {
-	newEvent := &EnterpriseCreated{}
-	err := newEvent.setEnterpriseName(enterpriseName)
+	newEvent := new(EnterpriseCreated)
+	err := newEvent.setEnterpriseId(enterpriseId)
 	if err != nil {
 		return nil, err
 	}
-	err = newEvent.setIndustryID(industryID)
+	err = newEvent.setIndustryId(industryId)
 	if err != nil {
 		return nil, err
 	}
@@ -38,16 +40,16 @@ func NewEnterpriseCreated(
 	return newEvent, nil
 }
 
-func (event *EnterpriseCreated) setEnterpriseName(enterpriseName string) error {
-	if enterpriseName == "" {
-		return &erros.NullValueError{}
+func (event *EnterpriseCreated) setEnterpriseId(enterpriseId uuid.UUID) error {
+	if enterpriseId == uuid.Nil {
+		return ErrNilPointer
 	}
-	event.enterpriseName = enterpriseName
+	event.enterpriseId = enterpriseId
 	return nil
 }
 
-func (event *EnterpriseCreated) setIndustryID(industryID int) error {
-	event.industryID = industryID
+func (event *EnterpriseCreated) setIndustryId(industryId int) error {
+	event.industryId = industryId
 	return nil
 }
 
@@ -61,19 +63,19 @@ func (event *EnterpriseCreated) setOccurredOn(occurredOn time.Time) error {
 	if occurredOn == (time.Time{}) {
 		return &erros.EmptyStructError{}
 	}
-	event.ocurredOn = occurredOn
+	event.occurredOn = occurredOn
 	return nil
 }
 
 func (event *EnterpriseCreated) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
-		EnterpriseName string
-		IndustryID     int
-		OccurredOn     string
+		EnterpriseId uuid.UUID
+		IndustryId   int
+		OccurredOn   string
 	}{
-		EnterpriseName: event.enterpriseName,
-		IndustryID:     event.industryID,
-		OccurredOn:     common.StringDate(event.ocurredOn),
+		EnterpriseId: event.enterpriseId,
+		IndustryId:   event.industryId,
+		OccurredOn:   common.StringDate(event.occurredOn),
 	})
 	if err != nil {
 		return nil, err
@@ -86,9 +88,9 @@ func (event *EnterpriseCreated) UnmarshalJSON(data []byte) error {
 		return &erros.NullValueError{}
 	}
 	j := struct {
-		EnterpriseName string
-		IndustryID     int
-		OccurredOn     string
+		EnterpriseId uuid.UUID
+		IndustryId   int
+		OccurredOn   string
 	}{}
 	err := json.Unmarshal(data, &j)
 	if err != nil {
@@ -98,11 +100,11 @@ func (event *EnterpriseCreated) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	err = event.setEnterpriseName(j.EnterpriseName)
+	err = event.setEnterpriseId(j.EnterpriseId)
 	if err != nil {
 		return err
 	}
-	err = event.setIndustryID(j.IndustryID)
+	err = event.setIndustryId(j.IndustryId)
 	if err != nil {
 		return err
 	}

@@ -2,8 +2,8 @@ package complaint
 
 import (
 	"go-complaint/domain/model/common"
+	"go-complaint/domain/model/recipient"
 	"go-complaint/erros"
-	"net/mail"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,18 +14,14 @@ import (
 // It represents the reply of the complaint
 // Its complaintID is the id of the complaint that own this reply
 type Reply struct {
-	id           uuid.UUID
-	complaintID  uuid.UUID
-	senderID     string
-	senderIMG    string
-	senderName   string
-	body         string
-	createdAt    common.Date
-	read         bool
-	readAt       common.Date
-	updatedAt    common.Date
-	isEnterprise bool
-	enterpriseID string
+	id          uuid.UUID
+	complaintId uuid.UUID
+	sender      recipient.Recipient
+	body        string
+	createdAt   common.Date
+	read        bool
+	readAt      common.Date
+	updatedAt   common.Date
 }
 
 func (r *Reply) MarkAsRead() {
@@ -35,66 +31,38 @@ func (r *Reply) MarkAsRead() {
 
 func CreateReply(
 	id uuid.UUID,
-	complaintID uuid.UUID,
-	authorID string,
-	authorIMG string,
-	authorName string,
+	complaintId uuid.UUID,
+	sender recipient.Recipient,
 	body string,
-	enterpriseID string,
 ) *Reply {
-	isEnterprise := false
-	if enterpriseID != "" {
-		isEnterprise = true
-	}
 	newCommonDate := common.NewDate(time.Now())
 	r := &Reply{
-		id:           id,
-		complaintID:  complaintID,
-		senderID:     authorID,
-		senderIMG:    authorIMG,
-		senderName:   authorName,
-		body:         body,
-		read:         false,
-		readAt:       newCommonDate,
-		createdAt:    newCommonDate,
-		updatedAt:    newCommonDate,
-		isEnterprise: isEnterprise,
-		enterpriseID: enterpriseID,
+		id:          id,
+		complaintId: complaintId,
+		sender:      sender,
+		body:        body,
+		read:        false,
+		readAt:      newCommonDate,
+		createdAt:   newCommonDate,
+		updatedAt:   newCommonDate,
 	}
 	return r
 }
 
-func NewReply(id uuid.UUID,
-	complaintID uuid.UUID,
-	senderID string,
-	senderIMG string,
-	senderName string,
+func NewReply(
+	id,
+	complaintId uuid.UUID,
+	sender recipient.Recipient,
 	body string,
 	read bool,
 	createdAt,
 	readAt,
 	updatedAt common.Date,
-	isEnterprise bool,
-	enterpriseID string,
 ) (*Reply, error) {
 	var reply *Reply = new(Reply)
+	reply.sender = sender
+	reply.complaintId = complaintId
 	err := reply.setID(id)
-	if err != nil {
-		return nil, err
-	}
-	err = reply.setSurrogateID(complaintID)
-	if err != nil {
-		return nil, err
-	}
-	err = reply.setSenderID(senderID)
-	if err != nil {
-		return nil, err
-	}
-	err = reply.setSenderIMG(senderIMG)
-	if err != nil {
-		return nil, err
-	}
-	err = reply.setSenderName(senderName)
 	if err != nil {
 		return nil, err
 	}
@@ -115,44 +83,7 @@ func NewReply(id uuid.UUID,
 	if err != nil {
 		return nil, err
 	}
-	reply.isEnterprise = isEnterprise
-	err = reply.SetEnterpriseID(enterpriseID)
-	if err != nil {
-		return nil, err
-	}
-
 	return reply, nil
-}
-
-func (r *Reply) SetEnterpriseID(enterpriseID string) error {
-	if _, err := mail.ParseAddress(enterpriseID); err == nil {
-		return &erros.ValidationError{
-			Expected: "enterpriseID cannot be an email address",
-		}
-	}
-	r.enterpriseID = enterpriseID
-	return nil
-}
-
-func (r Reply) EnterpriseID() string {
-	return r.enterpriseID
-}
-
-func (r *Reply) setSenderID(senderID string) error {
-	if senderID == "" {
-		return &erros.NullValueError{}
-	}
-	r.senderID = senderID
-	return nil
-}
-
-// To validate it senderName needs to be previously validated
-func (r *Reply) setSurrogateID(complaintID uuid.UUID) error {
-	if complaintID == uuid.Nil {
-		return &erros.NullValueError{}
-	}
-	r.complaintID = complaintID
-	return nil
 }
 
 func (r *Reply) setID(id uuid.UUID) error {
@@ -160,22 +91,6 @@ func (r *Reply) setID(id uuid.UUID) error {
 		return &erros.NullValueError{}
 	}
 	r.id = id
-	return nil
-}
-
-func (r *Reply) setSenderIMG(senderIMG string) error {
-	if senderIMG == "" {
-		return &erros.NullValueError{}
-	}
-	r.senderIMG = senderIMG
-	return nil
-}
-
-func (r *Reply) setSenderName(senderName string) error {
-	if senderName == "" {
-		return &erros.NullValueError{}
-	}
-	r.senderName = senderName
 	return nil
 }
 
@@ -226,16 +141,12 @@ func (r Reply) ID() uuid.UUID {
 	return r.id
 }
 
-func (r Reply) ComplaintID() uuid.UUID {
-	return r.complaintID
+func (r Reply) ComplaintId() uuid.UUID {
+	return r.complaintId
 }
 
-func (r Reply) SenderIMG() string {
-	return r.senderIMG
-}
-
-func (r Reply) SenderName() string {
-	return r.senderName
+func (r Reply) Sender() recipient.Recipient {
+	return r.sender
 }
 
 func (r Reply) Body() string {
@@ -256,12 +167,4 @@ func (r Reply) ReadAt() common.Date {
 
 func (r Reply) UpdatedAt() common.Date {
 	return r.updatedAt
-}
-
-func (r Reply) SenderID() string {
-	return r.senderID
-}
-
-func (r Reply) IsEnterprise() bool {
-	return r.isEnterprise
 }

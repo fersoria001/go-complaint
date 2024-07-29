@@ -33,14 +33,26 @@ var staticMap = map[string]func() func(schema datasource.Schema) interface{}{
 	"Enterprise": func() func(schema datasource.Schema) interface{} {
 		return func(schema datasource.Schema) interface{} { return NewEnterpriseRepository(schema) }
 	},
+	"HiringProccess": func() func(schema datasource.Schema) interface{} {
+		return func(schema datasource.Schema) interface{} { return NewHiringProccessRepository(schema) }
+	},
 	"Employee": func() func(schema datasource.Schema) interface{} {
 		return func(schema datasource.Schema) interface{} { return NewEmployeeRepository(schema) }
 	},
 	"Complaint": func() func(schema datasource.Schema) interface{} {
 		return func(schema datasource.Schema) interface{} { return NewComplaintRepository(schema) }
 	},
+	"ComplaintData": func() func(schema datasource.Schema) interface{} {
+		return func(schema datasource.Schema) interface{} { return NewComplaintDataRepository(schema) }
+	},
 	"Reply": func() func(schema datasource.Schema) interface{} {
 		return func(schema datasource.Schema) interface{} { return NewComplaintRepliesRepository(schema) }
+	},
+	"Recipient": func() func(schema datasource.Schema) interface{} {
+		return func(schema datasource.Schema) interface{} { return NewRecipientRepository(schema) }
+	},
+	"Rating": func() func(schema datasource.Schema) interface{} {
+		return func(schema datasource.Schema) interface{} { return NewRatingRepository(schema) }
 	},
 	"Feedback": func() func(schema datasource.Schema) interface{} {
 		return func(schema datasource.Schema) interface{} { return NewFeedbackRepository(schema) }

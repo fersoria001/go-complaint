@@ -43,7 +43,7 @@ func (fr FeedbackRepository) Update(
 				return err
 			}
 		}
-		err = feedbackReplyReviewRepository.DeleteAll(ctx, f.ID())
+		err = feedbackReplyReviewRepository.DeleteAll(ctx, f.Id())
 		if err != nil {
 			return err
 		}
@@ -56,7 +56,7 @@ func (fr FeedbackRepository) Update(
 		}
 	}
 	if f.FeedbackAnswers() != nil {
-		err = feedbackAnswerRepository.DeleteAll(ctx, f.ComplaintID())
+		err = feedbackAnswerRepository.DeleteAll(ctx, f.ComplaintId())
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func (fr FeedbackRepository) Update(
 		is_done = $3
 		WHERE id = $1`)
 	var (
-		id        = f.ID()
+		id        = f.Id()
 		updatedAt = common.StringDate(f.UpdatedAt())
 		isDone    = f.IsDone()
 	)
@@ -127,9 +127,9 @@ func (fr FeedbackRepository) Save(
 			)
 		VALUES ($1,$2,$3,$4,$5,$6)`)
 	var (
-		id           = f.ID()
-		complaintID  = f.ComplaintID()
-		enterpriseID = f.EnterpriseID()
+		id           = f.Id()
+		complaintID  = f.ComplaintId()
+		enterpriseID = f.EnterpriseId()
 		reviewedAt   = common.StringDate(f.ReviewedAt())
 		updatedAt    = common.StringDate(f.UpdatedAt())
 		isDone       = f.IsDone()
@@ -238,12 +238,12 @@ func (fr FeedbackRepository) load(ctx context.Context, row pgx.Row) (*feedback.F
 	var (
 		feedbackID   uuid.UUID
 		complaintID  uuid.UUID
-		enterpriseID string
+		enterpriseId uuid.UUID
 		reviewedAt   string
 		updatedAt    string
 		isDone       bool
 	)
-	err := row.Scan(&feedbackID, &complaintID, &enterpriseID, &reviewedAt, &updatedAt, &isDone)
+	err := row.Scan(&feedbackID, &complaintID, &enterpriseId, &reviewedAt, &updatedAt, &isDone)
 	if err != nil {
 
 		return nil, err
@@ -279,7 +279,7 @@ func (fr FeedbackRepository) load(ctx context.Context, row pgx.Row) (*feedback.F
 	return feedback.NewFeedback(
 		feedbackID,
 		complaintID,
-		enterpriseID,
+		enterpriseId,
 		reply_reviews,
 		answers,
 		revAt,

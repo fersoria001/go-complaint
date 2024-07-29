@@ -80,12 +80,12 @@ func (imc *InMemoryCache) NextID() int {
 	return imc.nextID
 }
 
-var inMemoryCacheInstance *InMemoryCache
-var inMemoryCacheOnce sync.Once
+var inMemoryInstance *InMemoryCache
+var inMemoryOnce sync.Once
 
-func InMemoryCacheInstance() *InMemoryCache {
-	inMemoryCacheOnce.Do(func() {
-		inMemoryCacheInstance = NewInMemoryCache()
+func InMemoryInstance() *InMemoryCache {
+	inMemoryOnce.Do(func() {
+		inMemoryInstance = NewInMemoryCache()
 	})
-	return inMemoryCacheInstance
+	return inMemoryInstance
 }

@@ -6,9 +6,9 @@ import (
 )
 
 type Feedback struct {
-	ID             string           `json:"id"`
-	ComplaintID    string           `json:"complaintID"`
-	EnterpriseID   string           `json:"enterpriseID"`
+	Id             string           `json:"id"`
+	ComplaintId    string           `json:"complaintId"`
+	EnterpriseId   string           `json:"enterpriseId"`
 	ReplyReview    []ReplyReview    `json:"replyReview"`
 	FeedbackAnswer []FeedbackAnswer `json:"feedbackAnswers"`
 	ReviewedAt     string           `json:"reviewedAt"`
@@ -26,9 +26,9 @@ func NewFeedbackDTO(domainObject feedback.Feedback) Feedback {
 		feedbackAnswers = append(feedbackAnswers, NewFeedbackAnswerDTO(feedbackAnswer))
 	}
 	return Feedback{
-		ID:             domainObject.ID().String(),
-		ComplaintID:    domainObject.ComplaintID().String(),
-		EnterpriseID:   domainObject.EnterpriseID(),
+		Id:             domainObject.Id().String(),
+		ComplaintId:    domainObject.ComplaintId().String(),
+		EnterpriseId:   domainObject.EnterpriseId().String(),
 		ReplyReview:    replyReviews,
 		FeedbackAnswer: feedbackAnswers,
 		ReviewedAt:     common.StringDate(domainObject.ReviewedAt()),
@@ -38,10 +38,10 @@ func NewFeedbackDTO(domainObject feedback.Feedback) Feedback {
 }
 
 type FeedbackAnswer struct {
-	ID           string `json:"id"`
-	FeedbackID   string `json:"feedbackID"`
-	SenderID     string `json:"senderID"`
-	SenderIMG    string `json:"senderIMG"`
+	Id           string `json:"id"`
+	FeedbackId   string `json:"feedbackId"`
+	SenderId     string `json:"senderId"`
+	SenderImg    string `json:"senderImg"`
 	SenderName   string `json:"senderName"`
 	Body         string `json:"body"`
 	CreatedAt    string `json:"createdAt"`
@@ -49,15 +49,15 @@ type FeedbackAnswer struct {
 	ReadAt       string `json:"readAt"`
 	UpdatedAt    string `json:"updatedAt"`
 	IsEnterprise bool   `json:"isEnterprise"`
-	EnterpriseID string `json:"enterpriseID"`
+	EnterpriseId string `json:"enterpriseId"`
 }
 
 func NewFeedbackAnswerDTO(domainObject feedback.Answer) FeedbackAnswer {
 	return FeedbackAnswer{
-		ID:           domainObject.ID().String(),
-		FeedbackID:   domainObject.FeedbackID().String(),
-		SenderID:     domainObject.SenderID(),
-		SenderIMG:    domainObject.SenderIMG(),
+		Id:           domainObject.Id().String(),
+		FeedbackId:   domainObject.FeedbackId().String(),
+		SenderId:     domainObject.SenderId().String(),
+		SenderImg:    domainObject.SenderImg(),
 		SenderName:   domainObject.SenderName(),
 		Body:         domainObject.Body(),
 		CreatedAt:    domainObject.CreatedAt().StringRepresentation(),
@@ -65,29 +65,30 @@ func NewFeedbackAnswerDTO(domainObject feedback.Answer) FeedbackAnswer {
 		ReadAt:       domainObject.ReadAt().StringRepresentation(),
 		UpdatedAt:    domainObject.UpdatedAt().StringRepresentation(),
 		IsEnterprise: domainObject.IsEnterprise(),
-		EnterpriseID: domainObject.EnterpriseID(),
+		EnterpriseId: domainObject.EnterpriseId(),
 	}
 }
 
 type ReplyReview struct {
-	ID         string     `json:"id"`
-	FeedbackID string     `json:"feedbackID"`
-	Reviewer   User       `json:"reviewer"`
-	Replies    []ReplyDTO `json:"replies"`
-	Review     ReviewDTO  `json:"review"`
-	Color      string     `json:"color"`
-	CreatedAt  string     `json:"createdAt"`
+	ID         string    `json:"id"`
+	FeedbackID string    `json:"feedbackID"`
+	Reviewer   *User     `json:"reviewer"`
+	Replies    []*Reply  `json:"replies"`
+	Review     ReviewDTO `json:"review"`
+	Color      string    `json:"color"`
+	CreatedAt  string    `json:"createdAt"`
 }
 
 func NewReplyReviewDTO(domainObject feedback.ReplyReview) ReplyReview {
-	var replies []ReplyDTO
+	var replies []*Reply
 	for _, reply := range domainObject.Replies().ToSlice() {
-		replies = append(replies, NewReplyDTO(reply, "CLOSED"))
+		replies = append(replies, NewReply(reply))
 	}
+	reviewer := domainObject.Reviewer()
 	return ReplyReview{
 		ID:         domainObject.ID().String(),
-		FeedbackID: domainObject.FeedbackID().String(),
-		Reviewer:   NewUser(domainObject.Reviewer()),
+		FeedbackID: domainObject.FeedbackId().String(),
+		Reviewer:   NewUser(&reviewer),
 		Replies:    replies,
 		Review:     NewReviewDto(domainObject.Review()),
 		Color:      domainObject.Color(),

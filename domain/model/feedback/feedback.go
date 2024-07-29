@@ -22,8 +22,8 @@ import (
 // Feedback 1 .. * Answer
 type Feedback struct {
 	id              uuid.UUID
-	complaintID     uuid.UUID
-	enterpriseID    string
+	complaintId     uuid.UUID
+	enterpriseId    uuid.UUID
 	replyReview     mapset.Set[*ReplyReview]
 	feedbackAnswers mapset.Set[*Answer]
 	reviewedAt      time.Time
@@ -33,7 +33,7 @@ type Feedback struct {
 
 func (f *Feedback) Answer(
 	ctx context.Context,
-	senderID string,
+	senderID uuid.UUID,
 	senderIMG string,
 	senderName string,
 	body string,
@@ -65,9 +65,9 @@ func (f *Feedback) Answer(
 		ctx,
 		NewFeedbackReplied(
 			f.id,
-			f.complaintID,
+			f.complaintId,
 			senderID,
-			newAnswer.ID(),
+			newAnswer.Id(),
 		),
 	)
 	if err != nil {
@@ -169,17 +169,17 @@ func (f *Feedback) AddReplyReview(
 		f.replyReview = mapset.NewSet[*ReplyReview]()
 	}
 	f.replyReview.Add(replyReview)
-	reviewedIds := mapset.NewSet[string]()
+	reviewedIds := mapset.NewSet[uuid.UUID]()
 	for i := range replyReview.replies.Iter() {
-		reviewedIds.Add(i.SenderID())
+		reviewedIds.Add(i.Sender().Id())
 	}
 	for i := range reviewedIds.Iter() {
 		err := domain.DomainEventPublisherInstance().Publish(
 			ctx,
 			NewAddedFeedback(
-				replyReview.ID(),
-				replyReview.FeedbackID(),
-				replyReview.reviewer.Email(),
+				replyReview.id,
+				replyReview.feedbackId,
+				replyReview.reviewer.Id(),
 				i,
 			),
 		)
@@ -193,20 +193,20 @@ func (f *Feedback) AddReplyReview(
 func CreateFeedback(
 	ctx context.Context,
 	id uuid.UUID,
-	complaintID uuid.UUID,
-	enterpriseID string,
+	complaintId uuid.UUID,
+	enterpriseId uuid.UUID,
 ) (*Feedback, error) {
 	newFeedback := NewFeedbackEntity(
 		id,
-		complaintID,
-		enterpriseID,
+		complaintId,
+		enterpriseId,
 	)
 	err := domain.DomainEventPublisherInstance().Publish(
 		ctx,
 		NewFeedbackCreated(
 			newFeedback.id,
-			newFeedback.complaintID,
-			newFeedback.enterpriseID,
+			newFeedback.complaintId,
+			newFeedback.enterpriseId,
 		),
 	)
 	if err != nil {
@@ -217,13 +217,13 @@ func CreateFeedback(
 
 func NewFeedbackEntity(
 	id uuid.UUID,
-	complaintID uuid.UUID,
-	enterpriseID string,
+	complaintId uuid.UUID,
+	enterpriseId uuid.UUID,
 ) *Feedback {
 	return &Feedback{
 		id:              id,
-		complaintID:     complaintID,
-		enterpriseID:    enterpriseID,
+		complaintId:     complaintId,
+		enterpriseId:    enterpriseId,
 		replyReview:     mapset.NewSet[*ReplyReview](),
 		feedbackAnswers: mapset.NewSet[*Answer](),
 		reviewedAt:      time.Now(),
@@ -232,9 +232,9 @@ func NewFeedbackEntity(
 }
 
 func NewFeedback(
-	feedbackID,
-	complaintID uuid.UUID,
-	enterpriseID string,
+	feedbackId,
+	complaintId uuid.UUID,
+	enterpriseId uuid.UUID,
 	replyReviews mapset.Set[*ReplyReview],
 	feedbackAnswers mapset.Set[*Answer],
 	reviewedAt time.Time,
@@ -245,15 +245,15 @@ func NewFeedback(
 	feedback.reviewedAt = reviewedAt
 	feedback.updatedAt = updatedAt
 	feedback.isDone = isDone
-	err := feedback.SetEnterpriseID(enterpriseID)
+	err := feedback.SetEnterpriseId(enterpriseId)
 	if err != nil {
 		return nil, err
 	}
-	err = feedback.setComplaintID(complaintID)
+	err = feedback.setComplaintId(complaintId)
 	if err != nil {
 		return nil, err
 	}
-	err = feedback.setID(feedbackID)
+	err = feedback.setID(feedbackId)
 	if err != nil {
 		return nil, err
 	}
@@ -277,10 +277,10 @@ func (f *Feedback) EndFeedback(
 	}
 	f.updatedAt = time.Now()
 	f.isDone = true
-	ids := mapset.NewSet[string]()
+	ids := mapset.NewSet[uuid.UUID]()
 	for i := range f.replyReview.Iter() {
 		for j := range i.replies.Iter() {
-			ids.Add(j.SenderID())
+			ids.Add(j.Sender().Id())
 		}
 	}
 	for i := range ids.Iter() {
@@ -288,8 +288,8 @@ func (f *Feedback) EndFeedback(
 			ctx,
 			NewFeedbackDone(
 				f.id,
-				f.complaintID,
-				f.enterpriseID,
+				f.complaintId,
+				f.enterpriseId,
 				i,
 				time.Now(),
 			),
@@ -305,18 +305,18 @@ func (f Feedback) IsDone() bool {
 	return f.isDone
 }
 
-func (f Feedback) ID() uuid.UUID {
+func (f Feedback) Id() uuid.UUID {
 	return f.id
 }
-func (f *Feedback) SetEnterpriseID(enterpriseID string) error {
-	if enterpriseID == "" {
+func (f *Feedback) SetEnterpriseId(enterpriseId uuid.UUID) error {
+	if enterpriseId == uuid.Nil {
 		return &erros.NullValueError{}
 	}
-	f.enterpriseID = enterpriseID
+	f.enterpriseId = enterpriseId
 	return nil
 }
-func (f Feedback) EnterpriseID() string {
-	return f.enterpriseID
+func (f Feedback) EnterpriseId() uuid.UUID {
+	return f.enterpriseId
 }
 
 func (f *Feedback) setID(id uuid.UUID) error {
@@ -335,11 +335,11 @@ func (f *Feedback) setFeedbackAnswers(fba mapset.Set[*Answer]) error {
 	return nil
 }
 
-func (f *Feedback) setComplaintID(complaintID uuid.UUID) error {
-	if complaintID == uuid.Nil {
+func (f *Feedback) setComplaintId(complaintId uuid.UUID) error {
+	if complaintId == uuid.Nil {
 		return &erros.NullValueError{}
 	}
-	f.complaintID = complaintID
+	f.complaintId = complaintId
 	return nil
 }
 
@@ -351,8 +351,8 @@ func (f *Feedback) setReplyReviewSet(replyReview mapset.Set[*ReplyReview]) error
 	return nil
 }
 
-func (f Feedback) ComplaintID() uuid.UUID {
-	return f.complaintID
+func (f Feedback) ComplaintId() uuid.UUID {
+	return f.complaintId
 }
 
 func (f *Feedback) DeleteComment(colorKey string) (uuid.UUID, error) {

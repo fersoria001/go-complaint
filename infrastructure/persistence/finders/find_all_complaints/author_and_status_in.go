@@ -1,31 +1,29 @@
 package find_all_complaints
 
+import "github.com/google/uuid"
+
 type AuthorAndStatusIn struct {
 	query string
 	args  []interface{}
 }
 
-func ByAuthorAndStatusIn(authorID string, status []string) *AuthorAndStatusIn {
+func ByAuthorAndStatusIn(authorId uuid.UUID, status []string) *AuthorAndStatusIn {
 	return &AuthorAndStatusIn{
 		query: string(`
 	SELECT
 	id,
 	author_id,
 	receiver_id,
-	complaint_status,
+	status,
 	title,
-	complaint_description,
-	body,
-	rating_rate,
-	rating_comment,
+	description,
 	created_at,
 	updated_at
-	FROM 
-	complaint
-	WHERE author_id = $1 AND
-	complaint_status = any ($2)
+	FROM complaint WHERE author_id = $1
+	AND status = any($2)
+	ORDER BY CREATED_AT
 	`),
-		args: []interface{}{authorID, status},
+		args: []interface{}{authorId, status},
 	}
 }
 

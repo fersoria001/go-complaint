@@ -1,12 +1,14 @@
 package employeefindall
 
-type ByEnterpriseID struct {
+import "github.com/google/uuid"
+
+type EnterpriseId struct {
 	query string
 	args  []interface{}
 }
 
-func NewByEnterpriseID(enterpriseID string) *ByEnterpriseID {
-	return &ByEnterpriseID{
+func ByEnterpriseId(enterpriseId uuid.UUID) *EnterpriseId {
+	return &EnterpriseId{
 		query: string(
 			`SELECT 
 		employee_id,
@@ -19,14 +21,14 @@ func NewByEnterpriseID(enterpriseID string) *ByEnterpriseID {
 		FROM employee
 		WHERE enterprise_id = $1`,
 		),
-		args: []interface{}{enterpriseID},
+		args: []interface{}{enterpriseId},
 	}
 }
 
-func (e *ByEnterpriseID) Query() string {
+func (e *EnterpriseId) Query() string {
 	return e.query
 }
 
-func (e *ByEnterpriseID) Args() []interface{} {
+func (e *EnterpriseId) Args() []interface{} {
 	return e.args
 }

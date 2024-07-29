@@ -8,8 +8,6 @@ import (
 )
 
 // Package domain
-// This should rollback to EventPublisher with simple subscribers
-// as this implementation is from an InMemoryQueueAdapter
 type DomainEventPublisher struct {
 	subscribers []DomainEventSubscriber
 	publishing  bool

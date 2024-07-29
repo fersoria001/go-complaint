@@ -9,16 +9,16 @@ import (
 )
 
 type ComplaintClosed struct {
-	complaintID uuid.UUID
-	authorID    string
-	triggeredBy string
+	complaintId uuid.UUID
+	authorId    uuid.UUID
+	triggeredBy uuid.UUID
 	occurredOn  time.Time
 }
 
-func NewComplaintClosed(complaintID uuid.UUID, authorID, triggeredBy string) *ComplaintClosed {
+func NewComplaintClosed(complaintId, authorId uuid.UUID, triggeredBy uuid.UUID) *ComplaintClosed {
 	return &ComplaintClosed{
-		complaintID: complaintID,
-		authorID:    authorID,
+		complaintId: complaintId,
+		authorId:    authorId,
 		triggeredBy: triggeredBy,
 		occurredOn:  time.Now(),
 	}
@@ -28,27 +28,27 @@ func (ecc ComplaintClosed) OccurredOn() time.Time {
 	return ecc.occurredOn
 }
 
-func (ecc ComplaintClosed) ComplaintID() uuid.UUID {
-	return ecc.complaintID
+func (ecc ComplaintClosed) ComplaintId() uuid.UUID {
+	return ecc.complaintId
 }
 
-func (ecc ComplaintClosed) AuthorID() string {
-	return ecc.authorID
+func (ecc ComplaintClosed) AuthorId() uuid.UUID {
+	return ecc.authorId
 }
 
-func (ecc ComplaintClosed) TriggeredBy() string {
+func (ecc ComplaintClosed) TriggeredBy() uuid.UUID {
 	return ecc.triggeredBy
 }
 
 func (ecc *ComplaintClosed) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		ComplaintID string `json:"complaint_id"`
-		AuthorID    string `json:"author_id"`
-		TriggeredBy string `json:"triggered_by"`
-		OccurredOn  string `json:"occurred_on"`
+		ComplaintId uuid.UUID `json:"complaint_id"`
+		AuthorId    uuid.UUID `json:"author_id"`
+		TriggeredBy uuid.UUID `json:"triggered_by"`
+		OccurredOn  string    `json:"occurred_on"`
 	}{
-		ComplaintID: ecc.complaintID.String(),
-		AuthorID:    ecc.authorID,
+		ComplaintId: ecc.complaintId,
+		AuthorId:    ecc.authorId,
 		TriggeredBy: ecc.triggeredBy,
 		OccurredOn:  common.StringDate(ecc.occurredOn),
 	})
@@ -56,10 +56,10 @@ func (ecc *ComplaintClosed) MarshalJSON() ([]byte, error) {
 
 func (ecc *ComplaintClosed) UnmarshalJSON(data []byte) error {
 	aux := &struct {
-		ComplaintID string `json:"complaint_id"`
-		AuthorID    string `json:"author_id"`
-		TriggeredBy string `json:"triggered_by"`
-		OccurredOn  string `json:"occurred_on"`
+		ComplaintId uuid.UUID `json:"complaint_id"`
+		AuthorId    uuid.UUID `json:"author_id"`
+		TriggeredBy uuid.UUID `json:"triggered_by"`
+		OccurredOn  string    `json:"occurred_on"`
 	}{}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
@@ -68,12 +68,8 @@ func (ecc *ComplaintClosed) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	complaintID, err := uuid.Parse(aux.ComplaintID)
-	if err != nil {
-		return err
-	}
-	ecc.complaintID = complaintID
-	ecc.authorID = aux.AuthorID
+	ecc.complaintId = aux.ComplaintId
+	ecc.authorId = aux.AuthorId
 	ecc.triggeredBy = aux.TriggeredBy
 	ecc.occurredOn = occurredOn
 	return nil

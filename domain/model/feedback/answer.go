@@ -16,7 +16,7 @@ import (
 type Answer struct {
 	id           uuid.UUID
 	feedbackID   uuid.UUID
-	senderID     string
+	senderId     uuid.UUID
 	senderIMG    string
 	senderName   string
 	body         string
@@ -40,7 +40,7 @@ func (a *Answer) MarkAsRead() error {
 func NewAnswer(
 	id uuid.UUID,
 	feedbackID uuid.UUID,
-	senderID string,
+	senderID uuid.UUID,
 	senderIMG string,
 	senderName string,
 	body string,
@@ -109,11 +109,11 @@ func (a *Answer) setFeedbackID(feedbackID uuid.UUID) error {
 	return nil
 }
 
-func (a *Answer) setSenderID(senderID string) error {
-	if senderID == "" {
+func (a *Answer) setSenderID(senderId uuid.UUID) error {
+	if senderId == uuid.Nil {
 		return &erros.NullValueError{}
 	}
-	a.senderID = senderID
+	a.senderId = senderId
 	return nil
 }
 
@@ -174,23 +174,23 @@ func (a Answer) IsEnterprise() bool {
 	return a.isEnterprise
 }
 
-func (a Answer) EnterpriseID() string {
+func (a Answer) EnterpriseId() string {
 	return a.enterpriseID
 }
 
-func (a Answer) ID() uuid.UUID {
+func (a Answer) Id() uuid.UUID {
 	return a.id
 }
 
-func (a Answer) FeedbackID() uuid.UUID {
+func (a Answer) FeedbackId() uuid.UUID {
 	return a.feedbackID
 }
 
-func (a Answer) SenderID() string {
-	return a.senderID
+func (a Answer) SenderId() uuid.UUID {
+	return a.senderId
 }
 
-func (a Answer) SenderIMG() string {
+func (a Answer) SenderImg() string {
 	return a.senderIMG
 }
 

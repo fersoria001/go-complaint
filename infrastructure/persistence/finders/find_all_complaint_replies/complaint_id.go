@@ -15,15 +15,11 @@ func ByComplaintID(complaintID uuid.UUID) *ComplaintID {
 	complaint_id,
 	author_id,
 	body,
-	read_status,
+	is_read,
 	read_at,
 	created_at,
-	updated_at,
-	is_enterprise,
-	enterprise_id
-	FROM
-	complaint_replies
-	WHERE complaint_id = $1
+	updated_at
+	FROM complaint_replies WHERE complaint_id = $1
 	`),
 		args: []interface{}{complaintID},
 	}

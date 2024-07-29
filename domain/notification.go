@@ -1,8 +1,7 @@
 package domain
 
 import (
-	"encoding/json"
-	"strconv"
+	"go-complaint/domain/model/recipient"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,8 +9,8 @@ import (
 
 type Notification struct {
 	id         uuid.UUID
-	ownerID    string
-	thumbnail  string
+	owner      recipient.Recipient
+	sender     recipient.Recipient
 	title      string
 	content    string
 	link       string
@@ -21,27 +20,24 @@ type Notification struct {
 
 func NewNotification(
 	id uuid.UUID,
-	ownerID string,
-	thumbnail string,
+	owner,
+	sender recipient.Recipient,
 	title string,
 	content string,
 	link string,
 	occurredOn time.Time,
 	seen bool,
-) (*Notification, error) {
-	if thumbnail == "" {
-		return nil, ErrThumbnailIsRequired
-	}
+) *Notification {
 	return &Notification{
 		id:         id,
-		ownerID:    ownerID,
-		thumbnail:  thumbnail,
+		owner:      owner,
+		sender:     sender,
 		title:      title,
 		content:    content,
 		link:       link,
 		occurredOn: occurredOn,
 		seen:       seen,
-	}, nil
+	}
 }
 func (notification *Notification) MarkAsRead() {
 	notification.seen = true
@@ -50,12 +46,12 @@ func (notification *Notification) ID() uuid.UUID {
 	return notification.id
 }
 
-func (notification *Notification) OwnerID() string {
-	return notification.ownerID
+func (notification *Notification) Owner() recipient.Recipient {
+	return notification.owner
 }
 
-func (notification *Notification) Thumbnail() string {
-	return notification.thumbnail
+func (notification *Notification) Sender() recipient.Recipient {
+	return notification.sender
 }
 
 func (notification *Notification) Title() string {
@@ -76,58 +72,4 @@ func (notification *Notification) OccurredOn() time.Time {
 
 func (notification *Notification) Seen() bool {
 	return notification.seen
-}
-
-func (notification *Notification) MarshalJSON() ([]byte, error) {
-	milliSeconds := notification.occurredOn.UnixMilli()
-	milliSecondsString := strconv.FormatInt(milliSeconds, 10)
-	return json.Marshal(&struct {
-		ID         uuid.UUID `json:"id"`
-		OwnerID    string    `json:"owner_id"`
-		Thumbnail  string    `json:"thumbnail"`
-		Title      string    `json:"title"`
-		Content    string    `json:"content"`
-		Link       string    `json:"link"`
-		OccurredOn string    `json:"occurred_on"`
-		Seen       bool      `json:"seen"`
-	}{
-		ID:         notification.id,
-		OwnerID:    notification.ownerID,
-		Thumbnail:  notification.thumbnail,
-		Title:      notification.title,
-		Content:    notification.content,
-		Link:       notification.link,
-		OccurredOn: milliSecondsString,
-		Seen:       notification.seen,
-	})
-}
-
-func (notification *Notification) UnmarshalJSON(data []byte) error {
-	aux := &struct {
-		ID         uuid.UUID `json:"id"`
-		OwnerID    string    `json:"owner_id"`
-		Thumbnail  string    `json:"thumbnail"`
-		Title      string    `json:"title"`
-		Content    string    `json:"content"`
-		Link       string    `json:"link"`
-		OccurredOn string    `json:"occurred_on"`
-		Seen       bool      `json:"seen"`
-	}{}
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-	var err error
-	integer, err := strconv.ParseInt(aux.OccurredOn, 10, 64)
-	if err != nil {
-		return err
-	}
-	notification.id = aux.ID
-	notification.occurredOn = time.UnixMilli(integer)
-	notification.ownerID = aux.OwnerID
-	notification.thumbnail = aux.Thumbnail
-	notification.title = aux.Title
-	notification.content = aux.Content
-	notification.link = aux.Link
-	notification.seen = aux.Seen
-	return nil
 }

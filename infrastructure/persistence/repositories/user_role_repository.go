@@ -6,6 +6,7 @@ import (
 	"go-complaint/infrastructure/persistence/datasource"
 
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -18,17 +19,17 @@ func NewUserRoleRepository(schema datasource.Schema) UserRoleRepository {
 }
 func (uur UserRoleRepository) RemoveAll(
 	ctx context.Context,
-	userID string,
+	userId uuid.UUID,
 ) error {
 	conn, err := uur.schema.Acquire(ctx)
 	if err != nil {
 		return err
 	}
 	deleteCommand := string(`
-	DELETE FROM user_role
+	DELETE FROM user_roles
 	WHERE user_id = $1
 	  `)
-	_, err = conn.Exec(ctx, deleteCommand, userID)
+	_, err = conn.Exec(ctx, deleteCommand, userId)
 	if err != nil {
 		return err
 	}
@@ -44,7 +45,7 @@ func (uur UserRoleRepository) SaveAll(
 		return err
 	}
 	insertCommand := string(`
-	INSERT INTO user_role
+	INSERT INTO user_roles
 	(user_id, role_id, enterprise_id) VALUES ($1, $2, $3)`)
 	tx, err := conn.Begin(ctx)
 	if err != nil {
@@ -54,9 +55,9 @@ func (uur UserRoleRepository) SaveAll(
 		_, err = tx.Exec(
 			ctx,
 			insertCommand,
-			userRole.UserID(),
+			userRole.UserId(),
 			userRole.GetRole().String(),
-			userRole.EnterpriseID(),
+			userRole.EnterpriseId(),
 		)
 		if err != nil {
 			tx.Rollback(ctx)
@@ -118,22 +119,22 @@ func (uur UserRoleRepository) load(
 	row pgx.Row,
 ) (*identity.UserRole, error) {
 	var (
-		userID       string
-		roleID       string
-		enterpriseID string
+		userId       uuid.UUID
+		roleId       string
+		enterpriseId uuid.UUID
 	)
 	err := row.Scan(
-		&userID,
-		&roleID,
-		&enterpriseID,
+		&userId,
+		&roleId,
+		&enterpriseId,
 	)
 	if err != nil {
 		return nil, err
 	}
-	role, err := identity.NewRole(roleID)
+	role, err := identity.NewRole(roleId)
 	if err != nil {
 		return nil, err
 	}
-	userRole := identity.NewUserRole(role, userID, enterpriseID)
+	userRole := identity.NewUserRole(role, userId, enterpriseId)
 	return userRole, nil
 }

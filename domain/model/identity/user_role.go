@@ -1,20 +1,22 @@
 package identity
 
+import "github.com/google/uuid"
+
 type UserRole struct {
-	userID       string
-	enterpriseID string
+	userId       uuid.UUID
+	enterpriseId uuid.UUID
 	Role
 }
 
 func NewUserRole(
 	role Role,
-	userID string,
-	enterpriseID string,
+	userId,
+	enterpriseId uuid.UUID,
 ) *UserRole {
 	return &UserRole{
 		Role:         role,
-		userID:       userID,
-		enterpriseID: enterpriseID,
+		userId:       userId,
+		enterpriseId: enterpriseId,
 	}
 }
 
@@ -22,12 +24,12 @@ func (ur *UserRole) SetRole(role RolesEnum) {
 	ur.role = role
 }
 
-func (ur UserRole) UserID() string {
-	return ur.userID
+func (ur UserRole) UserId() uuid.UUID {
+	return ur.userId
 }
 
-func (ur UserRole) EnterpriseID() string {
-	return ur.enterpriseID
+func (ur UserRole) EnterpriseId() uuid.UUID {
+	return ur.enterpriseId
 }
 
 func (ur UserRole) Equals(obj any) bool {
@@ -45,10 +47,10 @@ func (ur UserRole) Equals(obj any) bool {
 	if ur.GetRole() != other.GetRole() {
 		return false
 	}
-	if ur.UserID() != other.UserID() {
+	if ur.UserId() != other.UserId() {
 		return false
 	}
-	if ur.EnterpriseID() != other.EnterpriseID() {
+	if ur.EnterpriseId() != other.EnterpriseId() {
 		return false
 	}
 	return true

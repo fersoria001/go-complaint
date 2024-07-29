@@ -15,7 +15,7 @@ implements domain.DomainEvent interface
 type FeedbackReplied struct {
 	feedbackID  uuid.UUID
 	complaintID uuid.UUID
-	senderID    string
+	senderID    uuid.UUID
 	answerID    uuid.UUID
 	occurredOn  time.Time
 }
@@ -23,7 +23,7 @@ type FeedbackReplied struct {
 func NewFeedbackReplied(
 	feedbackID uuid.UUID,
 	complaintID uuid.UUID,
-	senderID string,
+	senderID uuid.UUID,
 	answerID uuid.UUID,
 ) *FeedbackReplied {
 	return &FeedbackReplied{
@@ -41,46 +41,36 @@ func (f *FeedbackReplied) OccurredOn() time.Time {
 
 func (f *FeedbackReplied) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		FeedbackID  string `json:"feedback_id"`
-		ComplaintID string `json:"complaint_id"`
-		SenderID    string `json:"reviewed_id"`
-		AnswerID    string `json:"answer_id"`
-		OccurredOn  string `json:"occurred_on"`
+		FeedbackID  uuid.UUID `json:"feedback_id"`
+		ComplaintID uuid.UUID `json:"complaint_id"`
+		SenderID    uuid.UUID `json:"reviewed_id"`
+		AnswerID    uuid.UUID `json:"answer_id"`
+		OccurredOn  string    `json:"occurred_on"`
 	}{
-		FeedbackID:  f.feedbackID.String(),
-		ComplaintID: f.complaintID.String(),
+		FeedbackID:  f.feedbackID,
+		ComplaintID: f.complaintID,
 		SenderID:    f.senderID,
-		AnswerID:    f.answerID.String(),
+		AnswerID:    f.answerID,
 		OccurredOn:  common.StringDate(f.occurredOn),
 	})
 }
 
 func (f *FeedbackReplied) UnmarshalJSON(data []byte) error {
 	aux := struct {
-		FeedbackID  string `json:"feedback_id"`
-		ComplaintID string `json:"complaint_id"`
-		SenderID    string `json:"reviewed_id"`
-		AnswerID    string `json:"answer_id"`
-		OccurredOn  string `json:"occurred_on"`
+		FeedbackID  uuid.UUID `json:"feedback_id"`
+		ComplaintID uuid.UUID `json:"complaint_id"`
+		SenderID    uuid.UUID `json:"reviewed_id"`
+		AnswerID    uuid.UUID `json:"answer_id"`
+		OccurredOn  string    `json:"occurred_on"`
 	}{}
 	err := json.Unmarshal(data, &aux)
 	if err != nil {
 		return err
 	}
-	f.feedbackID, err = uuid.Parse(aux.FeedbackID)
-	if err != nil {
-		return err
-	}
-	f.complaintID, err = uuid.Parse(aux.ComplaintID)
-	if err != nil {
-		return err
-	}
-
+	f.feedbackID = aux.FeedbackID
+	f.complaintID = aux.ComplaintID
 	f.senderID = aux.SenderID
-	f.answerID, err = uuid.Parse(aux.AnswerID)
-	if err != nil {
-		return err
-	}
+	f.answerID = aux.AnswerID
 	f.occurredOn, err = common.ParseDate(aux.OccurredOn)
 	if err != nil {
 		return err
