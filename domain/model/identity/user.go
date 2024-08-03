@@ -7,6 +7,7 @@ import (
 	"go-complaint/erros"
 	"net/mail"
 	"regexp"
+	"slices"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
@@ -210,11 +211,14 @@ func (u *User) RemoveUserRole(
 	role RolesEnum,
 	enterpriseId uuid.UUID) error {
 	publisher := domain.DomainEventPublisherInstance()
-	target, err := u.findUserRole(role, enterpriseId)
-	if err != nil {
-		return err
-	}
-	u.userRoles.Remove(target)
+	s := u.userRoles.ToSlice()
+	s = slices.DeleteFunc(s, func(e *UserRole) bool {
+		if e.enterpriseId == enterpriseId && e.Role.role == role {
+			return true
+		}
+		return false
+	})
+	u.userRoles = mapset.NewSet(s...)
 	publisher.Publish(
 		ctx,
 		NewRoleRemoved(u.Id(), enterpriseId, role.String()))
@@ -227,17 +231,6 @@ func (u User) UserRoles() mapset.Set[UserRole] {
 		value.Add(*userRole)
 	}
 	return value
-}
-
-func (u *User) findUserRole(
-	role RolesEnum,
-	enterpriseId uuid.UUID) (*UserRole, error) {
-	for userRole := range u.userRoles.Iter() {
-		if userRole.GetRole().String() == role.String() && userRole.EnterpriseId() == enterpriseId {
-			return userRole, nil
-		}
-	}
-	return nil, ErrUserRoleNotFound
 }
 
 func (u *User) AddRole(

@@ -52,7 +52,7 @@ func (imc *InMemoryCache) ClearPublisherMap() {
 	imc.cache.Swap(PUBLISHER_MAP, publisherMap)
 }
 
-func (imc *InMemoryCache) Set(key string, value interface{}) {
+func (imc *InMemoryCache) Set(key any, value interface{}) {
 	imc.cache.Store(key, value)
 }
 

@@ -15,14 +15,11 @@ func ByAnyIDs(ids []uuid.UUID) *IDs {
 	complaint_id,
 	author_id,
 	body,
-	read_status,
+	is_read,
 	read_at,
 	created_at,
-	updated_at,
-	is_enterprise,
-	enterprise_id
-	FROM
-	complaint_replies
+	updated_at
+	FROM complaint_replies
 	WHERE id = any($1)
 	`),
 		args: []interface{}{ids},

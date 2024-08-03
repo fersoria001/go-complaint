@@ -4,6 +4,7 @@ import (
 	"context"
 	"go-complaint/domain"
 	"go-complaint/domain/model/complaint"
+	"go-complaint/infrastructure/cache"
 	"go-complaint/infrastructure/persistence/repositories"
 	"reflect"
 
@@ -72,6 +73,7 @@ func (c ReplyComplaintCommand) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	cache.InMemoryInstance().Set(c.ComplaintId, newReplyId.String())
 	err = complaintRepository.Update(ctx, dbC)
 	if err != nil {
 		return err

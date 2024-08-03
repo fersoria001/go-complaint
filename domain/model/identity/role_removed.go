@@ -28,6 +28,15 @@ func NewRoleRemoved(
 	}
 }
 
+func (rr *RoleRemoved) UserId() uuid.UUID {
+	return rr.userId
+}
+func (rr *RoleRemoved) EnterpriseId() uuid.UUID {
+	return rr.enterpriseId
+}
+func (rr *RoleRemoved) RoleId() string {
+	return rr.roleID
+}
 func (rr *RoleRemoved) OccurredOn() time.Time {
 	return rr.occurredOn
 }

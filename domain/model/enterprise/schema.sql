@@ -16,8 +16,8 @@ CREATE TABLE enterprise(
 )
 CREATE TABLE employee(
     employee_id UUID PRIMARY KEY NOT NULL,
-    enterprise_name VARCHAR(120) NOT NULL,
-	user_id VARCHAR(255) NOT NULL,
+    enterprise_id uuid NOT NULL,
+	user_id uuid NOT NULL,
     hiring_date VARCHAR(255) NOT NULL,
     approved_hiring BOOLEAN NOT NULL,
     approved_hiring_at VARCHAR(255) NOT NULL,

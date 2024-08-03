@@ -5,26 +5,26 @@ import (
 	"fmt"
 	"go-complaint/domain"
 	"go-complaint/domain/model/enterprise"
-	"go-complaint/infrastructure/persistence/finders/find_enterprise"
 	"go-complaint/infrastructure/persistence/repositories"
 	"reflect"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type InviteToProjectCommand struct {
-	EnterpriseName string `json:"enterpriseName"`
-	Role           string `json:"role"`
-	ProposeTo      string `json:"proposeTo"`
-	ProposedBy     string `json:"proposedBy"`
+	EnterpriseId string `json:"enterpriseName"`
+	Role         string `json:"role"`
+	ProposeTo    string `json:"proposeTo"`
+	ProposedBy   string `json:"proposedBy"`
 }
 
-func NewInviteToProjectCommand(enterpriseName, role, proposeTo, proposedBy string) *InviteToProjectCommand {
+func NewInviteToProjectCommand(enterpriseId, role, proposeTo, proposedBy string) *InviteToProjectCommand {
 	return &InviteToProjectCommand{
-		EnterpriseName: enterpriseName,
-		Role:           role,
-		ProposeTo:      proposeTo,
-		ProposedBy:     proposedBy,
+		EnterpriseId: enterpriseId,
+		Role:         role,
+		ProposeTo:    proposeTo,
+		ProposedBy:   proposedBy,
 	}
 }
 
@@ -38,7 +38,11 @@ func (c InviteToProjectCommand) Execute(ctx context.Context) error {
 	if !ok {
 		return ErrWrongTypeAssertion
 	}
-	dbE, err := r.Find(ctx, find_enterprise.ByName(c.EnterpriseName))
+	enterpriseId, err := uuid.Parse(c.EnterpriseId)
+	if err != nil {
+		return err
+	}
+	dbE, err := r.Get(ctx, enterpriseId)
 	if err != nil {
 		return err
 	}
@@ -50,23 +54,26 @@ func (c InviteToProjectCommand) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	for _, v := range dbE.Employees().ToSlice() {
-		if v.User.Id() == proposedToId {
-			return fmt.Errorf("user's already hired")
-		}
+	recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	proposedBy, err := recipientRepository.Get(ctx, proposedById)
+	if err != nil {
+		return err
+	}
+	enterpriseRecipient, err := recipientRepository.Get(ctx, dbE.Id())
+	if err != nil {
+		return err
+	}
+	proposedTo, err := recipientRepository.Get(ctx, proposedToId)
+	if err != nil {
+		return err
 	}
 	domain.DomainEventPublisherInstance().Subscribe(
 		domain.DomainEventSubscriber{
 			HandleEvent: func(event domain.DomainEvent) error {
 				if e, ok := event.(*enterprise.HiringInvitationSent); ok {
-					recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
-					if !ok {
-						return ErrWrongTypeAssertion
-					}
-					proposedBy, err := recipientRepository.Get(ctx, proposedById)
-					if err != nil {
-						return err
-					}
 					n := NewSendNotificationCommand(
 						e.ProposedTo().String(),
 						e.EnterpriseId().String(),
@@ -74,6 +81,29 @@ func (c InviteToProjectCommand) Execute(ctx context.Context) error {
 						fmt.Sprintf("%s has invited you to join %s project", proposedBy.SubjectName(), dbE.Name()),
 						"/hiring-invitations")
 					return n.Execute(ctx)
+				}
+				return nil
+			},
+			SubscribedToEventType: func() reflect.Type {
+				return reflect.TypeOf(&enterprise.HiringInvitationSent{})
+			},
+		},
+	)
+	domain.DomainEventPublisherInstance().Subscribe(
+		domain.DomainEventSubscriber{
+			HandleEvent: func(event domain.DomainEvent) error {
+				if _, ok := event.(*enterprise.HiringInvitationSent); ok {
+					hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
+					if !ok {
+						return ErrWrongTypeAssertion
+					}
+					date := time.Now()
+					newHp := enterprise.NewHiringProccess(uuid.New(), *enterpriseRecipient, *proposedTo,
+						role, enterprise.PENDING, "", *proposedBy, date, date, *proposedBy)
+					err := hiringProccessRepository.Save(ctx, *newHp)
+					if err != nil {
+						return err
+					}
 				}
 				return nil
 			},

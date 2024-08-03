@@ -90,6 +90,30 @@ func (fr FeedbackRepository) Update(
 	return nil
 }
 
+func (fr FeedbackRepository) Remove(ctx context.Context, id uuid.UUID) error {
+	conn, err := fr.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	feedbackReplyReviewRepository := NewFeedbackReplyReviewRepository(fr.schema)
+	err = feedbackReplyReviewRepository.DeleteAll(ctx, id)
+	if err != nil {
+		return err
+	}
+	feedbackAnswerRepository := NewFeedbackAnswerRepository(fr.schema)
+	err = feedbackAnswerRepository.DeleteAll(ctx, id)
+	if err != nil {
+		return err
+	}
+	deleteCommand := string(`DELETE FROM FEEDBACK WHERE ID = $1`)
+	_, err = conn.Exec(ctx, deleteCommand, &id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (fr FeedbackRepository) Save(
 	ctx context.Context,
 	f *feedback.Feedback,
@@ -168,6 +192,25 @@ func (fr FeedbackRepository) Count(
 	defer conn.Release()
 	return count, nil
 }
+
+func (fr FeedbackRepository) Find(
+	ctx context.Context,
+	src StatementSource,
+) (*feedback.Feedback, error) {
+	conn, err := fr.schema.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
+	feedback, err := fr.load(ctx, row)
+	if err != nil {
+
+		return nil, err
+	}
+	defer conn.Release()
+	return feedback, nil
+}
+
 func (fr FeedbackRepository) Get(
 	ctx context.Context,
 	feedbackID uuid.UUID,

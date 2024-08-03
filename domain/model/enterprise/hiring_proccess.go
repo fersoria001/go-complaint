@@ -1,6 +1,8 @@
 package enterprise
 
 import (
+	"context"
+	"go-complaint/domain"
 	"go-complaint/domain/model/recipient"
 	"time"
 
@@ -112,10 +114,16 @@ func NewHiringProccess(
 	}
 }
 
-func (h *HiringProccess) ChangeStatus(status HiringProccessStatus, updatedBy recipient.Recipient) {
+func (h *HiringProccess) ChangeStatus(ctx context.Context, status HiringProccessStatus, updatedBy recipient.Recipient) error {
 	h.status = status
 	h.updatedBy = updatedBy
 	h.lastUpdate = time.Now()
+	pub := domain.DomainEventPublisherInstance()
+	return pub.Publish(ctx, NewHiringProccessStatusChanged(
+		h.id,
+		h.status.String(),
+		h.updatedBy.Id(),
+	))
 }
 
 func (h *HiringProccess) WriteAReason(reason string, updatedBy recipient.Recipient) {

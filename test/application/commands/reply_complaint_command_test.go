@@ -5,6 +5,7 @@ import (
 	"go-complaint/application/commands"
 	"go-complaint/domain"
 	"go-complaint/domain/model/complaint"
+	"go-complaint/infrastructure/cache"
 	"go-complaint/infrastructure/persistence/finders/find_recipient"
 	"go-complaint/infrastructure/persistence/finders/find_user"
 	"go-complaint/infrastructure/persistence/repositories"
@@ -111,6 +112,9 @@ func TestReplyComplaintCommand_Execute(t *testing.T) {
 				c3 := commands.NewReplyComplaintCommand(author.Id().String(), complaintId.String(), replyMock.Body)
 				err := c3.Execute(ctx)
 				assert.Nil(t, err)
+				replyId, ok := cache.InMemoryInstance().Get(complaintId.String())
+				assert.True(t, ok)
+				assert.NotNil(t, replyId)
 			}
 		}
 		dbC, err := complaintRepository.Get(ctx, complaintId)

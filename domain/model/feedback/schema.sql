@@ -1,15 +1,19 @@
 DROP SCHEMA IF EXISTS feedback CASCADE;
 CREATE TABLE feedback(
     ID UUID PRIMARY KEY,
-    ENTERPRISE_ID VARCHAR(255) NOT NULL,
+    ENTERPRISE_ID UUID NOT NULL,
     COMPLAINT_ID UUID NOT NULL,
-    REVIEWED_ID VARCHAR(255) NOT NULL,
 )
 CREATE TABLE feedback_reply_review(
-    ID UUID PRIMARY KEY,
-    FEEDBACK_ID UUID NOT NULL,
-    COLOR VARCHAR(255) NOT NULL,
+    id uuid NOT NULL,
+    feedback_id uuid NOT NULL,
+    review_id uuid NOT NULL,
+    color character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    reviewer_id character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    created_at character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT feedback_reply_review_pkey PRIMARY KEY (id)
 )
+
 CREATE TABLE feedback_reviews(
     ID UUID PRIMARY KEY,
     REVIEWER_ID UUID NOT NULL,

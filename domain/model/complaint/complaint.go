@@ -51,9 +51,9 @@ func (c *Complaint) SendToHistory(
 	ctx context.Context,
 	closeRequesterID uuid.UUID,
 ) error {
-	if c.status != CLOSED {
-		return &erros.ValidationError{
-			Expected: "a complaint must be closed to be sent to history",
+	if c.status < IN_REVIEW {
+		return &ValidationError{
+			Message: "a complaint must be in review or  closed to be sent to history",
 		}
 	}
 	err := c.setStatus(IN_HISTORY)
@@ -432,9 +432,9 @@ func (c *Complaint) setID(id uuid.UUID) error {
 }
 
 func (c *Complaint) setStatus(status Status) error {
-	if status < 0 || status > 5 {
-		return &erros.ValidationError{
-			Expected: "a value between 0 and 5",
+	if status < WRITING || status > IN_HISTORY {
+		return &ValidationError{
+			Message: "unknown status at complaint set status",
 		}
 	}
 	c.status = status

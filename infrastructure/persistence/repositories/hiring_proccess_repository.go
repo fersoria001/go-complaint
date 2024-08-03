@@ -133,6 +133,15 @@ func (r HiringProccessRepository) loadAll(ctx context.Context, rows pgx.Rows) ([
 	}
 	return result, nil
 }
+func (r HiringProccessRepository) Find(ctx context.Context, src StatementSource) (*enterprise.HiringProccess, error) {
+	conn, err := r.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return nil, err
+	}
+	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
+	return r.load(ctx, row)
+}
 
 func (r HiringProccessRepository) Get(ctx context.Context, id uuid.UUID) (*enterprise.HiringProccess, error) {
 	conn, err := r.schema.Acquire(ctx)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"go-complaint/domain/model/enterprise"
 	"go-complaint/domain/model/recipient"
+	"go-complaint/infrastructure/persistence/finders/find_all_hiring_proccesses"
 	"go-complaint/infrastructure/persistence/repositories"
 	"go-complaint/test/mock_data"
 	"testing"
@@ -168,6 +169,144 @@ func TestHiringProccessRepository_Get(t *testing.T) {
 	})
 }
 
+func TestHiringProccessRepository_FindAll_ByUserId(t *testing.T) {
+	TestHiringProccessRepository_Setup(t)
+	ctx := context.Background()
+	reg := repositories.MapperRegistryInstance()
+	recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
+	assert.True(t, ok)
+	hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
+	assert.True(t, ok)
+	for _, v := range mock_data.NewHiringProccesses {
+		e := recipient.NewRecipient(
+			v.Enterprise.Id,
+			v.Enterprise.SubjectName,
+			v.Enterprise.SubjectThumbnail,
+			v.Enterprise.SubjectThumbnail,
+			v.Enterprise.IsEnterprise,
+		)
+		user := recipient.NewRecipient(
+			v.User.Id,
+			v.User.SubjectName,
+			v.User.SubjectThumbnail,
+			v.User.SubjectThumbnail,
+			v.User.IsEnterprise,
+		)
+		emitedBy := recipient.NewRecipient(
+			v.EmitedBy.Id,
+			v.EmitedBy.SubjectName,
+			v.EmitedBy.SubjectThumbnail,
+			v.EmitedBy.SubjectThumbnail,
+			v.EmitedBy.IsEnterprise,
+		)
+		updatedBy := recipient.NewRecipient(
+			v.UpdatedBy.Id,
+			v.UpdatedBy.SubjectName,
+			v.UpdatedBy.SubjectThumbnail,
+			v.UpdatedBy.SubjectThumbnail,
+			v.UpdatedBy.IsEnterprise,
+		)
+		h := enterprise.NewHiringProccess(
+			v.Id,
+			*e,
+			*user,
+			v.Role,
+			v.Status,
+			v.Reason,
+			*emitedBy,
+			v.OccurredOn,
+			v.LastUpdate,
+			*updatedBy,
+		)
+		err := hiringProccessRepository.Save(ctx, *h)
+		assert.Nil(t, err)
+		dbH, err := hiringProccessRepository.FindAll(ctx, find_all_hiring_proccesses.ByUserId(user.Id()))
+		assert.Nil(t, err)
+		assert.NotNil(t, dbH)
+		assert.GreaterOrEqual(t, len(dbH), 1)
+	}
+
+	t.Cleanup(func() {
+		for _, v := range mock_data.NewRecipients {
+			err := recipientRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
+		for _, v := range mock_data.NewHiringProccesses {
+			err := hiringProccessRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
+	})
+}
+
+func TestHiringProccessRepository_FindAll_ByEnterpriseId(t *testing.T) {
+	TestHiringProccessRepository_Setup(t)
+	ctx := context.Background()
+	reg := repositories.MapperRegistryInstance()
+	recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
+	assert.True(t, ok)
+	hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
+	assert.True(t, ok)
+	for _, v := range mock_data.NewHiringProccesses {
+		e := recipient.NewRecipient(
+			v.Enterprise.Id,
+			v.Enterprise.SubjectName,
+			v.Enterprise.SubjectThumbnail,
+			v.Enterprise.SubjectThumbnail,
+			v.Enterprise.IsEnterprise,
+		)
+		user := recipient.NewRecipient(
+			v.User.Id,
+			v.User.SubjectName,
+			v.User.SubjectThumbnail,
+			v.User.SubjectThumbnail,
+			v.User.IsEnterprise,
+		)
+		emitedBy := recipient.NewRecipient(
+			v.EmitedBy.Id,
+			v.EmitedBy.SubjectName,
+			v.EmitedBy.SubjectThumbnail,
+			v.EmitedBy.SubjectThumbnail,
+			v.EmitedBy.IsEnterprise,
+		)
+		updatedBy := recipient.NewRecipient(
+			v.UpdatedBy.Id,
+			v.UpdatedBy.SubjectName,
+			v.UpdatedBy.SubjectThumbnail,
+			v.UpdatedBy.SubjectThumbnail,
+			v.UpdatedBy.IsEnterprise,
+		)
+		h := enterprise.NewHiringProccess(
+			v.Id,
+			*e,
+			*user,
+			v.Role,
+			v.Status,
+			v.Reason,
+			*emitedBy,
+			v.OccurredOn,
+			v.LastUpdate,
+			*updatedBy,
+		)
+		err := hiringProccessRepository.Save(ctx, *h)
+		assert.Nil(t, err)
+		dbH, err := hiringProccessRepository.FindAll(ctx, find_all_hiring_proccesses.ByEnterpriseId(e.Id()))
+		assert.Nil(t, err)
+		assert.NotNil(t, dbH)
+		assert.GreaterOrEqual(t, len(dbH), 1)
+	}
+
+	t.Cleanup(func() {
+		for _, v := range mock_data.NewRecipients {
+			err := recipientRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
+		for _, v := range mock_data.NewHiringProccesses {
+			err := hiringProccessRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
+	})
+}
+
 func TestHiringProccessRepository_Update(t *testing.T) {
 	TestHiringProccessRepository_Setup(t)
 	ctx := context.Background()
@@ -229,7 +368,7 @@ func TestHiringProccessRepository_Update(t *testing.T) {
 			mock_data.NewRecipients["user"].SubjectThumbnail,
 			mock_data.NewRecipients["user"].IsEnterprise,
 		)
-		dbH.ChangeStatus(enterprise.ACCEPTED, *updUpdatedBy)
+		dbH.ChangeStatus(ctx, enterprise.ACCEPTED, *updUpdatedBy)
 		dbH.WriteAReason("this is a reason mostly used in rject, and this test", *updUpdatedBy)
 		err = hiringProccessRepository.Update(ctx, *dbH)
 		assert.Nil(t, err)

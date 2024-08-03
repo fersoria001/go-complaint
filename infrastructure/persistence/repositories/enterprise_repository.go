@@ -66,23 +66,20 @@ func (er EnterpriseRepository) Update(
 		`
 		UPDATE enterprise
 		SET 
-			owner_user_id = $2,
-			logo_img = $3,
-			banner_img = $4,
-			website = $5,
-			email = $6,
-			phone = $7,
-			industry_id = $8,
-			created_at = $9,
-			updated_at = $10,
-			foundation_date = $11
-		WHERE enterprise.enterprise_id = $1
+			logo_img = $2,
+			banner_img = $3,
+			website = $4,
+			email = $5,
+			phone = $6,
+			industry_id = $7,
+			created_at = $8,
+			updated_at = $9,
+			foundation_date = $10
+		WHERE enterprise_id = $1
 		`,
 	)
 	var (
 		id             uuid.UUID = updatedEnterprise.Id()
-		name           string    = updatedEnterprise.Name()
-		owner          uuid.UUID = updatedEnterprise.OwnerId()
 		logoIMG        string    = updatedEnterprise.LogoIMG()
 		bannerIMG      string    = updatedEnterprise.BannerIMG()
 		website        string    = updatedEnterprise.Website()
@@ -97,8 +94,6 @@ func (er EnterpriseRepository) Update(
 		ctx,
 		updateCommand,
 		&id,
-		&name,
-		&owner,
 		&logoIMG,
 		&bannerIMG,
 		&website,

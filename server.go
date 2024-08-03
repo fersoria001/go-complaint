@@ -5,6 +5,8 @@ import (
 	"go-complaint/application"
 	"go-complaint/graph"
 	"go-complaint/http_handlers"
+	"slices"
+
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +16,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
 )
 
@@ -39,12 +42,21 @@ func main() {
 	r.Use(AuthenticationMiddleware())
 	publisher := application.ApplicationMessagePublisherInstance()
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Publisher: publisher}}))
-	srv.AddTransport(&transport.Websocket{})
+	srv.AddTransport(&transport.Websocket{
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return slices.Contains(allowedOrigins, r.Host)
+			},
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		},
+	})
 
 	r.Handle("/", playground.Handler("GoComplaint GraphQL", "/graphql"))
 	r.Handle("/graphql", srv)
 	r.HandleFunc("/sign-in", http_handlers.SignInHandler)
 	r.HandleFunc("/confirm-sign-in", http_handlers.ConfirmSignInHandler)
+	r.HandleFunc("/chat", http_handlers.ServeWS)
 	err := http.ListenAndServe(port, r)
 	log.Println("server started")
 	if err != nil {

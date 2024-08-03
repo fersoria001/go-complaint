@@ -3,7 +3,6 @@ package mock_data
 import (
 	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/enterprise"
-	"go-complaint/domain/model/identity"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
@@ -30,6 +29,16 @@ type EnterpriseMock struct {
 	UpdatedAt      common.Date
 	FoundationDate common.Date
 	Employees      mapset.Set[*enterprise.Employee]
+}
+
+type EmployeeMock struct {
+	Id               uuid.UUID
+	EnterpriseId     uuid.UUID
+	User             *UserMock
+	HiringDate       common.Date
+	ApprovedHiring   bool
+	ApprovedHiringAt common.Date
+	Position         enterprise.Position
 }
 
 type RegisterEnterpriseCommandMock struct {
@@ -90,34 +99,22 @@ var NewEnterprises = map[string]*EnterpriseMock{
 	},
 }
 
+var NewEmployees = []*EmployeeMock{
+	{
+		Id:               NewUsers["valid"].Id,
+		EnterpriseId:     NewEnterprises["valid"].Id,
+		User:             NewUsers["valid"],
+		HiringDate:       CommonDate,
+		ApprovedHiring:   true,
+		ApprovedHiringAt: CommonDate,
+		Position:         enterprise.ASSISTANT,
+	},
+}
+
 var NewRegisterEnterprises = map[string]*RegisterEnterpriseCommandMock{
 	"valid": {
-		Id: uuid.MustParse("2ab7c1d3-f0e0-4d19-b12e-ac7821b4a302"),
-		Owner: &UserMock{
-			Id:           uuid.MustParse("0d3baf1e-421c-448b-a784-78b210f42e1b"),
-			UserName:     "bercho001@gmail.com",
-			Password:     "Password1",
-			RegisterDate: CommonDate,
-			Person: &PersonMock{
-				Id:         uuid.MustParse("0d3baf1e-421c-448b-a784-78b210f42e1b"),
-				Genre:      "male",
-				Pronoun:    "he",
-				ProfileImg: "/default.jpg",
-				Email:      "bercho001@gmail.com",
-				FirstName:  "Fernando Agustin",
-				LastName:   "Soria",
-				BirthDate:  CommonDate,
-				Phone:      "012345678910",
-				Address: common.NewAddress(
-					uuid.New(),
-					Country,
-					CountryState,
-					City,
-				),
-			},
-			IsConfirmed: true,
-			UserRoles:   mapset.NewSet[*identity.UserRole](),
-		},
+		Id:        uuid.MustParse("2ab7c1d3-f0e0-4d19-b12e-ac7821b4a302"),
+		Owner:     NewUsers["valid"],
 		Name:      "EnterpriseName",
 		LogoImg:   "/default.jpg",
 		BannerImg: "/default.jpg",

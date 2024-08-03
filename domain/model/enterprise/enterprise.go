@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"go-complaint/domain"
 	"go-complaint/domain/model/common"
-	"go-complaint/domain/model/identity"
 	"go-complaint/erros"
-	"log"
 	"net/mail"
 	"slices"
 	"strconv"
@@ -42,97 +40,69 @@ type Enterprise struct {
 
 func (e *Enterprise) PromoteEmployee(
 	ctx context.Context,
-	promotedBy string,
-	employeeId uuid.UUID,
-	newPosition Position) (*identity.User, error) {
+	promotedBy uuid.UUID,
+	employeeUsername string,
+	newPosition Position) error {
 	slice := e.employees.ToSlice()
-	index, ok := slices.BinarySearchFunc(slice, employeeId, func(i *Employee, j uuid.UUID) int {
-		if i.Id() == j {
+	index, ok := slices.BinarySearchFunc(slice,
+		employeeUsername, func(i *Employee, j string) int {
+			if i.GetUser().UserName() == j {
+				return 0
+			}
+			return -1
+		})
+	if !ok {
+		return fmt.Errorf("user with username %s is not an employee of %s",
+			employeeUsername,
+			e.name,
+		)
+	}
+	emp := slice[index]
+	if !emp.ApprovedHiring() {
+		return fmt.Errorf("employee needs to be approved first")
+	}
+	prevPosition := emp.position
+	err := emp.SetPosition(newPosition)
+	if err != nil {
+		return err
+	}
+	event := NewEmployeePromoted(e.id, promotedBy, employeeUsername, prevPosition, newPosition)
+	err = domain.DomainEventPublisherInstance().Publish(ctx, event)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (e *Enterprise) EmployeeLeave(ctx context.Context, employeeId uuid.UUID) error {
+	var (
+		publisher = domain.DomainEventPublisherInstance()
+		err       error
+	)
+	s := e.employees.ToSlice()
+	i, ok := slices.BinarySearchFunc(s, employeeId, func(e *Employee, id uuid.UUID) int {
+		if e.id == id {
 			return 0
 		}
 		return -1
 	})
 	if !ok {
-		return nil, fmt.Errorf("employee with id %s not found", employeeId)
+		return fmt.Errorf("employee not found")
 	}
-	emp := slice[index]
-	if !emp.ApprovedHiring() {
-		return nil, &erros.ValidationError{Expected: "employee needs to be approved first"}
-	}
-	err := emp.SetPosition(newPosition)
-	if err != nil {
-		return nil, err
-	}
-	user := emp.GetUser()
-	role, err := identity.ParseRole(newPosition.String())
-	if err != nil {
-		return nil, err
-	}
-	urSlice := user.UserRoles().ToSlice()
-	for _, r := range urSlice {
-		if r.EnterpriseId() == e.id {
-			err = user.RemoveUserRole(ctx, r.GetRole(), e.id)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	err = user.AddRole(ctx, role, e.id)
-	if err != nil {
-		return nil, err
-	}
-	event := NewEmployeePromoted(e.name, promotedBy, emp.Email(), newPosition)
-	err = domain.DomainEventPublisherInstance().Publish(ctx, event)
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
-}
-
-func (e *Enterprise) EmployeeLeave(ctx context.Context, employeeId uuid.UUID) (*identity.User, error) {
-	var (
-		publisher = domain.DomainEventPublisherInstance()
-		err       error
-	)
-	var employee *Employee
-	var user *identity.User
-	for emp := range e.employees.Iter() {
-		if employeeId == emp.Id() {
-			if !emp.ApprovedHiring() {
-				return nil, &erros.ValidationError{Expected: "employee needs to be approved first"}
-			}
-			role, err := identity.ParseRole(emp.Position().String())
-			if err != nil {
-				return nil, err
-			}
-			user = emp.GetUser()
-			err = emp.GetUser().RemoveUserRole(ctx,
-				role,
-				e.Id(),
-			)
-			if err != nil {
-				return nil, err
-			}
-			employee = emp
-			e.employees.Remove(emp)
-		}
-	}
-
+	employee := s[i]
+	s = slices.Delete(s, i, i+1)
+	e.employees = mapset.NewSet(s...)
 	err = publisher.Publish(ctx, NewEmployeeLeaved(employee))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return user, nil
+	return nil
 }
 
 func (e *Enterprise) FireEmployee(
 	ctx context.Context,
 	emitedBy uuid.UUID,
-	employeeId uuid.UUID) (*identity.User, error) {
-	var (
-		publisher = domain.DomainEventPublisherInstance()
-		err       error
-	)
+	employeeId uuid.UUID) error {
 	slice := e.employees.ToSlice()
 	index, ok := slices.BinarySearchFunc(slice, employeeId, func(i *Employee, j uuid.UUID) int {
 		if i.Id() == j {
@@ -141,36 +111,22 @@ func (e *Enterprise) FireEmployee(
 		return -1
 	})
 	if !ok {
-		return nil, fmt.Errorf("employee with id %s not found", employeeId)
+		return fmt.Errorf("employee with id %s not found", employeeId)
 	}
 	emp := slice[index]
-
 	if !emp.ApprovedHiring() {
-		return nil, &erros.ValidationError{Expected: "employee needs to be approved first"}
+		return &erros.ValidationError{Expected: "employee needs to be approved first"}
 	}
-	role, err := identity.ParseRole(emp.Position().String())
-	if err != nil {
-		return nil, err
-	}
-	user := emp.GetUser()
-	err = emp.GetUser().RemoveUserRole(ctx,
-		role,
-		e.Id(),
-	)
-	if err != nil {
-		return nil, err
-	}
-	log.Println("befor remove employee from enterprise", len(slice))
 	slice = slices.DeleteFunc(slice, func(i *Employee) bool {
 		return i.Id() == employeeId
 	})
-	log.Println("after remove employee from enterprise", len(slice))
 	e.employees = mapset.NewSet(slice...)
-	err = publisher.Publish(ctx, NewEmployeeFired(emitedBy, emp))
+	publisher := domain.DomainEventPublisherInstance()
+	err := publisher.Publish(ctx, NewEmployeeFired(emitedBy, emp))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return user, nil
+	return nil
 }
 
 func (e *Enterprise) CancelHiringProccess(
@@ -197,19 +153,6 @@ func (e *Enterprise) HireEmployee(
 	emitedBy uuid.UUID,
 	employee *Employee,
 ) error {
-	// role, err := identity.ParseRole(Position().String())
-
-	// if err != nil {
-	// 	return err
-	// }
-	// err = GetUser().AddRole(
-	// 	ctx,
-	// 	role,
-	// 	e.Id(),
-	// )
-	// if err != nil {
-	// 	return err
-	// }
 	employee.SetApprovedHiring(true)
 	err := e.AddEmployee(employee)
 	if err != nil {
@@ -240,6 +183,11 @@ func (e *Enterprise) InviteToProject(
 	proposedTo uuid.UUID,
 	proposalPosition Position,
 ) error {
+	for _, v := range e.Employees().ToSlice() {
+		if v.User.Id() == userId {
+			return fmt.Errorf("user's already hired")
+		}
+	}
 	event := NewHiringInvitationSent(
 		e.id,
 		userId,
@@ -723,6 +671,11 @@ func (e Enterprise) Employees() mapset.Set[Employee] {
 func (e *Enterprise) AddEmployee(employee *Employee) error {
 	if employee == nil {
 		return ErrNilPointer
+	}
+	for _, v := range e.employees.ToSlice() {
+		if v.id == employee.id {
+			return fmt.Errorf("employee already hired")
+		}
 	}
 	e.employees.Add(employee)
 	return nil

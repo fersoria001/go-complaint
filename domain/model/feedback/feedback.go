@@ -355,27 +355,16 @@ func (f Feedback) ComplaintId() uuid.UUID {
 	return f.complaintId
 }
 
-func (f *Feedback) DeleteComment(colorKey string) (uuid.UUID, error) {
+func (f *Feedback) DeleteComment(colorKey string) error {
 	if colorKey == "" {
-		return uuid.Nil, ErrNilValue
+		return ErrNilValue
 	}
-	_, err := f.ReplyReview(colorKey)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	var id uuid.UUID
-	slice := f.replyReview.ToSlice()
-	for i := range slice {
-		if slice[i].Color() == colorKey {
-			id = slice[i].ID()
+	for v := range f.replyReview.Iter() {
+		if v.color == colorKey {
+			v.review.comment = ""
 		}
 	}
-	slice = slices.DeleteFunc(f.replyReview.ToSlice(), func(i *ReplyReview) bool {
-		return i.Color() == colorKey
-	})
-	newSet := mapset.NewSet[*ReplyReview](slice...)
-	f.replyReview = newSet
-	return id, nil
+	return nil
 }
 
 func (f *Feedback) AddComment(colorKey string, comment string) error {

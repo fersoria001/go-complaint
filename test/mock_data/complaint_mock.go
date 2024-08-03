@@ -1,6 +1,7 @@
 package mock_data
 
 import (
+	"fmt"
 	"go-complaint/domain/model/common"
 	"go-complaint/domain/model/complaint"
 	"time"
@@ -88,7 +89,7 @@ var NewRecipients = map[string]*RecipientMock{
 	},
 	"user": {
 		Id:               NewUsers["valid"].Id,
-		SubjectName:      NewUsers["valid"].Person.FirstName + " " + NewUsers["valid"].Person.LastName,
+		SubjectName:      fmt.Sprintf("%s %s", NewUsers["valid"].Person.FirstName, NewUsers["valid"].Person.LastName),
 		SubjectThumbnail: NewUsers["valid"].Person.ProfileImg,
 		SubjectEmail:     NewUsers["valid"].Person.Email,
 		IsEnterprise:     false,
@@ -124,8 +125,18 @@ var NewReplies = map[uuid.UUID][]*ReplyMock{
 		{
 			Id:          uuid.MustParse("f41298ea-7c1b-441a-8a0b-32d01ca27e4b"),
 			ComplaintId: uuid.MustParse("f41298ea-7c1b-441a-8a0b-32d01ca27e2b"),
-			Sender:      NewRecipients["enterprise"],
+			Sender:      NewRecipients["user"],
 			Body:        "This is the third reply",
+			CreatedAt:   CommonDate,
+			Read:        false,
+			ReadAt:      CommonDate,
+			UpdatedAt:   CommonDate,
+		},
+		{
+			Id:          uuid.MustParse("f41298ea-7c1b-441a-8a0b-32d01ca27a2c"),
+			ComplaintId: uuid.MustParse("f41298ea-7c1b-441a-8a0b-32d01ca27e2b"),
+			Sender:      NewRecipients["user"],
+			Body:        "This is the fourth reply",
 			CreatedAt:   CommonDate,
 			Read:        false,
 			ReadAt:      CommonDate,

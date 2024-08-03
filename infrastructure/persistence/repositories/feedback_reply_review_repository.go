@@ -87,7 +87,7 @@ func (fr FeedbackReplyReviewRepository) SaveAll(
 		var (
 			ID         = replyReview.ID()
 			feedbackId = replyReview.FeedbackId()
-			reviewerID = replyReview.Reviewer().Email()
+			reviewerID = replyReview.Reviewer().Id()
 			reviewID   = replyReview.ID()
 			color      = replyReview.Color()
 			createdAt  = common.StringDate(replyReview.CreatedAt())
@@ -190,13 +190,12 @@ func (fr FeedbackReplyReviewRepository) load(
 		ID         uuid.UUID
 		feedbackID uuid.UUID
 		reviewerID uuid.UUID
-		reviewID   string
+		reviewID   uuid.UUID
 		color      string
 		createdAt  string
 	)
 	err := row.Scan(&ID, &feedbackID, &reviewerID, &reviewID, &color, &createdAt)
 	if err != nil {
-
 		return nil, err
 	}
 	replies, err := feedbackRepliesRepository.FindAll(

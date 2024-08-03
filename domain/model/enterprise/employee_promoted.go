@@ -2,43 +2,48 @@ package enterprise
 
 import (
 	"encoding/json"
-	"go-complaint/domain/model/common"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type EmployeePromoted struct {
-	enterpriseID string
-	managerID    string
-	employeeID   string
-	position     Position
-	occurredOn   time.Time
+	enterpriseId     uuid.UUID
+	managerId        uuid.UUID
+	employeeUsername string
+	prevPosition     Position
+	newPosition      Position
+	occurredOn       time.Time
 }
 
-func NewEmployeePromoted(enterpriseID, managerID,
-	employeeID string, position Position) *EmployeePromoted {
+func NewEmployeePromoted(enterpriseId, managerId uuid.UUID, employeeUsername string, prev, new Position) *EmployeePromoted {
 	return &EmployeePromoted{
-		enterpriseID: enterpriseID,
-		managerID:    managerID,
-		employeeID:   employeeID,
-		position:     position,
-		occurredOn:   time.Now(),
+		enterpriseId:     enterpriseId,
+		managerId:        managerId,
+		employeeUsername: employeeUsername,
+		prevPosition:     prev,
+		newPosition:      new,
+		occurredOn:       time.Now(),
 	}
 }
 
-func (ep *EmployeePromoted) EnterpriseID() string {
-	return ep.enterpriseID
+func (ep *EmployeePromoted) EnterpriseId() uuid.UUID {
+	return ep.enterpriseId
 }
 
-func (ep *EmployeePromoted) ManagerID() string {
-	return ep.managerID
+func (ep *EmployeePromoted) ManagerId() uuid.UUID {
+	return ep.managerId
 }
 
-func (ep *EmployeePromoted) EmployeeID() string {
-	return ep.employeeID
+func (ep *EmployeePromoted) EmployeeUsername() string {
+	return ep.employeeUsername
 }
 
-func (ep *EmployeePromoted) Position() Position {
-	return ep.position
+func (ep *EmployeePromoted) PrevPosition() Position {
+	return ep.prevPosition
+}
+func (ep *EmployeePromoted) NewPosition() Position {
+	return ep.newPosition
 }
 
 func (ep *EmployeePromoted) OccurredOn() time.Time {
@@ -47,17 +52,19 @@ func (ep *EmployeePromoted) OccurredOn() time.Time {
 
 func (ep *EmployeePromoted) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
-		EnterpriseID string
-		ManagerID    string
-		EmployeeID   string
-		Position     string
-		OccurredOn   string
+		EnterpriseId     uuid.UUID
+		ManagerId        uuid.UUID
+		EmployeeUsername string
+		PrevPosition     Position
+		NewPosition      Position
+		OccurredOn       time.Time
 	}{
-		EnterpriseID: ep.enterpriseID,
-		ManagerID:    ep.managerID,
-		EmployeeID:   ep.employeeID,
-		Position:     ep.position.String(),
-		OccurredOn:   common.StringDate(ep.occurredOn),
+		EnterpriseId:     ep.enterpriseId,
+		ManagerId:        ep.managerId,
+		EmployeeUsername: ep.employeeUsername,
+		PrevPosition:     ep.prevPosition,
+		NewPosition:      ep.newPosition,
+		OccurredOn:       ep.occurredOn,
 	})
 	if err != nil {
 		return nil, err
@@ -67,28 +74,22 @@ func (ep *EmployeePromoted) MarshalJSON() ([]byte, error) {
 
 func (ep *EmployeePromoted) UnmarshalJSON(data []byte) error {
 	j := struct {
-		EnterpriseID string
-		ManagerID    string
-		EmployeeID   string
-		Position     string
-		OccurredOn   string
+		EnterpriseId     uuid.UUID
+		ManagerId        uuid.UUID
+		EmployeeUsername string
+		PrevPosition     Position
+		NewPosition      Position
+		OccurredOn       time.Time
 	}{}
 	err := json.Unmarshal(data, &j)
 	if err != nil {
 		return err
 	}
-	ep.enterpriseID = j.EnterpriseID
-	ep.managerID = j.ManagerID
-	ep.employeeID = j.EmployeeID
-	position := ParsePosition(j.Position)
-	if position < 0 {
-		return ErrPositionNotExists
-	}
-	ep.position = position
-	occurredOn, err := common.ParseDate(j.OccurredOn)
-	if err != nil {
-		return err
-	}
-	ep.occurredOn = occurredOn
+	ep.enterpriseId = j.EnterpriseId
+	ep.managerId = j.ManagerId
+	ep.employeeUsername = j.EmployeeUsername
+	ep.prevPosition = j.PrevPosition
+	ep.newPosition = j.NewPosition
+	ep.occurredOn = j.OccurredOn
 	return nil
 }

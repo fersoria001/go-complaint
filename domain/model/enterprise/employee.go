@@ -8,9 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-/*
-Id = enterpriseName + - + emailOFManagerWhoHiredThis + dd/yy//mm + employeeID
-*/
 type Employee struct {
 	id           uuid.UUID
 	enterpriseId uuid.UUID

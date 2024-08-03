@@ -60,13 +60,9 @@ func (er EmployeeRepository) UpdateAll(
 		`
 		UPDATE employee
 		SET
-		employee_id = $1,
-		enterprise_id = $2,
-		user_id = $3,
-		hiring_date = $4,
-		approved_hiring = $5,
-		approved_hiring_at = $6,
-		job_position = $7
+		approved_hiring = $2,
+		approved_hiring_at = $3,
+		job_position = $4
 		WHERE enterprise.employee_id = $1
 		`,
 	)
@@ -77,9 +73,6 @@ func (er EmployeeRepository) UpdateAll(
 	for employee := range employees.Iter() {
 		var (
 			employeeId       uuid.UUID = employee.ID()
-			enterpriseId     uuid.UUID = employee.EnterpriseId()
-			userId           uuid.UUID = employee.User.Id()
-			hiringDate       string    = employee.HiringDate().StringRepresentation()
 			approvedHiring   bool      = employee.ApprovedHiring()
 			approvedHiringAt string    = employee.ApprovedHiringAt().StringRepresentation()
 			jobPosition      string    = employee.Position().String()
@@ -88,9 +81,6 @@ func (er EmployeeRepository) UpdateAll(
 			ctx,
 			updateCommand,
 			&employeeId,
-			&enterpriseId,
-			&userId,
-			&hiringDate,
 			&approvedHiring,
 			&approvedHiringAt,
 			&jobPosition,
@@ -105,6 +95,21 @@ func (er EmployeeRepository) UpdateAll(
 		return err
 	}
 	defer conn.Release()
+	return nil
+}
+
+func (er EmployeeRepository) Remove(ctx context.Context, id uuid.UUID) error {
+	conn, err := er.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return err
+	}
+	deleteCommand := string(`
+	DELETE FROM employee WHERE employee_id = $1`)
+	_, err = conn.Exec(ctx, deleteCommand, &id)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

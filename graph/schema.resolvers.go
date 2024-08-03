@@ -10,8 +10,10 @@ import (
 	"go-complaint/application"
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
-	"go-complaint/application/queries"
 	"go-complaint/dto"
+
+	"go-complaint/application/queries"
+
 	"go-complaint/graph/model"
 )
 

@@ -61,6 +61,16 @@ func (cdr ComplaintDataRepository) Save(ctx context.Context, complaintData compl
 	return nil
 }
 
+func (cdr ComplaintDataRepository) Find(ctx context.Context, src StatementSource) (*complaint.ComplaintData, error) {
+	conn, err := cdr.schema.Acquire(ctx)
+	defer conn.Release()
+	if err != nil {
+		return nil, err
+	}
+	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
+	return cdr.load(ctx, row)
+}
+
 func (cdr ComplaintDataRepository) Get(ctx context.Context, id uuid.UUID) (*complaint.ComplaintData, error) {
 	conn, err := cdr.schema.Acquire(ctx)
 	defer conn.Release()
