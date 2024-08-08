@@ -31,6 +31,7 @@ export default async function RootLayout({
       try {
         return await gqlClient.request(userDescriptorQuery)
       } catch (e: any) {
+        console.log("error: ",e)
         return null
       }
     },

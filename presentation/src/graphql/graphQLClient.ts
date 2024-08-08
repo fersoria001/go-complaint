@@ -8,6 +8,7 @@ const getGraphQLClient = () => {
   return new GraphQLClient(endpoint, {
     method: "POST",
     credentials: "include",
+    errorPolicy: 'none'
   });
 };
 

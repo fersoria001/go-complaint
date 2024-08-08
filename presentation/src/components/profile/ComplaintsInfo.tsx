@@ -19,12 +19,7 @@ const ComplaintsInfo: React.FC<Props> = ({ id }: Props) => {
     }
     return (
         <div>
-            <div>Received: {data.received}</div>
-            <div>Pending: {data.pending}</div>
-            <div>Resolved: {data.resolved}</div>
-            <div>Reviewed: {data.reviewed}</div>
-            <div>Average Rating: {data.avgRating}</div>
-            <div>Total: {data.total}</div>
+
         </div>
     )
 }

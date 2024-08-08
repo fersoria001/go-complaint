@@ -2,6 +2,7 @@ package queries
 
 import (
 	"context"
+	"errors"
 	"go-complaint/domain/model/recipient"
 	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/finders/find_all_recipients"
@@ -9,6 +10,7 @@ import (
 	"slices"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type FindRecipientsByNameLikeQuery struct {
@@ -33,14 +35,17 @@ func (frbnl FindRecipientsByNameLikeQuery) Execute(ctx context.Context) ([]*dto.
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
+	results := make([]*dto.Recipient, 0)
 	dbR, err := repository.FindAll(ctx, find_all_recipients.ByNameLike(frbnl.Term))
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return results, nil
+		}
 		return nil, err
 	}
 	f := slices.DeleteFunc(dbR, func(e *recipient.Recipient) bool {
 		return e.Id() == userId
 	})
-	results := make([]*dto.Recipient, 0, len(f))
 	for _, v := range f {
 		results = append(results, dto.NewRecipient(*v))
 	}

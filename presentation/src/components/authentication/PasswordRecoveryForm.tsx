@@ -4,7 +4,7 @@ import signInSchema from "@/lib/validation/signInSchema";
 import { useFormState } from "react-dom";
 import { z } from "zod";
 import InlineAlert from "../error/InlineAlert";
-const justTheEmail = signInSchema.pick({ email: true })
+const justTheEmail = signInSchema.pick({ userName: true })
 type formState = z.inferFlattenedErrors<typeof justTheEmail>
 const initialState: Partial<formState> = {}
 const PasswordRecoveryForm: React.FC = () => {
@@ -34,7 +34,7 @@ const PasswordRecoveryForm: React.FC = () => {
                     className="shadow appearance-none border rounded w-full py-2 px-3
                 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                     type="email" id="email" name="email" autoComplete="username" />
-                {state.fieldErrors?.email && <InlineAlert errors={state.fieldErrors.email} />}
+                {state.fieldErrors?.userName && <InlineAlert errors={state.fieldErrors.userName} />}
             </div>
             <button
                 className="mx-auto bg-blue-500 px-12 py-2.5 rounded-md hover:bg-blue-700

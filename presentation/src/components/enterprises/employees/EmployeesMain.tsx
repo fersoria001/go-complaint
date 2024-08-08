@@ -3,7 +3,7 @@
 import KeyboardArrowDownIcon from "@/components/icons/KeyboardArrowDownIcon";
 import KeyboardArrowRightIcon from "@/components/icons/KeyboardArrowRightIcon";
 import getGraphQLClient from "@/graphql/graphQLClient";
-import enterpriseByIdQuery from "@/graphql/queries/enterpriseByIdQuery";
+import enterpriseByNameQuery from "@/graphql/queries/enterpriseByNameQuery";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -13,7 +13,13 @@ const EmployeesMain: React.FC = () => {
     const params = useParams()
     const { data } = useSuspenseQuery({
         queryKey: ['enterprise', params.enterpriseId as string],
-        queryFn: async ({ queryKey }) => getGraphQLClient().request(enterpriseByIdQuery, { id: queryKey[1] })
+        queryFn: async ({ queryKey }) => {
+            try {
+                return await getGraphQLClient().request(enterpriseByNameQuery, { name: decodeURIComponent(queryKey[1]) })
+            } catch (e:any) {
+                console.log(e.response.errors[0])
+            }
+        }
     })
     const [show, setShow] = useState<boolean>(true)
     return (

@@ -49,7 +49,8 @@ var (
 	UserRole         = identity.NewUserRole(
 		AssistantRole,
 		uuid.MustParse("0d3baf1e-421c-448b-a784-78b210f42e1b"),
-		uuid.MustParse("2ab7c1d3-f0e0-4d19-b12e-ac7821b4a302"),
+		NewEnterprises["valid"].Id,
+		NewEnterprises["valid"].Name,
 	)
 )
 

@@ -3,6 +3,7 @@ import { graphql } from "@/gql";
 const userDescriptorQuery = graphql(`
     query UserDescriptor{
         userDescriptor{
+            id
             userName
             fullName
             profileImg
@@ -10,6 +11,7 @@ const userDescriptorQuery = graphql(`
             pronoun
             authorities{
                 enterpriseId
+                principal
                 authority
             }
         }

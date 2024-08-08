@@ -26,7 +26,7 @@ const NotificationLink: React.FC<Props> = ({ notification }: Props) => {
                 <div className="relative h-10 w-10 mx-3">
                     <Image
                         className="rounded-full"
-                        src={notification.thumbnail}
+                        src={notification.sender.subjectThumbnail!}
                         alt="notification"
                         fill />
                 </div>

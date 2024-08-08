@@ -3,8 +3,9 @@ package identity
 import "github.com/google/uuid"
 
 type UserRole struct {
-	userId       uuid.UUID
-	enterpriseId uuid.UUID
+	userId         uuid.UUID
+	enterpriseId   uuid.UUID
+	enterpriseName string
 	Role
 }
 
@@ -12,11 +13,13 @@ func NewUserRole(
 	role Role,
 	userId,
 	enterpriseId uuid.UUID,
+	enterpriseName string,
 ) *UserRole {
 	return &UserRole{
-		Role:         role,
-		userId:       userId,
-		enterpriseId: enterpriseId,
+		Role:           role,
+		userId:         userId,
+		enterpriseId:   enterpriseId,
+		enterpriseName: enterpriseName,
 	}
 }
 
@@ -30,6 +33,10 @@ func (ur UserRole) UserId() uuid.UUID {
 
 func (ur UserRole) EnterpriseId() uuid.UUID {
 	return ur.enterpriseId
+}
+
+func (ur UserRole) EnterpriseName() string {
+	return ur.enterpriseName
 }
 
 func (ur UserRole) Equals(obj any) bool {

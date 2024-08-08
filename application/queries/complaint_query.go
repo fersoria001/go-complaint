@@ -112,38 +112,3 @@ type ComplaintQuery struct {
 // 		CurrentOffset: query.Offset,
 // 	}, nil
 // }
-
-// /*
-// Package queries
-// << Query >>
-// @params: context.Context, ID
-// @returns: dto.ComplaintDTO, error
-// */
-// func (query ComplaintQuery) Complaint(
-// 	ctx context.Context,
-// ) (dto.ComplaintDTO, error) {
-// 	if query.ID == "" {
-// 		return dto.ComplaintDTO{}, ErrBadRequest
-// 	}
-// 	parsedID, err := uuid.Parse(query.ID)
-// 	if err != nil {
-// 		return dto.ComplaintDTO{}, ErrBadRequest
-// 	}
-// 	complaint, err := repositories.MapperRegistryInstance().Get(
-// 		"Complaint",
-// 	).(repositories.ComplaintRepository).Get(
-// 		ctx,
-// 		parsedID,
-// 	)
-// 	if err != nil {
-// 		return dto.ComplaintDTO{}, err
-// 	}
-// 	return dto.NewComplaintDTO(*complaint), nil
-// }
-
-// /*
-// Package queries
-// << Query >>
-// @params: context.Context, ID
-// @returns: dto.ReplyDTO, error
-// */

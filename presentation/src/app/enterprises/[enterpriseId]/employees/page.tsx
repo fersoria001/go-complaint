@@ -1,7 +1,7 @@
 import PageProps from "@/app/pageProps"
 import EmployeesMain from "@/components/enterprises/employees/EmployeesMain"
 import getGraphQLClient from "@/graphql/graphQLClient"
-import enterpriseByIdQuery from "@/graphql/queries/enterpriseByIdQuery"
+import enterpriseByNameQuery from "@/graphql/queries/enterpriseByNameQuery"
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
@@ -20,7 +20,14 @@ const Employees: React.FC<PageProps> = async ({ params }: PageProps) => {
     const queryClient = new QueryClient()
     await queryClient.prefetchQuery({
         queryKey: ['enterprise', params.enterpriseId as string],
-        queryFn: async ({ queryKey }) => gqlClient.request(enterpriseByIdQuery, { id: queryKey[1] })
+        queryFn: async ({ queryKey }) => {
+            try {
+                return await gqlClient.request(enterpriseByNameQuery, { name: decodeURIComponent(queryKey[1]) })
+            }
+            catch (e: any) {
+                console.log(e.response.errors[0])
+            }
+        }
     })
     return (
         <HydrationBoundary state={dehydrate(queryClient)} >

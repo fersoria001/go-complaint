@@ -11,7 +11,10 @@ import { EnterpriseByAuthenticatedUser } from "@/gql/graphql"
 const EnterprisesMain: React.FC = () => {
     const { data } = useSuspenseQuery({
         queryKey: ['enterprisesByAuthenticatedUser'],
-        queryFn: async () => (await getGraphQLClient().request(enterprisesByAuthenticatedUserQuery)).enterprisesByAuthenticatedUser,
+        queryFn: async () => {
+            const r = await getGraphQLClient().request(enterprisesByAuthenticatedUserQuery)
+            return r.enterprisesByAuthenticatedUser.enterprises
+        },
     })
     return (
         <div className="h-screen relative">
@@ -23,7 +26,7 @@ const EnterprisesMain: React.FC = () => {
                     Check your invitations to enterprises.
                 </Link>
             </div>
-            <EnterprisesList enterprises={data.enterprises as EnterpriseByAuthenticatedUser[]}/>
+            <EnterprisesList enterprises={data as EnterpriseByAuthenticatedUser[]} />
             <OfficesList />
         </div>
     )

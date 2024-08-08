@@ -2,6 +2,7 @@ package graph
 
 import (
 	"go-complaint/application"
+	"sync"
 )
 
 //go:generate go run github.com/99designs/gqlgen generate
@@ -11,5 +12,6 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	Publisher application.ApplicationMessagePublisher
+	Publisher *application.ApplicationMessagePublisher
+	mu        sync.Mutex
 }

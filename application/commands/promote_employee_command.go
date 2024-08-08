@@ -128,7 +128,7 @@ func (c PromoteEmployeeCommand) Execute(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
-				err = user.AddRole(ctx, newRole, e.EnterpriseId())
+				err = user.AddRole(ctx, newRole, e.EnterpriseId(), dbEnterprise.Name())
 				if err != nil {
 					return err
 				}

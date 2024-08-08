@@ -45,10 +45,11 @@ func NewAuthorizationApplicationService() *AuthorizationApplicationService {
 }
 
 func (aas AuthorizationApplicationService) Credentials(ctx context.Context) (*dto.UserDescriptor, error) {
-	credentials, ok := ctx.Value(aas.authCtxKey).(*dto.UserDescriptor)
+	parse, ok := ctx.Value(aas.authCtxKey).(dto.UserDescriptor)
 	if !ok {
 		return nil, ErrUnauthorized
 	}
+	credentials := &parse
 	repository, ok := repositories.MapperRegistryInstance().Get("User").(repositories.UserRepository)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
@@ -208,7 +209,7 @@ func (aas AuthorizationApplicationService) ResourceAccess(
 		if resourceID == "" {
 			return credentials, nil
 		}
-		if resourceID != credentials.Email {
+		if resourceID != credentials.Id {
 			for _, v := range credentials.GrantedAuthorities {
 				if v.EnterpriseID == resourceID && requiredAuthoritiesSet.Contains(v.Authority) {
 					return credentials, nil

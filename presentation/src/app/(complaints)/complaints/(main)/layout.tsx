@@ -1,6 +1,6 @@
 import AddIcon from "@/components/icons/AddIcon";
 import Link from "next/link";
-interface Props {
+interface Props  {
     send: React.ReactNode
     children: React.ReactNode
 }

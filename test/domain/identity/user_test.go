@@ -134,7 +134,7 @@ func TestUser_AddRole(t *testing.T) {
 			v.UserRoles,
 		)
 		assert.Nil(t, err)
-		user.AddRole(ctx, v.RoleToAdd.GetRole(), v.RoleToAdd.EnterpriseId())
+		user.AddRole(ctx, v.RoleToAdd.GetRole(), v.RoleToAdd.EnterpriseId(), v.RoleToAdd.EnterpriseName())
 		assert.Equal(t, 1, user.UserRoles().Cardinality())
 	}
 }

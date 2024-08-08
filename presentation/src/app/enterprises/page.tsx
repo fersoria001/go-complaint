@@ -3,8 +3,9 @@ import getGraphQLClient from "@/graphql/graphQLClient"
 import enterprisesByAuthenticatedUserQuery from "@/graphql/queries/enterprisesByAuthenticatedUserQuery"
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
-const Enterprises: React.FC = async () => {
+async function Enterprises() {
     const jwtCookie = cookies().get("jwt")
     const strCookie = `${jwtCookie?.name}=${jwtCookie?.value}`
     const gqlClient = getGraphQLClient()
@@ -12,7 +13,10 @@ const Enterprises: React.FC = async () => {
     const queryClient = new QueryClient()
     await queryClient.prefetchQuery({
         queryKey: ['enterprisesByAuthenticatedUser'],
-        queryFn: async () => (await gqlClient.request(enterprisesByAuthenticatedUserQuery)).enterprisesByAuthenticatedUser,
+        queryFn: async () => {
+            const r = await gqlClient.request(enterprisesByAuthenticatedUserQuery)
+            return r.enterprisesByAuthenticatedUser.enterprises
+        },
     })
     return (
         <HydrationBoundary state={dehydrate(queryClient)}>

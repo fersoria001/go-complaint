@@ -101,6 +101,7 @@ func (u User) Authorities() map[uuid.UUID][]GrantedAuthority {
 		authorities[userRole.EnterpriseId()] = append(
 			authorities[userRole.EnterpriseId()],
 			NewAuthority(
+				userRole.enterpriseName,
 				userRole.GetRole().String(),
 			),
 		)
@@ -192,15 +193,13 @@ func NewUser(
 Intended to use to construct a User object, it's different from
 the domain method AddRole that has more business logic
 */
-func (u *User) AddRoles(ctx context.Context, roles map[uuid.UUID][]Role) error {
+func (u *User) AddRoles(ctx context.Context, roles []*UserRole) error {
 	if roles == nil {
-		return &erros.NullValueError{}
+		return ErrNilPtr
 	}
-	for enterpriseId, role := range roles {
-		for _, r := range role {
-			if !u.userRoles.Add(NewUserRole(r, u.id, enterpriseId)) {
-				return &erros.AlreadyExistsError{}
-			}
+	for i := range roles {
+		if !u.userRoles.Add(roles[i]) {
+			return ErrUserRoleAlreadyAdded
 		}
 	}
 	return nil
@@ -236,13 +235,14 @@ func (u User) UserRoles() mapset.Set[UserRole] {
 func (u *User) AddRole(
 	ctx context.Context,
 	role RolesEnum,
-	enterpriseId uuid.UUID) error {
+	enterpriseId uuid.UUID,
+	enterpriseName string) error {
 	publisher := domain.DomainEventPublisherInstance()
 	newRole, err := NewRole(role.String())
 	if err != nil {
 		return err
 	}
-	userRole := NewUserRole(newRole, u.id, enterpriseId)
+	userRole := NewUserRole(newRole, u.id, enterpriseId, enterpriseName)
 	if u.userRoles.Add(userRole) {
 		err := publisher.Publish(
 			ctx,
@@ -252,7 +252,7 @@ func (u *User) AddRole(
 			return err
 		}
 	} else {
-		return &erros.AlreadyExistsError{}
+		return ErrUserRoleAlreadyAdded
 	}
 	domain.DomainEventPublisherInstance().Publish(
 		ctx,

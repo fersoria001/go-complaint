@@ -23,6 +23,23 @@ func NewComplaintRepository(schema datasource.Schema) ComplaintRepository {
 	}
 }
 
+func (pr ComplaintRepository) Find(
+	ctx context.Context,
+	src StatementSource,
+) (*complaint.Complaint, error) {
+	conn, err := pr.schema.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
+	complaint, err := pr.load(ctx, row)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+	return complaint, nil
+}
+
 func (pr ComplaintRepository) Get(
 	ctx context.Context,
 	complaintID uuid.UUID,

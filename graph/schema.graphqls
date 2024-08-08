@@ -77,10 +77,12 @@ type Notification {
 
 type GrantedAuthority {
   enterpriseId: String!
+  principal: String!
   authority: String!
 }
 
 type UserDescriptor {
+  id: String!
   userName: String!
   fullName: String!
   profileImg: String!
@@ -93,11 +95,13 @@ type UserDescriptor {
   authorities: [GrantedAuthority]
 }
 
-type Recipient{
+type Recipient {
   id: String!
-  subjectName: String!
-  subjectThumbnail: String!
-  isEnterprise: Boolean!
+  subjectName: String
+  subjectThumbnail: String
+  subjectEmail: String
+  isEnterprise: Boolean
+  isOnline: Boolean!
 }
 
 enum ComplaintStatus {
@@ -110,31 +114,31 @@ enum ComplaintStatus {
   IN_HISTORY
 }
 
-type Rating{
+type Rating {
   id: String!
   rate: Int!
   comment: String!
 }
 
-type ComplaintReply{
+type ComplaintReply {
   id: String!
   complaintId: String!
   sender: Recipient!
   body: String!
   createdAt: String!
-  read:Boolean!
+  read: Boolean
   readAt: String!
   updatedAt: String!
 }
 
 type Complaint {
   id: String!
-  author: Recipient!
+  author: Recipient
   receiver: Recipient!
   status: ComplaintStatus!
   title: String!
   description: String!
-  rating: Rating!
+  rating: Rating
   createdAt: String!
   updatedAt: String!
   replies: [ComplaintReply!]!
@@ -179,8 +183,24 @@ input CreateEnterprise {
   foundationDate: String!
 }
 
+input CreateNewComplaint {
+  authorId: String!
+  receiverId: String!
+}
+
+input DescribeComplaint {
+  complaintId: String!
+  title: String!
+  description: String!
+}
+
+input SendComplaint {
+  complaintId: String!
+  body: String!
+}
+
 type Employee {
-  id: ID!
+  id: String!
   enterpriseId: String!
   userId: String!
   user: User!
@@ -191,6 +211,7 @@ type Employee {
 }
 
 type Enterprise {
+  id: String!
   name: String!
   logoImg: String!
   bannerImg: String!
@@ -270,8 +291,11 @@ type Query {
   countryStates(id: Int!): [CountryState!]!
   cities(id: Int!): [City!]!
   industries: [Industry!]!
+  recipientsByNameLike(term: String!): [Recipient!]!
+  complaintById(id: String!): Complaint!
   complaintsInfo(id: String!): ComplaintsInfo!
-  enterpriseById(id: String!): Enterprise!
+  complaintsByAuthorOrReceiverId(id: String!): [Complaint]!
+  enterpriseByName(name: String!): Enterprise!
   enterprisesByAuthenticatedUser: EnterprisesByAuthenticatedUserResult!
   usersForHiring(input: SearchWithPagination!): UsersForHiringResult!
   userById(id: String!): User!
@@ -281,6 +305,9 @@ type Query {
 type Mutation {
   createUser(input: CreateUser!): User!
   createEnterprise(input: CreateEnterprise!): Enterprise!
+  createNewComplaint(input: CreateNewComplaint!): Complaint!
+  describeComplaint(input: DescribeComplaint!): Complaint!
+  sendComplaint(input: SendComplaint!): Complaint!
 }
 
 type Subscription {

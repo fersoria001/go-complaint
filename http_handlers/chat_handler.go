@@ -11,13 +11,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var allowedOrigins = strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return slices.Contains(allowedOrigins, r.Host)
+		var allowedOrigins = strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+		origin := r.Header.Get("Origin")
+		log.Printf("origin %s contained in %v = %v", origin, allowedOrigins, slices.Contains(allowedOrigins, origin))
+		return slices.Contains(allowedOrigins, origin)
 	},
-	ReadBufferSize:  8192,
-	WriteBufferSize: 8192,
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 	Subprotocols:    []string{"complaint", "enterprise"},
 }
 
@@ -29,7 +31,7 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 		log.Println("query is empty")
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	log.Println("ws headers", r.Header)
+	//log.Println("ws headers", r.Header)
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("error at upgrade", err)

@@ -19,12 +19,11 @@ const Navbar: React.FC = () => {
                 return null
             }
         },
-        staleTime:Infinity,
-        gcTime:Infinity
+        staleTime: Infinity,
+        gcTime: Infinity
     })
     const notifications: any = []
     const [show, setShow] = useState<boolean>(false)
-    const options = profileOptions("", "")
     return (
         <>
             <header
@@ -39,7 +38,7 @@ const Navbar: React.FC = () => {
                                 <div className="flex ms-auto">
                                     <ul className="self-end items-center h-full hidden lg:flex">
                                         {
-                                            options.map((option) => {
+                                            profileOptions(user?.userDescriptor.id, "").map((option) => {
                                                 return (
                                                     <li
                                                         className="mt-2 text-gray-700 text-md font-bold px-2 hover:text-blue-300"
@@ -85,14 +84,14 @@ const Navbar: React.FC = () => {
                 </div>
             </header>
             {
-                show &&
+                user && show &&
                 <ul className="absolute w-full top-20 shadow-md z-30 bg-white divide-y divide-gray-300 py-4 rounded-md">
                     {
-                        options.map((option) => {
+                        profileOptions(user?.userDescriptor.id, "").map((option) => {
                             return (
                                 <li key={option.title} className="py-4 rounded-b-md text-center font-bold text-gray-500 text-md md:text-xl">
                                     <Link href={option.link}>
-                                    {option.title}
+                                        {option.title}
                                     </Link>
                                 </li>
                             )

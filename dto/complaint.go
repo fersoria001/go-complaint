@@ -69,10 +69,10 @@ func NewComplaint(
 		iCreatedAt, _ := common.ParseDate(i.CreatedAt)
 		jCreatedAt, _ := common.ParseDate(j.CreatedAt)
 		if iCreatedAt.Before(jCreatedAt) {
-			return -1
+			return 1
 		}
 		if iCreatedAt.After(jCreatedAt) {
-			return 1
+			return -1
 		}
 		return 0
 	})

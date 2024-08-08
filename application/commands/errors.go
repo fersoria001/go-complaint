@@ -2,6 +2,7 @@ package commands
 
 import "fmt"
 
+var ErrComplaintAlreadyExists = fmt.Errorf("there's already a complaint in the db with status writing that match the author and receiver id")
 var ErrBadRequest = fmt.Errorf("bad request")
 var ErrConfirmationNotFound = fmt.Errorf("confirmation not found")
 var ErrWrongTypeAssertion = fmt.Errorf("wrong type assertion")

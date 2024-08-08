@@ -24,12 +24,12 @@ type City struct {
 
 type Complaint struct {
 	ID          string            `json:"id"`
-	Author      *Recipient        `json:"author"`
+	Author      *Recipient        `json:"author,omitempty"`
 	Receiver    *Recipient        `json:"receiver"`
 	Status      ComplaintStatus   `json:"status"`
 	Title       string            `json:"title"`
 	Description string            `json:"description"`
-	Rating      *Rating           `json:"rating"`
+	Rating      *Rating           `json:"rating,omitempty"`
 	CreatedAt   string            `json:"createdAt"`
 	UpdatedAt   string            `json:"updatedAt"`
 	Replies     []*ComplaintReply `json:"replies"`
@@ -49,7 +49,7 @@ type ComplaintReply struct {
 	Sender      *Recipient `json:"sender"`
 	Body        string     `json:"body"`
 	CreatedAt   string     `json:"createdAt"`
-	Read        bool       `json:"read"`
+	Read        *bool      `json:"read,omitempty"`
 	ReadAt      string     `json:"readAt"`
 	UpdatedAt   string     `json:"updatedAt"`
 }
@@ -90,6 +90,11 @@ type CreateHiringInvitation struct {
 	ProposeTo        string `json:"proposeTo"`
 }
 
+type CreateNewComplaint struct {
+	AuthorID   string `json:"authorId"`
+	ReceiverID string `json:"receiverId"`
+}
+
 type CreateUser struct {
 	UserName       string `json:"userName"`
 	Password       string `json:"password"`
@@ -104,6 +109,12 @@ type CreateUser struct {
 	CityID         int    `json:"cityId"`
 }
 
+type DescribeComplaint struct {
+	ComplaintID string `json:"complaintId"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
 type Employee struct {
 	ID                 string `json:"id"`
 	EnterpriseID       string `json:"enterpriseId"`
@@ -116,6 +127,7 @@ type Employee struct {
 }
 
 type Enterprise struct {
+	ID             string      `json:"id"`
 	Name           string      `json:"name"`
 	LogoImg        string      `json:"logoImg"`
 	BannerImg      string      `json:"bannerImg"`
@@ -141,6 +153,7 @@ type EnterprisesByAuthenticatedUserResult struct {
 
 type GrantedAuthority struct {
 	EnterpriseID string `json:"enterpriseId"`
+	Principal    string `json:"principal"`
 	Authority    string `json:"authority"`
 }
 
@@ -200,10 +213,12 @@ type Rating struct {
 }
 
 type Recipient struct {
-	ID               string `json:"id"`
-	SubjectName      string `json:"subjectName"`
-	SubjectThumbnail string `json:"subjectThumbnail"`
-	IsEnterprise     bool   `json:"isEnterprise"`
+	ID               string  `json:"id"`
+	SubjectName      *string `json:"subjectName,omitempty"`
+	SubjectThumbnail *string `json:"subjectThumbnail,omitempty"`
+	SubjectEmail     *string `json:"subjectEmail,omitempty"`
+	IsEnterprise     *bool   `json:"isEnterprise,omitempty"`
+	IsOnline         bool    `json:"isOnline"`
 }
 
 type SearchWithPagination struct {
@@ -211,6 +226,11 @@ type SearchWithPagination struct {
 	Limit  int    `json:"limit"`
 	Offset int    `json:"offset"`
 	Query  string `json:"query"`
+}
+
+type SendComplaint struct {
+	ComplaintID string `json:"complaintId"`
+	Body        string `json:"body"`
 }
 
 type Subscription struct {
@@ -223,6 +243,7 @@ type User struct {
 }
 
 type UserDescriptor struct {
+	ID          string              `json:"id"`
 	UserName    string              `json:"userName"`
 	FullName    string              `json:"fullName"`
 	ProfileImg  string              `json:"profileImg"`

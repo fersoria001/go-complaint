@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"go-complaint/domain/model/complaint"
+	"go-complaint/infrastructure/persistence/finders/find_complaint"
 	"go-complaint/infrastructure/persistence/repositories"
 
 	"github.com/google/uuid"
@@ -39,6 +40,14 @@ func (c CreateNewComplaintCommand) Execute(ctx context.Context) error {
 	if !ok {
 		return ErrWrongTypeAssertion
 	}
+	_, err = complaintRepository.Find(ctx, find_complaint.ByAuthorAndReceiverAndWritingTrue(
+		authorId,
+		receiverId,
+	))
+	if err == nil {
+		return ErrComplaintAlreadyExists
+	}
+
 	author, err := recipientRepository.Get(ctx, authorId)
 	if err != nil {
 		return err

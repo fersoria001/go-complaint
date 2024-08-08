@@ -6,15 +6,17 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go-complaint/application"
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
-	"go-complaint/dto"
-
 	"go-complaint/application/queries"
-
+	"go-complaint/dto"
 	"go-complaint/graph/model"
+	"log"
+
+	pgx "github.com/jackc/pgx/v5"
 )
 
 // CreateUser is the resolver for the createUser field.
@@ -71,7 +73,7 @@ func (r *mutationResolver) CreateEnterprise(ctx context.Context, input model.Cre
 		return nil, err
 	}
 	c := commands.NewRegisterEnterpriseCommand(
-		currentUser.Email,
+		currentUser.Id,
 		input.Name,
 		"/default.jpg",
 		"/banner.jpg",
@@ -139,6 +141,190 @@ func (r *mutationResolver) CreateEnterprise(ctx context.Context, input model.Cre
 	}, nil
 }
 
+// CreateNewComplaint is the resolver for the createNewComplaint field.
+func (r *mutationResolver) CreateNewComplaint(ctx context.Context, input model.CreateNewComplaint) (*model.Complaint, error) {
+	c := commands.NewCreateNewComplaintCommand(input.AuthorID, input.ReceiverID)
+	err := c.Execute(ctx)
+	if !errors.Is(err, commands.ErrComplaintAlreadyExists) {
+		return nil, err
+	}
+
+	q := queries.NewComplaintInWritingStatusQuery(input.AuthorID, input.ReceiverID)
+	dbc, err := q.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	replies := make([]*model.ComplaintReply, 0, len(dbc.Replies))
+	for _, v := range dbc.Replies {
+		replies = append(replies, &model.ComplaintReply{
+			ID:          v.Id,
+			ComplaintID: v.ComplaintId,
+			Sender: &model.Recipient{
+				ID:               v.Sender.Id,
+				SubjectName:      &v.Sender.SubjectName,
+				SubjectThumbnail: &v.Sender.SubjectThumbnail,
+				SubjectEmail:     &v.Sender.SubjectEmail,
+				IsEnterprise:     &v.Sender.IsEnterprise,
+			},
+			Body:      v.Body,
+			CreatedAt: v.CreatedAt,
+			Read:      &v.Read,
+			ReadAt:    v.ReadAt,
+			UpdatedAt: v.UpdatedAt,
+		})
+	}
+	return &model.Complaint{
+		ID: dbc.Id,
+		Author: &model.Recipient{
+			ID:               dbc.Author.Id,
+			SubjectName:      &dbc.Author.SubjectName,
+			SubjectThumbnail: &dbc.Author.SubjectThumbnail,
+			SubjectEmail:     &dbc.Author.SubjectEmail,
+			IsEnterprise:     &dbc.Author.IsEnterprise,
+		},
+		Receiver: &model.Recipient{
+			ID:               dbc.Receiver.Id,
+			SubjectName:      &dbc.Receiver.SubjectName,
+			SubjectThumbnail: &dbc.Receiver.SubjectThumbnail,
+			SubjectEmail:     &dbc.Receiver.SubjectEmail,
+			IsEnterprise:     &dbc.Receiver.IsEnterprise,
+		},
+		Status:      model.ComplaintStatus(dbc.Status),
+		Title:       dbc.Title,
+		Description: dbc.Description,
+		Rating: &model.Rating{
+			ID:      dbc.Rating.Id,
+			Rate:    dbc.Rating.Rate,
+			Comment: dbc.Rating.Comment,
+		},
+		CreatedAt: dbc.CreatedAt,
+		UpdatedAt: dbc.UpdatedAt,
+		Replies:   replies,
+	}, nil
+}
+
+// DescribeComplaint is the resolver for the describeComplaint field.
+func (r *mutationResolver) DescribeComplaint(ctx context.Context, input model.DescribeComplaint) (*model.Complaint, error) {
+	c := commands.NewDescribeComplaintCommand(input.ComplaintID, input.Description, input.Title)
+	err := c.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	q := queries.NewComplaintByIdQuery(input.ComplaintID)
+	dbc, err := q.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	replies := make([]*model.ComplaintReply, 0, len(dbc.Replies))
+	for _, v := range dbc.Replies {
+		replies = append(replies, &model.ComplaintReply{
+			ID:          v.Id,
+			ComplaintID: v.ComplaintId,
+			Sender: &model.Recipient{
+				ID:               v.Sender.Id,
+				SubjectName:      &v.Sender.SubjectName,
+				SubjectThumbnail: &v.Sender.SubjectThumbnail,
+				SubjectEmail:     &v.Sender.SubjectEmail,
+				IsEnterprise:     &v.Sender.IsEnterprise,
+			},
+			Body:      v.Body,
+			CreatedAt: v.CreatedAt,
+			Read:      &v.Read,
+			ReadAt:    v.ReadAt,
+			UpdatedAt: v.UpdatedAt,
+		})
+	}
+	return &model.Complaint{
+		ID: dbc.Id,
+		Author: &model.Recipient{
+			ID:               dbc.Author.Id,
+			SubjectName:      &dbc.Author.SubjectName,
+			SubjectThumbnail: &dbc.Author.SubjectThumbnail,
+			SubjectEmail:     &dbc.Author.SubjectEmail,
+			IsEnterprise:     &dbc.Author.IsEnterprise,
+		},
+		Receiver: &model.Recipient{
+			ID:               dbc.Receiver.Id,
+			SubjectName:      &dbc.Receiver.SubjectName,
+			SubjectThumbnail: &dbc.Receiver.SubjectThumbnail,
+			SubjectEmail:     &dbc.Receiver.SubjectEmail,
+			IsEnterprise:     &dbc.Receiver.IsEnterprise,
+		},
+		Status:      model.ComplaintStatus(dbc.Status),
+		Title:       dbc.Title,
+		Description: dbc.Description,
+		Rating: &model.Rating{
+			ID:      dbc.Rating.Id,
+			Rate:    dbc.Rating.Rate,
+			Comment: dbc.Rating.Comment,
+		},
+		CreatedAt: dbc.CreatedAt,
+		UpdatedAt: dbc.UpdatedAt,
+		Replies:   replies,
+	}, nil
+}
+
+// SendComplaint is the resolver for the sendComplaint field.
+func (r *mutationResolver) SendComplaint(ctx context.Context, input model.SendComplaint) (*model.Complaint, error) {
+	c := commands.NewSendComplaintCommand(input.ComplaintID, input.Body)
+	err := c.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	q := queries.NewComplaintByIdQuery(input.ComplaintID)
+	dbc, err := q.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	replies := make([]*model.ComplaintReply, 0, len(dbc.Replies))
+	for _, v := range dbc.Replies {
+		replies = append(replies, &model.ComplaintReply{
+			ID:          v.Id,
+			ComplaintID: v.ComplaintId,
+			Sender: &model.Recipient{
+				ID:               v.Sender.Id,
+				SubjectName:      &v.Sender.SubjectName,
+				SubjectThumbnail: &v.Sender.SubjectThumbnail,
+				SubjectEmail:     &v.Sender.SubjectEmail,
+				IsEnterprise:     &v.Sender.IsEnterprise,
+			},
+			Body:      v.Body,
+			CreatedAt: v.CreatedAt,
+			Read:      &v.Read,
+			ReadAt:    v.ReadAt,
+			UpdatedAt: v.UpdatedAt,
+		})
+	}
+	return &model.Complaint{
+		ID: dbc.Id,
+		Author: &model.Recipient{
+			ID:               dbc.Author.Id,
+			SubjectName:      &dbc.Author.SubjectName,
+			SubjectThumbnail: &dbc.Author.SubjectThumbnail,
+			SubjectEmail:     &dbc.Author.SubjectEmail,
+			IsEnterprise:     &dbc.Author.IsEnterprise,
+		},
+		Receiver: &model.Recipient{
+			ID:               dbc.Receiver.Id,
+			SubjectName:      &dbc.Receiver.SubjectName,
+			SubjectThumbnail: &dbc.Receiver.SubjectThumbnail,
+			SubjectEmail:     &dbc.Receiver.SubjectEmail,
+			IsEnterprise:     &dbc.Receiver.IsEnterprise,
+		},
+		Status:      model.ComplaintStatus(dbc.Status),
+		Title:       dbc.Title,
+		Description: dbc.Description,
+		Rating: &model.Rating{
+			ID:      dbc.Rating.Id,
+			Rate:    dbc.Rating.Rate,
+			Comment: dbc.Rating.Comment,
+		},
+		CreatedAt: dbc.CreatedAt,
+		UpdatedAt: dbc.UpdatedAt,
+		Replies:   replies,
+	}, nil
+}
+
 // UserDescriptor is the resolver for the userDescriptor field.
 func (r *queryResolver) UserDescriptor(ctx context.Context) (*model.UserDescriptor, error) {
 	currentUser, err := application_services.AuthorizationApplicationServiceInstance().Credentials(ctx)
@@ -149,11 +335,13 @@ func (r *queryResolver) UserDescriptor(ctx context.Context) (*model.UserDescript
 	for _, v := range currentUser.GrantedAuthorities {
 		authorities = append(authorities, &model.GrantedAuthority{
 			EnterpriseID: v.EnterpriseID,
+			Principal:    v.Principal,
 			Authority:    v.Authority,
 		})
 	}
 
 	return &model.UserDescriptor{
+		ID:          currentUser.Id,
 		UserName:    currentUser.Email,
 		FullName:    currentUser.FullName,
 		ProfileImg:  currentUser.ProfileImg,
@@ -235,6 +423,87 @@ func (r *queryResolver) Industries(ctx context.Context) ([]*model.Industry, erro
 	return result, nil
 }
 
+// RecipientsByNameLike is the resolver for the recipientsByNameLike field.
+func (r *queryResolver) RecipientsByNameLike(ctx context.Context, term string) ([]*model.Recipient, error) {
+	svc := application_services.AuthorizationApplicationServiceInstance()
+	currentUser, err := svc.Credentials(ctx)
+	if err != nil {
+		return nil, err
+	}
+	q := queries.NewFindRecipientsByNameLikeQuery(currentUser.Id, term)
+	recipients, err := q.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*model.Recipient, 0, len(recipients))
+	for _, v := range recipients {
+		result = append(result, &model.Recipient{
+			ID:               v.Id,
+			SubjectName:      &v.SubjectName,
+			SubjectThumbnail: &v.SubjectThumbnail,
+			SubjectEmail:     &v.SubjectEmail,
+			IsEnterprise:     &v.IsEnterprise,
+		})
+	}
+	return result, nil
+}
+
+// ComplaintByID is the resolver for the complaintById field.
+func (r *queryResolver) ComplaintByID(ctx context.Context, id string) (*model.Complaint, error) {
+	c := queries.NewComplaintByIdQuery(id)
+	dbc, err := c.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	replies := make([]*model.ComplaintReply, 0, len(dbc.Replies))
+	for _, v := range dbc.Replies {
+		replies = append(replies, &model.ComplaintReply{
+			ID:          v.Id,
+			ComplaintID: v.ComplaintId,
+			Sender: &model.Recipient{
+				ID:               v.Sender.Id,
+				SubjectName:      &v.Sender.SubjectName,
+				SubjectThumbnail: &v.Sender.SubjectThumbnail,
+				SubjectEmail:     &v.Sender.SubjectEmail,
+				IsEnterprise:     &v.Sender.IsEnterprise,
+			},
+			Body:      v.Body,
+			CreatedAt: v.CreatedAt,
+			Read:      &v.Read,
+			ReadAt:    v.ReadAt,
+			UpdatedAt: v.UpdatedAt,
+		})
+	}
+	return &model.Complaint{
+		ID: dbc.Id,
+		Author: &model.Recipient{
+			ID:               dbc.Author.Id,
+			SubjectName:      &dbc.Author.SubjectName,
+			SubjectThumbnail: &dbc.Author.SubjectThumbnail,
+			SubjectEmail:     &dbc.Author.SubjectEmail,
+			IsEnterprise:     &dbc.Author.IsEnterprise,
+		},
+		Receiver: &model.Recipient{
+			ID:               dbc.Receiver.Id,
+			SubjectName:      &dbc.Receiver.SubjectName,
+			SubjectThumbnail: &dbc.Receiver.SubjectThumbnail,
+			SubjectEmail:     &dbc.Receiver.SubjectEmail,
+			IsEnterprise:     &dbc.Receiver.IsEnterprise,
+		},
+		Status:      model.ComplaintStatus(dbc.Status),
+		Title:       dbc.Title,
+		Description: dbc.Description,
+		Rating: &model.Rating{
+			ID:      dbc.Rating.Id,
+			Rate:    dbc.Rating.Rate,
+			Comment: dbc.Rating.Comment,
+		},
+		CreatedAt: dbc.CreatedAt,
+		UpdatedAt: dbc.UpdatedAt,
+		Replies:   replies,
+	}, nil
+}
+
 // ComplaintsInfo is the resolver for the complaintsInfo field.
 func (r *queryResolver) ComplaintsInfo(ctx context.Context, id string) (*model.ComplaintsInfo, error) {
 	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
@@ -300,9 +569,79 @@ func (r *queryResolver) ComplaintsInfo(ctx context.Context, id string) (*model.C
 	}, nil
 }
 
+// ComplaintsByAuthorOrReceiverID is the resolver for the complaintsByAuthorOrReceiverId field.
+func (r *queryResolver) ComplaintsByAuthorOrReceiverID(ctx context.Context, id string) ([]*model.Complaint, error) {
+	_, err := application_services.AuthorizationApplicationServiceInstance().ResourceAccess(
+		ctx,
+		"rid",
+		id,
+		application_services.READ,
+		"MANAGER", "ASSISTANT", "OWNER",
+	)
+	if err != nil {
+		return nil, err
+	}
+	q := queries.NewComplaintsByAuthorOrReceiverIdQuery(id)
+	dbcs, err := q.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*model.Complaint, 0, len(dbcs))
+	for _, dbc := range dbcs {
+		replies := make([]*model.ComplaintReply, 0, len(dbc.Replies))
+		for _, v := range dbc.Replies {
+			replies = append(replies, &model.ComplaintReply{
+				ID:          v.Id,
+				ComplaintID: v.ComplaintId,
+				Sender: &model.Recipient{
+					ID:               v.Sender.Id,
+					SubjectName:      &v.Sender.SubjectName,
+					SubjectThumbnail: &v.Sender.SubjectThumbnail,
+					SubjectEmail:     &v.Sender.SubjectEmail,
+					IsEnterprise:     &v.Sender.IsEnterprise,
+				},
+				Body:      v.Body,
+				CreatedAt: v.CreatedAt,
+				Read:      &v.Read,
+				ReadAt:    v.ReadAt,
+				UpdatedAt: v.UpdatedAt,
+			})
+		}
+		results = append(results, &model.Complaint{
+			ID: dbc.Id,
+			Author: &model.Recipient{
+				ID:               dbc.Author.Id,
+				SubjectName:      &dbc.Author.SubjectName,
+				SubjectThumbnail: &dbc.Author.SubjectThumbnail,
+				SubjectEmail:     &dbc.Author.SubjectEmail,
+				IsEnterprise:     &dbc.Author.IsEnterprise,
+			},
+			Receiver: &model.Recipient{
+				ID:               dbc.Receiver.Id,
+				SubjectName:      &dbc.Receiver.SubjectName,
+				SubjectThumbnail: &dbc.Receiver.SubjectThumbnail,
+				SubjectEmail:     &dbc.Receiver.SubjectEmail,
+				IsEnterprise:     &dbc.Receiver.IsEnterprise,
+			},
+			Status:      model.ComplaintStatus(dbc.Status),
+			Title:       dbc.Title,
+			Description: dbc.Description,
+			Rating: &model.Rating{
+				ID:      dbc.Rating.Id,
+				Rate:    dbc.Rating.Rate,
+				Comment: dbc.Rating.Comment,
+			},
+			CreatedAt: dbc.CreatedAt,
+			UpdatedAt: dbc.UpdatedAt,
+			Replies:   replies,
+		})
+	}
+	return results, nil
+}
+
 // EnterpriseByID is the resolver for the enterpriseById field.
-func (r *queryResolver) EnterpriseByID(ctx context.Context, id string) (*model.Enterprise, error) {
-	q := queries.NewEnterpriseByIdQuery(id)
+func (r *queryResolver) EnterpriseByName(ctx context.Context, name string) (*model.Enterprise, error) {
+	q := queries.NewEnterpriseByNameQuery(name)
 	enterprise, err := q.Execute(ctx)
 	if err != nil {
 		return nil, err
@@ -335,6 +674,7 @@ func (r *queryResolver) EnterpriseByID(ctx context.Context, id string) (*model.E
 		})
 	}
 	return &model.Enterprise{
+		ID:          enterprise.Id,
 		Name:        enterprise.Name,
 		LogoImg:     enterprise.LogoIMG,
 		BannerImg:   enterprise.BannerIMG,
@@ -355,16 +695,22 @@ func (r *queryResolver) EnterpriseByID(ctx context.Context, id string) (*model.E
 
 // EnterprisesByAuthenticatedUser is the resolver for the enterprisesByAuthenticatedUser field.
 func (r *queryResolver) EnterprisesByAuthenticatedUser(ctx context.Context) (*model.EnterprisesByAuthenticatedUserResult, error) {
-	user, err := application_services.AuthorizationApplicationServiceInstance().Credentials(ctx)
+	currentUser, err := application_services.AuthorizationApplicationServiceInstance().Credentials(ctx)
 	if err != nil {
 		return nil, err
 	}
 	owned := make([]*model.EnterpriseByAuthenticatedUser, 0)
 	employed := make([]*model.EnterpriseByAuthenticatedUser, 0)
-	for _, v := range user.GrantedAuthorities {
+	for _, v := range currentUser.GrantedAuthorities {
 		q := queries.NewEnterpriseByIdQuery(v.EnterpriseID)
 		enterprise, err := q.Execute(ctx)
-		if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &model.EnterprisesByAuthenticatedUserResult{
+				Enterprises: owned,
+				Offices:     employed,
+			}, nil
+		}
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return nil, err
 		}
 		employees := make([]*model.Employee, 0, len(enterprise.Employees))
@@ -529,15 +875,15 @@ func (r *subscriptionResolver) Notifications(ctx context.Context, id string) (<-
 			ID: n.Id,
 			Owner: &model.Recipient{
 				ID:               n.Owner.Id,
-				SubjectName:      n.Owner.SubjectName,
-				SubjectThumbnail: n.Owner.SubjectThumbnail,
-				IsEnterprise:     n.Owner.IsEnterprise,
+				SubjectName:      &n.Owner.SubjectName,
+				SubjectThumbnail: &n.Owner.SubjectThumbnail,
+				IsEnterprise:     &n.Owner.IsEnterprise,
 			},
 			Sender: &model.Recipient{
 				ID:               n.Sender.Id,
-				SubjectName:      n.Sender.SubjectName,
-				SubjectThumbnail: n.Sender.SubjectThumbnail,
-				IsEnterprise:     n.Sender.IsEnterprise,
+				SubjectName:      &n.Sender.SubjectName,
+				SubjectThumbnail: &n.Sender.SubjectThumbnail,
+				IsEnterprise:     &n.Sender.IsEnterprise,
 			},
 			Title:      n.Title,
 			Content:    n.Content,
@@ -572,15 +918,15 @@ func (r *subscriptionResolver) Notifications(ctx context.Context, id string) (<-
 							ID: n.Id,
 							Owner: &model.Recipient{
 								ID:               n.Owner.Id,
-								SubjectName:      n.Owner.SubjectName,
-								SubjectThumbnail: n.Owner.SubjectThumbnail,
-								IsEnterprise:     n.Owner.IsEnterprise,
+								SubjectName:      &n.Owner.SubjectName,
+								SubjectThumbnail: &n.Owner.SubjectThumbnail,
+								IsEnterprise:     &n.Owner.IsEnterprise,
 							},
 							Sender: &model.Recipient{
 								ID:               n.Sender.Id,
-								SubjectName:      n.Sender.SubjectName,
-								SubjectThumbnail: n.Sender.SubjectThumbnail,
-								IsEnterprise:     n.Sender.IsEnterprise,
+								SubjectName:      &n.Sender.SubjectName,
+								SubjectThumbnail: &n.Sender.SubjectThumbnail,
+								IsEnterprise:     &n.Sender.IsEnterprise,
 							},
 							Title:      n.Title,
 							Content:    n.Content,
@@ -606,19 +952,20 @@ func (r *subscriptionResolver) Complaints(ctx context.Context, id string) (<-cha
 	toModel := make([]*model.Complaint, 0)
 	for _, v := range stored {
 		replies := make([]*model.ComplaintReply, 0, len(v.Replies))
-		for _, r := range replies {
+		for _, r := range v.Replies {
 			replies = append(replies, &model.ComplaintReply{
-				ID:          r.ID,
-				ComplaintID: r.ComplaintID,
+				ID:          r.Id,
+				ComplaintID: r.ComplaintId,
 				Sender: &model.Recipient{
-					ID:               r.Sender.ID,
-					SubjectName:      r.Sender.SubjectName,
-					SubjectThumbnail: r.Sender.SubjectThumbnail,
-					IsEnterprise:     r.Sender.IsEnterprise,
+					ID:               r.Sender.Id,
+					SubjectName:      &r.Sender.SubjectName,
+					SubjectThumbnail: &r.Sender.SubjectThumbnail,
+					IsEnterprise:     &r.Sender.IsEnterprise,
+					IsOnline:         r.Sender.IsOnline,
 				},
 				Body:      r.Body,
 				CreatedAt: r.CreatedAt,
-				Read:      r.Read,
+				Read:      &r.Read,
 				ReadAt:    r.ReadAt,
 				UpdatedAt: r.UpdatedAt,
 			})
@@ -627,15 +974,17 @@ func (r *subscriptionResolver) Complaints(ctx context.Context, id string) (<-cha
 			ID: v.Id,
 			Author: &model.Recipient{
 				ID:               v.Author.Id,
-				SubjectName:      v.Author.SubjectName,
-				SubjectThumbnail: v.Author.SubjectThumbnail,
-				IsEnterprise:     v.Author.IsEnterprise,
+				SubjectName:      &v.Author.SubjectName,
+				SubjectThumbnail: &v.Author.SubjectThumbnail,
+				IsEnterprise:     &v.Author.IsEnterprise,
+				IsOnline:         v.Author.IsOnline,
 			},
 			Receiver: &model.Recipient{
 				ID:               v.Receiver.Id,
-				SubjectName:      v.Receiver.SubjectName,
-				SubjectThumbnail: v.Receiver.SubjectThumbnail,
-				IsEnterprise:     v.Receiver.IsEnterprise,
+				SubjectName:      &v.Receiver.SubjectName,
+				SubjectThumbnail: &v.Receiver.SubjectThumbnail,
+				IsEnterprise:     &v.Receiver.IsEnterprise,
+				IsOnline:         v.Receiver.IsOnline,
 			},
 			Status:      model.ComplaintStatus(v.Status),
 			Title:       v.Title,
@@ -662,6 +1011,7 @@ func (r *subscriptionResolver) Complaints(ctx context.Context, id string) (<-cha
 			close(ch)
 		}()
 		for _, v := range toModel {
+			//log.Printf("stored author %s=%v  \n stored receiver %s=%v \n", v.Author.ID, v.Author.IsOnline, v.Receiver.ID, v.Author.IsOnline)
 			ch <- v
 		}
 		for {
@@ -669,23 +1019,61 @@ func (r *subscriptionResolver) Complaints(ctx context.Context, id string) (<-cha
 			case <-ctx.Done():
 				return
 			case m := <-in:
+				if m.DataType() == "subscriber_connected" {
+					//log.Printf("sub conn subs: %v", r.Publisher.ApplicationSubscribers())
+					for _, v := range toModel {
+						if v.Author.ID == m.Value() {
+							//log.Printf("conn author %s match %s prev %v", v.Author.ID, m.Value(), v.Author.IsOnline)
+							r.mu.Lock()
+							v.Author.IsOnline = true
+							r.mu.Unlock()
+							ch <- v
+						}
+						if v.Receiver.ID == m.Value() {
+							//log.Printf("conn receiver %s match %s prev %v", v.Receiver.ID, m.Value(), v.Receiver.IsOnline)
+							r.mu.Lock()
+							v.Receiver.IsOnline = true
+							r.mu.Unlock()
+							ch <- v
+						}
+					}
+
+				}
+				if m.DataType() == "subscriber_disconnected" {
+					log.Printf("sub disconn subs: %v", r.Publisher.ApplicationSubscribers())
+					for _, v := range toModel {
+						if v.Author.ID == m.Value() {
+							r.mu.Lock()
+							v.Author.IsOnline = false
+							r.mu.Unlock()
+							ch <- v
+						}
+						if v.Receiver.ID == m.Value() {
+							r.mu.Lock()
+							v.Receiver.IsOnline = false
+							r.mu.Unlock()
+							ch <- v
+						}
+					}
+				}
 				if m.DataType() == "complaint" {
 					v, ok := m.Value().(dto.Complaint)
 					if ok {
 						replies := make([]*model.ComplaintReply, 0, len(v.Replies))
-						for _, r := range replies {
+						for _, r := range v.Replies {
 							replies = append(replies, &model.ComplaintReply{
-								ID:          r.ID,
-								ComplaintID: r.ComplaintID,
+								ID:          r.Id,
+								ComplaintID: r.ComplaintId,
 								Sender: &model.Recipient{
-									ID:               r.Sender.ID,
-									SubjectName:      r.Sender.SubjectName,
-									SubjectThumbnail: r.Sender.SubjectThumbnail,
-									IsEnterprise:     r.Sender.IsEnterprise,
+									ID:               r.Sender.Id,
+									SubjectName:      &r.Sender.SubjectName,
+									SubjectThumbnail: &r.Sender.SubjectThumbnail,
+									IsEnterprise:     &r.Sender.IsEnterprise,
+									IsOnline:         r.Sender.IsOnline,
 								},
 								Body:      r.Body,
 								CreatedAt: r.CreatedAt,
-								Read:      r.Read,
+								Read:      &r.Read,
 								ReadAt:    r.ReadAt,
 								UpdatedAt: r.UpdatedAt,
 							})
@@ -694,15 +1082,17 @@ func (r *subscriptionResolver) Complaints(ctx context.Context, id string) (<-cha
 							ID: v.Id,
 							Author: &model.Recipient{
 								ID:               v.Author.Id,
-								SubjectName:      v.Author.SubjectName,
-								SubjectThumbnail: v.Author.SubjectThumbnail,
-								IsEnterprise:     v.Author.IsEnterprise,
+								SubjectName:      &v.Author.SubjectName,
+								SubjectThumbnail: &v.Author.SubjectThumbnail,
+								IsEnterprise:     &v.Author.IsEnterprise,
+								IsOnline:         v.Author.IsOnline,
 							},
 							Receiver: &model.Recipient{
 								ID:               v.Receiver.Id,
-								SubjectName:      v.Receiver.SubjectName,
-								SubjectThumbnail: v.Receiver.SubjectThumbnail,
-								IsEnterprise:     v.Receiver.IsEnterprise,
+								SubjectName:      &v.Receiver.SubjectName,
+								SubjectThumbnail: &v.Receiver.SubjectThumbnail,
+								IsEnterprise:     &v.Receiver.IsEnterprise,
+								IsOnline:         v.Receiver.IsOnline,
 							},
 							Status:      model.ComplaintStatus(v.Status),
 							Title:       v.Title,
@@ -716,6 +1106,7 @@ func (r *subscriptionResolver) Complaints(ctx context.Context, id string) (<-cha
 							UpdatedAt: v.UpdatedAt,
 							Replies:   replies,
 						}
+						toModel = append(toModel, casted)
 						ch <- casted
 					}
 				}

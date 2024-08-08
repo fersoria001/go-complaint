@@ -1,5 +1,35 @@
 'use client'
-const ComplaintInput = () => {
+
+import { useState } from "react"
+
+interface Props {
+    sendCallback?: (body: string) => void
+}
+const ComplaintInput: React.FC<Props> = ({ sendCallback = (b: string) => { } }) => {
+    const handleClick = () => {
+        const chatInput = document.getElementById("chat") as HTMLTextAreaElement;
+        const message = chatInput.value.trim();
+        if (message === "") return;
+        chatInput.value = "";
+        sendCallback(message);
+    }
+    const handlePress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            const submitBtn = document.getElementById("submit-btn");
+            submitBtn?.animate([
+                { backgroundColor: "#dbeafe" },
+                { transform: "scale(1)" },
+                { transform: "scale(1.1)" },
+                { transform: "scale(1)" },
+                { backgroundColor: "inherit" },
+            ], {
+                duration: 200,
+                iterations: 1
+            });
+            handleClick();
+        }
+    }
+
     return (
         <form className="relative" >
             <label htmlFor="chat" className="sr-only">Your message</label>
@@ -43,15 +73,13 @@ const ComplaintInput = () => {
                 <div className="flex w-full">
                     <textarea
                         id="chat"
-                        // value={input}
-                        // onKeyUpCapture={handlePress}
-                        // onChange={(e) => setInput(e.target.value)}
+                        onKeyUpCapture={handlePress}
                         rows={2}
                         maxLength={120}
                         className="block md:mx-4 p-2.5 w-full text-sm md:text-xl text-gray-900 bg-white rounded-lg border border-gray-300
      focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Your message...">
                     </textarea>
-                    <button onMouseUp={() => { }}
+                    <button onMouseUp={() => { handleClick() }}
                         id="submit-btn"
                         type="button"
                         className="my-auto inline-flex justify-center p-2 text-blue-600 rounded-full cursor-pointer hover:bg-blue-100">

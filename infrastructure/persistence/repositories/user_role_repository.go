@@ -46,7 +46,7 @@ func (uur UserRoleRepository) SaveAll(
 	}
 	insertCommand := string(`
 	INSERT INTO user_roles
-	(user_id, role_id, enterprise_id) VALUES ($1, $2, $3)`)
+	(user_id, role_id, enterprise_id, enterprise_name) VALUES ($1, $2, $3, $4)`)
 	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -58,6 +58,7 @@ func (uur UserRoleRepository) SaveAll(
 			userRole.UserId(),
 			userRole.GetRole().String(),
 			userRole.EnterpriseId(),
+			userRole.EnterpriseName(),
 		)
 		if err != nil {
 			tx.Rollback(ctx)
@@ -119,14 +120,16 @@ func (uur UserRoleRepository) load(
 	row pgx.Row,
 ) (*identity.UserRole, error) {
 	var (
-		userId       uuid.UUID
-		roleId       string
-		enterpriseId uuid.UUID
+		userId         uuid.UUID
+		roleId         string
+		enterpriseId   uuid.UUID
+		enterpriseName string
 	)
 	err := row.Scan(
 		&userId,
 		&roleId,
 		&enterpriseId,
+		&enterpriseName,
 	)
 	if err != nil {
 		return nil, err
@@ -135,6 +138,6 @@ func (uur UserRoleRepository) load(
 	if err != nil {
 		return nil, err
 	}
-	userRole := identity.NewUserRole(role, userId, enterpriseId)
+	userRole := identity.NewUserRole(role, userId, enterpriseId, enterpriseName)
 	return userRole, nil
 }

@@ -5,7 +5,7 @@ import "sync"
 var applicationMessagePublisherInstance ApplicationMessagePublisher
 var applicationMessagePublisherOnce sync.Once
 
-func ApplicationMessagePublisherInstance() ApplicationMessagePublisher {
+func ApplicationMessagePublisherInstance() *ApplicationMessagePublisher {
 	applicationMessagePublisherOnce.Do(func() {
 		applicationMessagePublisherInstance = ApplicationMessagePublisher{
 			subscribers:   make(map[string]*Subscriber),
@@ -15,7 +15,7 @@ func ApplicationMessagePublisherInstance() ApplicationMessagePublisher {
 		}
 	})
 	go applicationMessagePublisherInstance.Start()
-	return applicationMessagePublisherInstance
+	return &applicationMessagePublisherInstance
 }
 
 type ApplicationMessage struct {
@@ -54,15 +54,26 @@ type ApplicationMessagePublisher struct {
 	subscribeCh   chan *Subscriber
 	unsubscribeCh chan string
 	publishCh     chan ApplicationMessage
+	mu            sync.Mutex
 }
 
 func (p *ApplicationMessagePublisher) Start() {
 	for {
 		select {
-		case v := <-p.subscribeCh:
-			p.subscribers[v.Id] = v
-		case v := <-p.unsubscribeCh:
-			delete(p.subscribers, v)
+		case sub := <-p.subscribeCh:
+			p.mu.Lock()
+			p.subscribers[sub.Id] = sub
+			p.mu.Unlock()
+			for k, sub := range p.subscribers {
+				sub.Send <- NewApplicationMessage(k, "subscriber_connected", sub.Id)
+			}
+		case unsubId := <-p.unsubscribeCh:
+			p.mu.Lock()
+			delete(p.subscribers, unsubId)
+			p.mu.Unlock()
+			for k, sub := range p.subscribers {
+				sub.Send <- NewApplicationMessage(k, "subscriber_disconnected", unsubId)
+			}
 		case m := <-p.publishCh:
 			for k, v := range p.subscribers {
 				if k == m.id {
@@ -83,4 +94,12 @@ func (p *ApplicationMessagePublisher) Unsubscribe(id string) {
 
 func (p *ApplicationMessagePublisher) Subscribe(subscriber *Subscriber) {
 	p.subscribeCh <- subscriber
+}
+
+func (p *ApplicationMessagePublisher) ApplicationSubscribers() []string {
+	ids := make([]string, 0, len(p.subscribers))
+	for k := range p.subscribers {
+		ids = append(ids, k)
+	}
+	return ids
 }

@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
 	"go-complaint/application/queries"
@@ -30,6 +31,35 @@ const (
 var (
 	newline = []byte{'\n'}
 )
+
+type ChatMessageType int
+
+const (
+	ConnectionInit ChatMessageType = iota
+	ConnectionAcknowledged
+	Data
+	Complete
+)
+
+func (cmt ChatMessageType) String() string {
+	switch cmt {
+	case ConnectionInit:
+		return "connection_init"
+	case ConnectionAcknowledged:
+		return "connection_ack"
+	case Data:
+		return "data"
+	case Complete:
+		return "complete"
+	default:
+		return ""
+	}
+}
+
+type ChatMessage struct {
+	Type    string `json:"type"`
+	Payload []byte `json:"payload"`
+}
 
 type Client struct {
 	cas             *ChatAdapter
@@ -67,76 +97,44 @@ func (c *Client) Read() {
 			}
 			break
 		}
-		//message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		if !c.isAuthenticated {
-			var tokenMsg map[string]string
-			err = json.Unmarshal(message, &tokenMsg)
-			if err != nil {
-				log.Printf("error at unmarshal token: %v", err)
-				break
-			}
-			r := map[string]bool{"authenticated": false}
+		var chatMessage ChatMessage
+		err = json.Unmarshal(message, &chatMessage)
+		if err != nil {
+			log.Printf("error at unmarshal token: %v", err)
+			break
+		}
+		switch chatMessage.Type {
+		case ConnectionInit.String():
 			svc := application_services.AuthorizationApplicationServiceInstance()
-			_, err = svc.Authorize(context.Background(), tokenMsg["token"])
+			_, err = svc.Authorize(context.Background(), string(chatMessage.Payload))
+			response := ChatMessage{Type: ConnectionAcknowledged.String()}
 			if err != nil {
-				log.Printf("error at authorize: %v", err)
-				m, err := json.Marshal(r)
-				if err != nil {
-					log.Printf("error marshalling authorize response false: %v", err)
-					break
-				}
-				c.send <- m
-				break
+				response.Payload = []byte("false")
+			} else {
+				response.Payload = []byte("true")
+				c.isAuthenticated = true
 			}
-			c.isAuthenticated = true
-			r["authenticated"] = true
-			m, err := json.Marshal(r)
+			m, err := json.Marshal(response)
 			if err != nil {
-				log.Printf("error marshaling authorize response true: %v", err)
+				log.Printf("error marshalling authorize response false: %v", err)
 				break
 			}
 			c.send <- m
-		} else {
-			subProtocol := c.conn.Subprotocol()
-			switch subProtocol {
-			case "complaint":
-				var command commands.ReplyComplaintCommand
-				err = json.Unmarshal(message, &command)
-				if err != nil {
-					log.Printf("error unmarshal command: %v", err)
-					break
-				}
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-				err = command.Execute(ctx)
-				if err != nil {
-					cancel()
-					log.Printf("error execute command: %v", err)
-					break
-				}
-				replyId, ok := cache.InMemoryInstance().Get(command.ComplaintId)
-				if !ok {
-					cancel()
-					log.Printf("replyId not cached with []byte key")
-					break
-				}
-				q := queries.NewComplaintReplyQuery(replyId.(string))
-				reply, err := q.Execute(ctx)
-				if err != nil {
-					cancel()
-					log.Printf("err execute query: %v", err)
-					break
-				}
-				b, err := json.Marshal(reply)
-				if err != nil {
-					cancel()
-					log.Printf("err marshaling query result: %v", err)
-					break
-				}
-				c.cas.broadcast <- b
-				cancel()
-			case "enterprise":
-			default:
+		case Data.String():
+			if !c.isAuthenticated {
+				break
 			}
+			p, err := c.HandleSubProtocol(c.conn.Subprotocol(), chatMessage.Payload)
+			if err != nil {
+				log.Printf("error at sub protocol handler false: %v", err)
+				break
+			}
+			response, err := json.Marshal(&ChatMessage{Type: Data.String(), Payload: p})
+			if err != nil {
+				log.Printf("error marshalling data response: %v", err)
+				break
+			}
+			c.cas.broadcast <- response
 		}
 	}
 }
@@ -184,5 +182,136 @@ func (c *Client) Write() {
 				return
 			}
 		}
+	}
+}
+
+type ComplaintSubProtocolDataType int
+
+func (c *Client) HandleSubProtocol(subProtocol string, payload []byte) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	switch subProtocol {
+	case "complaint":
+		return complaintSubProtocol(ctx, payload)
+	case "enterprise":
+		return nil, fmt.Errorf(("not implemented yet"))
+	default:
+		return nil, fmt.Errorf(("unsupported subProtocol"))
+	}
+}
+
+const (
+	ReplyComplaint ComplaintSubProtocolDataType = iota
+	MarkAsRead
+	ComplaintReply
+	Complaint
+)
+
+func (cspdt ComplaintSubProtocolDataType) String() string {
+	switch cspdt {
+	case ReplyComplaint:
+		return "reply_complaint"
+	case MarkAsRead:
+		return "mark_as_read"
+	case ComplaintReply:
+		return "complaint_reply"
+	case Complaint:
+		return "complaint"
+	default:
+		return ""
+	}
+}
+
+type ComplaintSubProtocolPayload struct {
+	SubProtocolDataType string `json:"subProtocolDataType"`
+	Command             []byte `json:"command"`
+}
+
+type ComplaintSubProtocolResult struct {
+	SubProtocolDataType string `json:"subProtocolDataType"`
+	Result              []byte `json:"result"`
+}
+
+type markAsSeenData struct {
+	ComplaintId string `json:"complaintId"`
+	ReplyId     string `json:"replyId"`
+}
+
+func complaintSubProtocol(ctx context.Context, payload []byte) ([]byte, error) {
+	var p ComplaintSubProtocolPayload
+	err := json.Unmarshal(payload, &p)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshal complaint subprotocol payload: %v", err)
+	}
+	switch p.SubProtocolDataType {
+	case ReplyComplaint.String():
+		var c commands.ReplyComplaintCommand
+		err := json.Unmarshal(p.Command, &c)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling reply complaint command: %v", err)
+		}
+		err = c.Execute(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error execute command: %v", err)
+		}
+		replyId, ok := cache.InMemoryInstance().Get(c.ComplaintId)
+		if !ok {
+			return nil, fmt.Errorf("replyId not cached with []byte key")
+		}
+		q := queries.NewComplaintReplyQuery(replyId.(string))
+		reply, err := q.Execute(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("err execute query: %v", err)
+		}
+		b, err := json.Marshal(reply)
+		if err != nil {
+			return nil, fmt.Errorf("err marshaling query result: %v", err)
+		}
+		responsePayload, err := json.Marshal(ComplaintSubProtocolResult{
+			SubProtocolDataType: ComplaintReply.String(),
+			Result:              b,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("err marshaling response payload result: %v", err)
+		}
+		return responsePayload, nil
+	case MarkAsRead.String():
+		var d []markAsSeenData
+		err = json.Unmarshal(p.Command, &d)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling mark as seen data: %v", err)
+		}
+		if len(d) <= 0 {
+			return nil, fmt.Errorf("error unmarshalling mark as seen data the length is zero: %v", err)
+		}
+		complaintId := d[len(d)-1].ComplaintId
+		ids := make([]string, 0, len(d))
+		for i := range d {
+			ids = append(ids, d[i].ReplyId)
+		}
+		c := commands.NewMarkRepliesAsReadCommand(complaintId, ids)
+		err := c.Execute(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error executing mark replies as read command: %v", err)
+		}
+		q := queries.NewComplaintByIdQuery(complaintId)
+		dbC, err := q.Execute(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error executing query after mark replies as read: %v", err)
+		}
+		b, err := json.Marshal(dbC)
+		if err != nil {
+			return nil, fmt.Errorf("error marshalling query  result after mark replies as read: %v", err)
+		}
+		responsePayload, err := json.Marshal(ComplaintSubProtocolResult{
+			SubProtocolDataType: Complaint.String(),
+			Result:              b,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("err marshaling response payload result: %v", err)
+		}
+		return responsePayload, nil
+	default:
+		return nil, fmt.Errorf("default case not implemented")
 	}
 }

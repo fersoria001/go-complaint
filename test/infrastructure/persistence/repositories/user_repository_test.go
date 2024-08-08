@@ -173,7 +173,7 @@ func TestUserRepository_Update(t *testing.T) {
 		dbUser, err := repository.Get(ctx, user.Id())
 		assert.Nil(t, err)
 		assert.Equal(t, v.UserRoles.Cardinality(), dbUser.UserRoles().Cardinality())
-		err = dbUser.AddRole(ctx, v.RoleToAdd.GetRole(), v.RoleToAdd.EnterpriseId())
+		err = dbUser.AddRole(ctx, v.RoleToAdd.GetRole(), v.RoleToAdd.EnterpriseId(), v.RoleToAdd.EnterpriseName())
 		assert.Nil(t, err)
 		err = repository.Update(ctx, dbUser)
 		assert.Nil(t, err)

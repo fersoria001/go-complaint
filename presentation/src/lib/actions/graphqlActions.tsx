@@ -1,12 +1,19 @@
 'use server'
-import { ComplaintInfo, CreateEnterprise } from "@/gql/graphql"
+
+import { SendComplaint, DescribeComplaint, Complaint, CreateNewComplaint, ComplaintsInfo, CreateEnterprise } from "@/gql/graphql"
 import getGraphQLClient from "@/graphql/graphQLClient"
+import createEnterpriseMutation from "@/graphql/mutations/createEnterpriseMutation"
+import createNewComplaintMutation from "@/graphql/mutations/createNewComplaintMutation"
+import describeComplaintMutation from "@/graphql/mutations/describeComplaintMutation"
+import sendComplaintMutation from "@/graphql/mutations/sendComplaintMutation"
 import complaintsInfoQuery from "@/graphql/queries/complaintsInfoQuery"
 import { cookies } from "next/headers"
-import { z } from "zod"
-import registerEnterpriseSchema from "../validation/registerEnterpriseSchema"
-import createEnterpriseMutation from "@/graphql/mutations/createEnterpriseMutation"
 import { redirect } from "next/navigation"
+import { z } from "zod"
+import describeComplaintSchema from "../validation/describeComplaintSchema"
+import registerEnterpriseSchema from "../validation/registerEnterpriseSchema"
+import sendComplaintSchema from "../validation/sendComplaintSchema"
+
 
 
 function gqlClientWithCookie() {
@@ -17,9 +24,50 @@ function gqlClientWithCookie() {
     return gqlClient
 }
 
-export async function getComplaintsInfo(id: string): Promise<ComplaintInfo> {
+export type SendComplaintFormState = Partial<z.inferFlattenedErrors<typeof sendComplaintSchema>>
+export async function sendComplaint(state: SendComplaintFormState | undefined, fd: FormData) {
+    const { data, success, error } = sendComplaintSchema.safeParse(Object.fromEntries(fd))
+    if (!success) {
+        return error.flatten()
+    }
+    try {
+       await gqlClientWithCookie().request(sendComplaintMutation, { input: data as SendComplaint })
+    } catch (e: any) {
+        let msg: string = e.message
+        return {
+            formErrors: [msg],
+            fieldErrors: {}
+        }
+    }
+    redirect(`/complaints`)
+}
+
+export type DescribeComplaintFormState = Partial<z.inferFlattenedErrors<typeof describeComplaintSchema>>
+export async function describeComplaint(state: DescribeComplaintFormState | undefined, fd: FormData) {
+    const { data, success, error } = describeComplaintSchema.safeParse(Object.fromEntries(fd))
+    if (!success) {
+        return error.flatten()
+    }
+    try {
+        await gqlClientWithCookie().request(describeComplaintMutation, { input: data as DescribeComplaint })
+    } catch (e: any) {
+        let msg: string = e.message
+        return {
+            formErrors: [msg],
+            fieldErrors: {}
+        }
+    }
+    redirect(`/complaints/send-complaint?step=3&id=${data.complaintId}`)
+}
+export async function createNewComplaint(receiverId: string): Promise<Complaint> {
+    const authorId = cookies().get("alias")?.value as string
+    const result = await gqlClientWithCookie().request(createNewComplaintMutation, { input: { authorId, receiverId } as CreateNewComplaint })
+    return result.createNewComplaint
+}
+
+export async function getComplaintsInfo(id: string): Promise<ComplaintsInfo> {
     const result = await gqlClientWithCookie().request(complaintsInfoQuery, { id: id })
-    return result.complaintsReceivedInfo
+    return result.complaintsInfo
 }
 
 export type RegisterEnterpriseFormState = Partial<z.inferFlattenedErrors<typeof registerEnterpriseSchema>>

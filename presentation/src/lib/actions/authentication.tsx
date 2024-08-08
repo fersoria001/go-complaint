@@ -79,7 +79,7 @@ export async function confirmSignIn(prevState: ConfirmSignInFormState, fd: FormD
             value: cookie.jwt,
             httpOnly: cookie.HttpOnly ? true : false,
             path: cookie.Path,
-            expires: cookie.Expires ? new Date(cookie.Expires) : new Date()
+            expires: cookie.Expires ? Date.parse(cookie.Expires) : new Date()
         })
     } catch (e: any) {
         if (e.response?.data) {
@@ -108,20 +108,3 @@ export async function recoverPassword(prevState: any, fd: FormData) {
     }
 }
 
-
-export async function getSession(): Promise<UserDescriptor | undefined> {
-    const jwtCookie = cookies().get("jwt")
-    if (!jwtCookie) {
-        return undefined
-    }
-    const strCookie = `${jwtCookie?.name}=${jwtCookie?.value}`
-    const gqlClient = getGraphQLClient()
-    gqlClient.setHeader("Cookie", strCookie)
-    try {
-        const response = await gqlClient.request(userDescriptorQuery)
-        return response.userDescriptor
-    } catch (e: any) {
-        return undefined
-    }
-
-}

@@ -109,6 +109,14 @@ func (ur UserRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	if !ok {
 		return ErrWrongTypeAssertion
 	}
+	addressRepository, ok := MapperRegistryInstance().Get("Address").(AddressRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	err = addressRepository.Remove(ctx, id)
+	if err != nil {
+		return err
+	}
 	err = personRepository.Remove(ctx, id)
 	if err != nil {
 		return err

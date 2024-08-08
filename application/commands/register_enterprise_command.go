@@ -96,6 +96,7 @@ func (c RegisterEnterpriseCommand) Execute(ctx context.Context) error {
 						ctx,
 						identity.OWNER,
 						newId,
+						c.Name,
 					)
 					if err != nil {
 						return err

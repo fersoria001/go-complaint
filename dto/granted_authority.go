@@ -7,7 +7,8 @@ import (
 )
 
 type GrantedAuthority struct {
-	EnterpriseID string `json:"enterprise_id"`
+	EnterpriseID string `json:"enterpriseId"`
+	Principal    string `json:"principal"`
 	Authority    string `json:"authority"`
 }
 
@@ -17,6 +18,7 @@ func NewGrantedAuthority(
 ) GrantedAuthority {
 	return GrantedAuthority{
 		EnterpriseID: enterpriseID,
+		Principal:    domainObj.Principal(),
 		Authority:    domainObj.Authority(),
 	}
 }

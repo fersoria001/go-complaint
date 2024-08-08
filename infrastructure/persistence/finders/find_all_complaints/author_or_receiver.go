@@ -19,8 +19,8 @@ func ByAuthorOrReceiver(id uuid.UUID, status []string) *AuthorOrReceiver {
 	description,
 	created_at,
 	updated_at
-	FROM complaint WHERE author_id = $1 OR receiver_id = $1
-	AND status = any($2)
+	FROM complaint WHERE status = any($2) AND author_id = $1  OR  status = any($2) AND receiver_id = $1
+	
 	ORDER BY CREATED_AT
 	`),
 		args: []interface{}{id, status},

@@ -79,7 +79,16 @@ func (c HireEmployeeCommand) Execute(ctx context.Context) error {
 				if !ok {
 					return ErrWrongTypeAssertion
 				}
+				recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
+				if !ok {
+					return ErrWrongTypeAssertion
+				}
+
 				hiringProccess, err := hiringProccessRepository.Get(ctx, e.HiringProccessId())
+				if err != nil {
+					return err
+				}
+				enterpriseRecipient, err := recipientRepository.Get(ctx, hiringProccess.Id())
 				if err != nil {
 					return err
 				}
@@ -91,7 +100,7 @@ func (c HireEmployeeCommand) Execute(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
-				err = user.AddRole(ctx, toRole, hiringProccess.Enterprise().Id())
+				err = user.AddRole(ctx, toRole, hiringProccess.Enterprise().Id(), enterpriseRecipient.SubjectName())
 				if err != nil {
 					return err
 				}

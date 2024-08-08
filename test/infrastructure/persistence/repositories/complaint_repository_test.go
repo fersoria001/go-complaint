@@ -6,6 +6,7 @@ import (
 	"go-complaint/domain/model/recipient"
 	"go-complaint/infrastructure/persistence/counters/count_complaints"
 	"go-complaint/infrastructure/persistence/finders/find_all_complaints"
+	"go-complaint/infrastructure/persistence/finders/find_complaint"
 	"go-complaint/infrastructure/persistence/repositories"
 	"go-complaint/test/mock_data"
 	"testing"
@@ -523,6 +524,58 @@ func TestComplaintRepository_Count_WhereAuthorOrReceiver(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, count)
 	assert.Equal(t, count, 2)
+	t.Cleanup(func() {
+		complaintRepository, ok := reg.Get("Complaint").(repositories.ComplaintRepository)
+		assert.True(t, ok)
+		recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
+		assert.True(t, ok)
+		for _, v := range mock_data.NewComplaints {
+			err := complaintRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
+		for _, v := range mock_data.NewRecipients {
+			err := recipientRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
+	})
+}
+
+func TestComplaintRepository_Find_ByAuthorIdAndReceiverIdAndWritingTrue(t *testing.T) {
+	TestComplaintRepository_Setup(t)
+	ctx := context.Background()
+	reg := repositories.MapperRegistryInstance()
+	repository, ok := reg.Get("Complaint").(repositories.ComplaintRepository)
+	assert.True(t, ok)
+	for _, v := range mock_data.NewComplaints {
+		author := recipient.NewRecipient(
+			v.Author.Id,
+			v.Author.SubjectName,
+			v.Author.SubjectThumbnail,
+			v.Author.SubjectEmail,
+			v.Author.IsEnterprise,
+		)
+		receiver := recipient.NewRecipient(
+			v.Receiver.Id,
+			v.Receiver.SubjectName,
+			v.Receiver.SubjectThumbnail,
+			v.Author.SubjectEmail,
+			v.Receiver.IsEnterprise,
+		)
+		newComplaint, err := complaint.CreateNew(
+			ctx,
+			v.Id,
+			*author,
+			*receiver,
+		)
+		assert.Nil(t, err)
+		assert.NotNil(t, newComplaint)
+		err = repository.Save(ctx, newComplaint)
+		assert.Nil(t, err)
+		dbc, err := repository.Find(ctx, find_complaint.ByAuthorAndReceiverAndWritingTrue(author.Id(), receiver.Id()))
+		assert.Nil(t, err)
+		assert.NotNil(t, dbc)
+	}
+
 	t.Cleanup(func() {
 		complaintRepository, ok := reg.Get("Complaint").(repositories.ComplaintRepository)
 		assert.True(t, ok)

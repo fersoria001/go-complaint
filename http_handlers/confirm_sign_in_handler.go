@@ -43,7 +43,7 @@ func ConfirmSignInHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	value := fmt.Sprintf("Bearer %s", sessionToken.Token)
+	value := sessionToken.Token
 	raw := fmt.Sprintf("jwt=%s", value)
 	cookie := &http.Cookie{
 		Name:       "jwt",

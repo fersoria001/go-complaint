@@ -13,7 +13,8 @@ func ByUserId(userId uuid.UUID) *UserId {
 			SELECT
 				user_id,
 				role_id,
-				enterprise_id
+				enterprise_id,
+				enterprise_name
 			FROM
 				user_roles
 			WHERE
