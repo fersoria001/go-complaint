@@ -7,6 +7,9 @@ import (
 	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/finders/find_all_complaints"
 	"go-complaint/infrastructure/persistence/repositories"
+	"go-complaint/infrastructure/trie"
+	"slices"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -14,11 +17,13 @@ import (
 
 type PendingReviewsByAuthorIdQuery struct {
 	AuthorId string `json:"authorId"`
+	Term     string `json:"term"`
 }
 
-func NewPendingReviewsByAuthorIdQuery(authorId string) *PendingReviewsByAuthorIdQuery {
+func NewPendingReviewsByAuthorIdQuery(authorId, term string) *PendingReviewsByAuthorIdQuery {
 	return &PendingReviewsByAuthorIdQuery{
 		AuthorId: authorId,
+		Term:     term,
 	}
 }
 
@@ -41,6 +46,22 @@ func (q PendingReviewsByAuthorIdQuery) Execute(ctx context.Context) ([]*dto.Comp
 			return result, nil
 		}
 		return nil, err
+	}
+	if q.Term != "" {
+		trie := trie.NewTrie()
+		for i := range p {
+			trie.InsertText(p[i].Id().String(), p[i].Title(), " ")
+			trie.InsertText(p[i].Id().String(), p[i].Description(), " ")
+			trie.InsertText(p[i].Id().String(), p[i].Body(), " ")
+			trie.InsertText(p[i].Id().String(), p[i].Author().SubjectName(), " ")
+			trie.InsertText(p[i].Id().String(), p[i].Receiver().SubjectName(), " ")
+			trie.InsertText(p[i].Id().String(), p[i].Rating().Comment(), " ")
+			trie.InsertText(p[i].Id().String(), p[i].Rating().LastUpdate().UTC().Format(time.UnixDate), " ")
+		}
+		searchResults := trie.Search(q.Term)
+		p = slices.DeleteFunc(p, func(e *complaint.Complaint) bool {
+			return !searchResults.Contains(e.Id().String())
+		})
 	}
 	for _, v := range p {
 		result = append(result, dto.NewComplaint(*v))

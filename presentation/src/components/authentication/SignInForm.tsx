@@ -20,7 +20,8 @@ const SignInForm: React.FC = () => {
                 }
                 <label
                     className="block text-gray-700 text-sm lg:text-md font-bold mb-2"
-                    htmlFor="userName">Email</label>
+                    htmlFor="userName">Email
+                </label>
                 <input
                     className="appearance-none border rounded w-full py-2 px-3 text-md lg:text-lg
                  text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
@@ -58,7 +59,9 @@ const SignInForm: React.FC = () => {
                     </div>
                     <label
                         className="block text-gray-700 text-sm lg:text-md font-bold mb-2 ms-2"
-                        htmlFor="rememberMe">Remember me</label>
+                        htmlFor="rememberMe">
+                        Remember me
+                    </label>
                 </div>
                 {
                     state?.fieldErrors?.rememberMe &&

@@ -3,7 +3,7 @@ import IconsProps from "./IconsProps";
 const LoadingSpinnerIcon: React.FC<IconsProps> = ({
     height = 32,
     width = 32,
-    fill = "#5f6368",
+    fill = "",
     className = "inline animate-spin"
 }) => {
     return (

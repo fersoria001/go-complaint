@@ -112,28 +112,28 @@ func TestSendComplaintToReviewCommand_Execute(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Greater(t, len(v.Replies), 0)
 		mockBody := v.Replies[0].Body
-		c2 := commands.NewSendComplaintCommand(complaintId.String(), mockBody)
+		c2 := commands.NewSendComplaintCommand(complaintId.String(), author.Id().String(), mockBody)
 		err = c2.Execute(ctx)
 		assert.Nil(t, err)
 		for _, repliesMock := range mock_data.NewReplies {
 			for _, replyMock := range repliesMock {
-				c3 := commands.NewReplyComplaintCommand(author.Id().String(), complaintId.String(), replyMock.Body)
+				c3 := commands.NewReplyComplaintCommand(author.Id().String(), author.Id().String(), complaintId.String(), replyMock.Body)
 				err := c3.Execute(ctx)
 				assert.Nil(t, err)
 			}
 		}
-		c4 := commands.NewSendComplaintToReviewCommand(receiver.Id().String(), complaintId.String())
+		c4 := commands.NewSendComplaintToReviewCommand(receiver.Id().String(), author.Id().String(), complaintId.String())
 		err = c4.Execute(ctx)
 		assert.Nil(t, err)
 		dbC, err := complaintRepository.Get(ctx, complaintId)
 		assert.Nil(t, err)
 		assert.Equal(t, complaint.IN_REVIEW, dbC.Status())
 		complaints = append(complaints, dbC)
-		complaintData, err := complaintDataRepository.FindAll(ctx, find_all_complaint_data.ByOwnerId(receiver.Id()))
+		complaintData, err := complaintDataRepository.FindAll(ctx, find_all_complaint_data.ByOwnerIdAndDataOwnership(receiver.Id()))
 		assert.Nil(t, err)
 		assert.NotNil(t, complaintData)
 		assert.Equal(t, len(complaintData), 2)
-		complaintData1, err := complaintDataRepository.FindAll(ctx, find_all_complaint_data.ByOwnerId(author.Id()))
+		complaintData1, err := complaintDataRepository.FindAll(ctx, find_all_complaint_data.ByOwnerIdAndDataOwnership(author.Id()))
 		assert.Nil(t, err)
 		assert.NotNil(t, complaintData1)
 		assert.Equal(t, len(complaintData1), 1)

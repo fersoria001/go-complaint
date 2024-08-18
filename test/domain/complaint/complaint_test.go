@@ -29,8 +29,7 @@ func TestComplaint_New(t *testing.T) {
 			v.Receiver.SubjectEmail,
 			v.Receiver.IsEnterprise,
 		)
-		rating, err := complaint.NewRating(v.Id, v.Rating.Rate, v.Rating.Comment)
-		assert.Nil(t, err)
+		rating := &complaint.Rating{}
 		assert.Greater(t, len(v.Replies), 0)
 		mockReply := v.Replies[0]
 		reply, err := complaint.NewReply(
@@ -42,6 +41,8 @@ func TestComplaint_New(t *testing.T) {
 			mockReply.CreatedAt,
 			mockReply.ReadAt,
 			mockReply.UpdatedAt,
+			mockReply.Sender.IsEnterprise,
+			mockReply.Sender.Id,
 		)
 		assert.Nil(t, err)
 		replies := mapset.NewSet(reply)

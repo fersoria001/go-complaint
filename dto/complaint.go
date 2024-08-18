@@ -34,28 +34,38 @@ type Complaint struct {
 }
 
 type Rating struct {
-	Id      string `json:"id"`
-	Rate    int    `json:"rate"`
-	Comment string `json:"comment"`
+	Id             string     `json:"id"`
+	Rate           int        `json:"rate"`
+	Comment        string     `json:"comment"`
+	SentToReviewBy *Recipient `json:"sentToReviewBy"`
+	RatedBy        *Recipient `json:"ratedBy"`
+	CreatedAt      string     `json:"createdAt"`
+	LastUpdate     string     `json:"lastUpdate"`
 }
 
 func NewRating(obj complaint.Rating) *Rating {
 	return &Rating{
-		Id:      obj.Id().String(),
-		Rate:    obj.Rate(),
-		Comment: obj.Comment(),
+		Id:             obj.Id().String(),
+		Rate:           obj.Rate(),
+		Comment:        obj.Comment(),
+		SentToReviewBy: NewRecipient(obj.SentToReviewBy()),
+		RatedBy:        NewRecipient(obj.RatedBy()),
+		CreatedAt:      common.StringDate(obj.CreatedAt()),
+		LastUpdate:     common.StringDate(obj.LastUpdate()),
 	}
 }
 
 type Reply struct {
-	Id          string     `json:"id"`
-	ComplaintId string     `json:"complaintId"`
-	Sender      *Recipient `json:"sender"`
-	Body        string     `json:"body"`
-	CreatedAt   string     `json:"createdAt"`
-	Read        bool       `json:"read"`
-	ReadAt      string     `json:"readAt"`
-	UpdatedAt   string     `json:"updatedAt"`
+	Id           string     `json:"id"`
+	ComplaintId  string     `json:"complaintId"`
+	Sender       *Recipient `json:"sender"`
+	Body         string     `json:"body"`
+	CreatedAt    string     `json:"createdAt"`
+	Read         bool       `json:"read"`
+	ReadAt       string     `json:"readAt"`
+	UpdatedAt    string     `json:"updatedAt"`
+	IsEnterprise bool       `json:"isEnterprise"`
+	EnterpriseId string     `json:"enterpriseId"`
 }
 
 func NewComplaint(
@@ -63,7 +73,8 @@ func NewComplaint(
 ) *Complaint {
 	replyDTOSlice := []*Reply{}
 	for reply := range domainComplaint.Replies().Iter() {
-		replyDTOSlice = append(replyDTOSlice, NewReply(reply))
+		newR := NewReply(reply)
+		replyDTOSlice = append(replyDTOSlice, newR)
 	}
 	slices.SortStableFunc(replyDTOSlice, func(i, j *Reply) int {
 		iCreatedAt, _ := common.ParseDate(i.CreatedAt)
@@ -94,13 +105,15 @@ func NewReply(
 	domainReply complaint.Reply,
 ) *Reply {
 	return &Reply{
-		Id:          domainReply.ID().String(),
-		ComplaintId: domainReply.ComplaintId().String(),
-		Sender:      NewRecipient(domainReply.Sender()),
-		Body:        domainReply.Body(),
-		CreatedAt:   domainReply.CreatedAt().StringRepresentation(),
-		Read:        domainReply.Read(),
-		ReadAt:      domainReply.ReadAt().StringRepresentation(),
-		UpdatedAt:   domainReply.UpdatedAt().StringRepresentation(),
+		Id:           domainReply.ID().String(),
+		ComplaintId:  domainReply.ComplaintId().String(),
+		Sender:       NewRecipient(domainReply.Sender()),
+		Body:         domainReply.Body(),
+		CreatedAt:    domainReply.CreatedAt().StringRepresentation(),
+		Read:         domainReply.Read(),
+		ReadAt:       domainReply.ReadAt().StringRepresentation(),
+		UpdatedAt:    domainReply.UpdatedAt().StringRepresentation(),
+		IsEnterprise: domainReply.IsEnterprise(),
+		EnterpriseId: domainReply.EnterpriseId().String(),
 	}
 }

@@ -1,6 +1,9 @@
 package application
 
-import "sync"
+import (
+	"slices"
+	"sync"
+)
 
 var applicationMessagePublisherInstance ApplicationMessagePublisher
 var applicationMessagePublisherOnce sync.Once
@@ -8,9 +11,9 @@ var applicationMessagePublisherOnce sync.Once
 func ApplicationMessagePublisherInstance() *ApplicationMessagePublisher {
 	applicationMessagePublisherOnce.Do(func() {
 		applicationMessagePublisherInstance = ApplicationMessagePublisher{
-			subscribers:   make(map[string]*Subscriber),
+			subscribers:   make([]*Subscriber, 0),
 			subscribeCh:   make(chan *Subscriber),
-			unsubscribeCh: make(chan string),
+			unsubscribeCh: make(chan *Subscriber),
 			publishCh:     make(chan ApplicationMessage),
 		}
 	})
@@ -45,14 +48,15 @@ func NewApplicationMessage(id, dataType string, value any) ApplicationMessage {
 }
 
 type Subscriber struct {
-	Id   string
-	Send chan ApplicationMessage
+	Id     string
+	UserId string
+	Send   chan ApplicationMessage
 }
 
 type ApplicationMessagePublisher struct {
-	subscribers   map[string]*Subscriber
+	subscribers   []*Subscriber
 	subscribeCh   chan *Subscriber
-	unsubscribeCh chan string
+	unsubscribeCh chan *Subscriber
 	publishCh     chan ApplicationMessage
 	mu            sync.Mutex
 }
@@ -62,24 +66,35 @@ func (p *ApplicationMessagePublisher) Start() {
 		select {
 		case sub := <-p.subscribeCh:
 			p.mu.Lock()
-			p.subscribers[sub.Id] = sub
-			p.mu.Unlock()
-			for k, sub := range p.subscribers {
-				sub.Send <- NewApplicationMessage(k, "subscriber_connected", sub.Id)
+			p.subscribers = append(p.subscribers, sub)
+			for _, v := range p.subscribers {
+				if sub.Id == v.Id {
+					v.Send <- NewApplicationMessage(v.Id, "subscriber_connected", sub)
+				}
 			}
-		case unsubId := <-p.unsubscribeCh:
+			p.mu.Unlock()
+		case sub := <-p.unsubscribeCh:
 			p.mu.Lock()
-			delete(p.subscribers, unsubId)
-			p.mu.Unlock()
-			for k, sub := range p.subscribers {
-				sub.Send <- NewApplicationMessage(k, "subscriber_disconnected", unsubId)
+			p.subscribers = slices.DeleteFunc(p.subscribers, func(e *Subscriber) bool {
+				if e.UserId != "" {
+					return e.UserId == sub.UserId
+				}
+				return e.Id == sub.Id
+			})
+			for _, v := range p.subscribers {
+				if v.Id == sub.Id {
+					v.Send <- NewApplicationMessage(v.Id, "subscriber_disconnected", sub)
+				}
 			}
+			p.mu.Unlock()
 		case m := <-p.publishCh:
-			for k, v := range p.subscribers {
-				if k == m.id {
+			p.mu.Lock()
+			for _, v := range p.subscribers {
+				if v.Id == m.id {
 					v.Send <- m
 				}
 			}
+			p.mu.Unlock()
 		}
 	}
 }
@@ -88,18 +103,14 @@ func (p *ApplicationMessagePublisher) Publish(m ApplicationMessage) {
 	p.publishCh <- m
 }
 
-func (p *ApplicationMessagePublisher) Unsubscribe(id string) {
-	p.unsubscribeCh <- id
+func (p *ApplicationMessagePublisher) Unsubscribe(sub *Subscriber) {
+	p.unsubscribeCh <- sub
 }
 
 func (p *ApplicationMessagePublisher) Subscribe(subscriber *Subscriber) {
 	p.subscribeCh <- subscriber
 }
 
-func (p *ApplicationMessagePublisher) ApplicationSubscribers() []string {
-	ids := make([]string, 0, len(p.subscribers))
-	for k := range p.subscribers {
-		ids = append(ids, k)
-	}
-	return ids
+func (p *ApplicationMessagePublisher) ApplicationSubscribers() []*Subscriber {
+	return p.subscribers
 }

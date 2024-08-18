@@ -37,6 +37,8 @@ const complaintByIdQuery = graphql(`
                 readAt
                 createdAt
                 updatedAt
+                isEnterprise
+                enterpriseId
             }
         }
     }`)

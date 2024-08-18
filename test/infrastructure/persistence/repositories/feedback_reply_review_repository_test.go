@@ -170,6 +170,8 @@ func TestFeedbackReplyReviewRepository_Update(t *testing.T) {
 				reply.CreatedAt,
 				reply.ReadAt,
 				reply.UpdatedAt,
+				sender.IsEnterprise(),
+				sender.Id(),
 			)
 			require.NoError(t, err)
 			replies = append(replies, newReply)

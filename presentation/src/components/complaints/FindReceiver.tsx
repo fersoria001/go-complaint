@@ -68,7 +68,7 @@ const FindReceiver: React.FC = () => {
                     <ul className="flex flex-col w-full h-auto cursor-pointer">
                         {recipients && recipients.recipientsByNameLike.length > 0 && recipients.recipientsByNameLike.map((recipient) => (
                             <li
-                                onClick={() => { setReceiver(recipient) }}
+                                onClick={() => { setReceiver(recipient as Recipient) }}
                                 className={clsx("flex items-center pb-2 first:mt-4", {
                                     "bg-gray-100": receiver?.id === recipient.id,
                                     "hover:bg-gray-100": receiver?.id !== recipient.id

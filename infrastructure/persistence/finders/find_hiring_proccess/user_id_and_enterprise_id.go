@@ -19,7 +19,8 @@ func ByUserIdAndEnterpriseId(userId, enterpriseId uuid.UUID) *UserIdAndEnterpris
 	EMITED_BY_ID,
 	OCCURRED_ON,
 	LAST_UPDATE,
-	UPDATED_BY_ID
+	UPDATED_BY_ID,
+	INDUSTRY_ID
 	FROM HIRING_PROCCESSES WHERE ENTERPRISE_ID = $1 AND USER_ID =$2`),
 		args: []interface{}{enterpriseId, userId},
 	}

@@ -16,7 +16,7 @@ type Feedback struct {
 	IsDone         bool             `json:"isDone"`
 }
 
-func NewFeedbackDTO(domainObject feedback.Feedback) Feedback {
+func NewFeedbackDTO(domainObject feedback.Feedback) *Feedback {
 	var replyReviews []ReplyReview
 	for _, replyReview := range domainObject.ReplyReviews().ToSlice() {
 		replyReviews = append(replyReviews, NewReplyReviewDTO(replyReview))
@@ -25,7 +25,7 @@ func NewFeedbackDTO(domainObject feedback.Feedback) Feedback {
 	for _, feedbackAnswer := range domainObject.FeedbackAnswers().ToSlice() {
 		feedbackAnswers = append(feedbackAnswers, NewFeedbackAnswerDTO(feedbackAnswer))
 	}
-	return Feedback{
+	return &Feedback{
 		Id:             domainObject.Id().String(),
 		ComplaintId:    domainObject.ComplaintId().String(),
 		EnterpriseId:   domainObject.EnterpriseId().String(),

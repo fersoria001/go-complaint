@@ -16,8 +16,8 @@ const UsersForHiring: React.FC = () => {
     const params = useParams()
     const searchParams = useSearchParams()
     const [page, setPage] = useState<number>(parseInt(searchParams.get("page") || "0", 10))
-    const query = searchParams.get("query") || ""
-    const enterpriseId = params.enterpriseId
+    const query = searchParams.get("query") as string || ""
+    const enterpriseId = params.enterpriseId as string
     const gqlClient = getGraphQLClient()
     const {
         data,
@@ -34,8 +34,8 @@ const UsersForHiring: React.FC = () => {
         queryKey: ['users-for-hiring', enterpriseId, query],
         queryFn: async ({ pageParam, queryKey }) => gqlClient.request(usersForHiringQuery, {
             input: {
-                id: queryKey[1] as string,
-                query: queryKey[2] as string,
+                id: decodeURIComponent(queryKey[1]),
+                query: decodeURIComponent(queryKey[2]),
                 limit: 10,
                 offset: pageParam * 10,
             }
@@ -56,9 +56,9 @@ const UsersForHiring: React.FC = () => {
     })
     const router = useRouter()
     const pages = Math.floor(data.pages[0].usersForHiring.count / 10)
-    const onChangeSearch = (e: React.ChangeEvent<HTMLInputElement>)=>{
-        if(e.currentTarget.value.length > 3) {
-            router.push(`/enterprises/${enterpriseId}/employees/hire-new?query=${e.currentTarget.value}`)
+    const onChangeSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.currentTarget.value.length > 3) {
+            router.push(`/enterprises/${enterpriseId}/employees/hiring/hire-new?query=${e.currentTarget.value}`)
         }
     }
     return (
@@ -70,7 +70,7 @@ const UsersForHiring: React.FC = () => {
                         data.pages[0].usersForHiring.users.map((user: User) => {
                             return (
                                 <li key={user.userName}>
-                                    <Link href={`/enterprises/${enterpriseId}/employees/hire?userId=${user.userName}`}>
+                                    <Link href={`/enterprises/${enterpriseId}/employees/hiring/hire?userId=${user.id}`}>
                                         <UsersForHiringItem user={user} />
                                     </Link>
                                 </li>

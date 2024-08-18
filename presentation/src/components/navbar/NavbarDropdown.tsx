@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import useClickOutside from '../../lib/hooks/useClickOutside';
 import { logout } from '@/lib/actions/authentication';
 import { UserDescriptor } from '@/gql/graphql';
+import { useMutation } from '@tanstack/react-query';
 interface Props {
     user: UserDescriptor
 }
@@ -12,6 +13,9 @@ const NavbarDropdown: React.FC<Props> = ({ user }: Props) => {
     const [isOpen, setIsOpen] = useState<boolean>(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     useClickOutside(dropdownRef, () => { setIsOpen(false) })
+    const logoutMutation = useMutation({
+        mutationFn: async () => await logout()
+    })
     return (
         <div  className="flex items-center px-3 z-20" ref={dropdownRef}>
             <div>
@@ -51,13 +55,13 @@ const NavbarDropdown: React.FC<Props> = ({ user }: Props) => {
                                     onClick={() => { setIsOpen(false) }}
                                     href="/profile"
                                     className="block px-4 py-2 text-sm sm:text-md text-gray-700 hover:bg-gray-100">
-                                    Dashboard
+                                    Activity
                                 </Link>
                             </li>
                             <li>
                                 <Link
                                     onClick={() => { setIsOpen(false) }}
-                                    href="/settings"
+                                    href="/profile/settings"
                                     className="block px-4 py-2 text-sm sm:text-md text-gray-700 hover:bg-gray-100">
                                     Settings
                                 </Link>
@@ -66,7 +70,7 @@ const NavbarDropdown: React.FC<Props> = ({ user }: Props) => {
                                 <button
                                     type="button"
                                     className="w-full block px-4 py-2 text-sm sm:text-md text-gray-700"
-                                    onClick={() => logout()}>
+                                    onClick={() => logoutMutation.mutate()}>
                                     <p className='hover:text-blue-500'>Sign out</p>
                                 </button>
                             </li>

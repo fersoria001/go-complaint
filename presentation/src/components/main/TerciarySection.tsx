@@ -1,4 +1,5 @@
 import "../inverted-wave.css"
+import Image from "next/image";
 const TerciarySection: React.FC = () => {
     return (
         <div className="pt-16">
@@ -9,7 +10,14 @@ const TerciarySection: React.FC = () => {
                         invite people to work with you!
                     </p>
                     <div className="p-5 md:px-36 lg:px-5 md:text-center lg:text-start">
-                        <div className="w-full h-[200px] md:mx-auto md:h-[300px] border rounded-md">
+                        <div className="relative w-full h-[200px] md:mx-auto md:w-[400px] md:h-[300px] border rounded-md">
+                            <Image
+                                src={'/main7.png'}
+                                alt={'Image of Go complaint profile'}
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                fill
+                                //className="object-cover"
+                            />
                         </div>
                     </div>
                 </div>
@@ -19,7 +27,14 @@ const TerciarySection: React.FC = () => {
                         take care of customers support.
                     </p>
                     <div className="p-5 md:px-36 lg:px-5 md:text-center lg:text-start">
-                        <div className="w-full h-[200px] md:mx-auto md:h-[300px] border rounded-md">
+                        <div className="relative w-full h-[200px] md:mx-auto md:w-[400px] md:h-[300px] border rounded-md">
+                            <Image
+                                src={'/main6.png'}
+                                alt={'Image of Go complaint profile'}
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                fill
+                                //className="object-cover"
+                            />
                         </div>
                     </div>
                 </div>
@@ -29,7 +44,14 @@ const TerciarySection: React.FC = () => {
                         improve its attention.
                     </p>
                     <div className="p-5 md:px-36 lg:px-5 md:text-center lg:text-start">
-                        <div className="w-full h-[200px] md:mx-auto md:h-[300px] border rounded-md">
+                        <div className="relative w-full h-[200px] md:mx-auto md:w-[400px] md:h-[300px] border rounded-md">
+                            <Image
+                                src={'/main4.png'}
+                                alt={'Image of Go complaint profile'}
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                fill
+                                className="object-cover"
+                            />
                         </div>
                     </div>
                 </div>

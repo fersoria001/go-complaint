@@ -134,7 +134,7 @@ func TestChatHandler_Setup(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Greater(t, len(v.Replies), 0)
 		mockBody := v.Replies[0].Body
-		c2 := commands.NewSendComplaintCommand(complaintId.String(), mockBody)
+		c2 := commands.NewSendComplaintCommand(complaintId.String(), author.Id().String(), mockBody)
 		err = c2.Execute(ctx)
 		assert.Nil(t, err)
 	}
@@ -189,7 +189,7 @@ func TestChatHandler_ServeWS(t *testing.T) {
 			author, err := recipientsRepository.Find(ctx, find_recipient.ByNameAndEmail(replyMock.Sender.SubjectName,
 				replyMock.Sender.SubjectEmail))
 			assert.Nil(t, err)
-			c := commands.NewReplyComplaintCommand(author.Id().String(), complaintId.String(), replyMock.Body)
+			c := commands.NewReplyComplaintCommand(author.Id().String(), replyMock.Sender.Id.String(), complaintId.String(), replyMock.Body)
 			b, err := json.Marshal(*c)
 			assert.Nil(t, err)
 			if err := ws.WriteMessage(websocket.TextMessage, b); err != nil {
@@ -290,7 +290,7 @@ func TestChatHandler_ServeWS_2Users(t *testing.T) {
 			author, err := recipientsRepository.Find(ctx, find_recipient.ByNameAndEmail(replyMock.Sender.SubjectName,
 				replyMock.Sender.SubjectEmail))
 			assert.Nil(t, err)
-			c := commands.NewReplyComplaintCommand(author.Id().String(), complaintId.String(), replyMock.Body)
+			c := commands.NewReplyComplaintCommand(author.Id().String(), replyMock.Sender.Id.String(), complaintId.String(), replyMock.Body)
 			b, err := json.Marshal(*c)
 			assert.Nil(t, err)
 			msgs = append(msgs, b)

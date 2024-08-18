@@ -1,12 +1,13 @@
 'use client'
 import { useRef, useState } from "react";
 import NotificationIcon from "../icons/NotificationIcon";
-import NotificationLink from "./NotificationLink";
 import useClickOutside from "../../lib/hooks/useClickOutside";
 import clsx from 'clsx';
-import { Notification } from "@/gql/graphql";
+import { NotificationLink } from "@/gql/graphql";
+import NotificationItem from "./NotificationItem";
+
 interface Props {
-    notifications: Notification[]
+    notifications: NotificationLink[]
 }
 const Notifications: React.FC<Props> = ({ notifications }: Props) => {
     const [show, setShow] = useState<boolean>(false)
@@ -32,12 +33,12 @@ const Notifications: React.FC<Props> = ({ notifications }: Props) => {
             </button>
             {show &&
                 <div
-                    className="absolute w-full sm:max-w-md top-[82px] border-r border-l border-b overflow-y-auto rounded-md right-0 bg-white">
+                    className="absolute w-full max-h-[240px] sm:max-w-md top-[82px] border-r border-l border-b overflow-y-auto rounded-md right-0 bg-white">
                     <ul className=" text-gray-500 list-none">
                         {
                             notifications.length > 0 ? notifications.map(n =>
                                 <li key={n.id} className="first:pt-4 last:pb-0">
-                                    <NotificationLink notification={n} />
+                                    <NotificationItem notification={n} callback={() => setShow(false)} />
                                 </li>
                             ) :
                                 <li className="p-4">

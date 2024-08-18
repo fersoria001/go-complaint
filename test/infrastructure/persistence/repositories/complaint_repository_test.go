@@ -10,6 +10,7 @@ import (
 	"go-complaint/infrastructure/persistence/repositories"
 	"go-complaint/test/mock_data"
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/stretchr/testify/assert"
@@ -230,8 +231,7 @@ func TestComplaintRepository_Get_Complete(t *testing.T) {
 			v.Receiver.SubjectEmail,
 			v.Receiver.IsEnterprise,
 		)
-		rating, err := complaint.NewRating(v.Id, v.Rating.Rate, v.Rating.Comment)
-		assert.Nil(t, err)
+		rating := complaint.NewRating(v.Id, *receiver, *author, v.Rating.Rate, v.Rating.Comment, time.Now(), time.Now())
 		assert.Greater(t, len(v.Replies), 0)
 		mockReply := v.Replies[0]
 		reply, err := complaint.NewReply(
@@ -243,6 +243,8 @@ func TestComplaintRepository_Get_Complete(t *testing.T) {
 			mockReply.CreatedAt,
 			mockReply.ReadAt,
 			mockReply.UpdatedAt,
+			mockReply.Sender.IsEnterprise,
+			mockReply.Sender.Id,
 		)
 		assert.Nil(t, err)
 		replies := mapset.NewSet(reply)
@@ -324,8 +326,7 @@ func TestComplaintRepository_FindAll_ByAuthorOrReceiver(t *testing.T) {
 			v.Receiver.SubjectEmail,
 			v.Receiver.IsEnterprise,
 		)
-		rating, err := complaint.NewRating(v.Id, v.Rating.Rate, v.Rating.Comment)
-		assert.Nil(t, err)
+		rating := complaint.NewRating(v.Id, *receiver, *author, v.Rating.Rate, v.Rating.Comment, time.Now(), time.Now())
 		assert.Greater(t, len(v.Replies), 0)
 		mockReply := v.Replies[0]
 		reply, err := complaint.NewReply(
@@ -337,6 +338,8 @@ func TestComplaintRepository_FindAll_ByAuthorOrReceiver(t *testing.T) {
 			mockReply.CreatedAt,
 			mockReply.ReadAt,
 			mockReply.UpdatedAt,
+			mockReply.Sender.IsEnterprise,
+			mockReply.Sender.Id,
 		)
 		assert.Nil(t, err)
 		replies := mapset.NewSet(reply)
@@ -403,8 +406,7 @@ func TestComplaintRepository_FindAll_ByAuthorIdAndStatusIn(t *testing.T) {
 			v.Receiver.SubjectEmail,
 			v.Receiver.IsEnterprise,
 		)
-		rating, err := complaint.NewRating(v.Id, v.Rating.Rate, v.Rating.Comment)
-		assert.Nil(t, err)
+		rating := complaint.NewRating(v.Id, *receiver, *author, v.Rating.Rate, v.Rating.Comment, time.Now(), time.Now())
 		assert.Greater(t, len(v.Replies), 0)
 		mockReply := v.Replies[0]
 		reply, err := complaint.NewReply(
@@ -416,6 +418,8 @@ func TestComplaintRepository_FindAll_ByAuthorIdAndStatusIn(t *testing.T) {
 			mockReply.CreatedAt,
 			mockReply.ReadAt,
 			mockReply.UpdatedAt,
+			mockReply.Sender.IsEnterprise,
+			mockReply.Sender.Id,
 		)
 		assert.Nil(t, err)
 		replies := mapset.NewSet(reply)
@@ -482,8 +486,7 @@ func TestComplaintRepository_Count_WhereAuthorOrReceiver(t *testing.T) {
 			v.Receiver.SubjectEmail,
 			v.Receiver.IsEnterprise,
 		)
-		rating, err := complaint.NewRating(v.Id, v.Rating.Rate, v.Rating.Comment)
-		assert.Nil(t, err)
+		rating := complaint.NewRating(v.Id, *receiver, *author, v.Rating.Rate, v.Rating.Comment, time.Now(), time.Now())
 		assert.Greater(t, len(v.Replies), 0)
 		mockReply := v.Replies[0]
 		reply, err := complaint.NewReply(
@@ -495,6 +498,8 @@ func TestComplaintRepository_Count_WhereAuthorOrReceiver(t *testing.T) {
 			mockReply.CreatedAt,
 			mockReply.ReadAt,
 			mockReply.UpdatedAt,
+			mockReply.Sender.IsEnterprise,
+			mockReply.Sender.Id,
 		)
 		assert.Nil(t, err)
 		replies := mapset.NewSet(reply)

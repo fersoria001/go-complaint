@@ -1,0 +1,88 @@
+'use client'
+
+import { EnterpriseByAuthenticatedUser, Roles, UserDescriptor } from "@/gql/graphql";
+import ContactMailIcon from "../icons/ContactMailIcon";
+import ContactPhoneIcon from "../icons/ContactPhoneIcon";
+import ContactWebsiteIcon from "../icons/ContactWebsiteIcon";
+import { useState } from "react";
+import Link from "next/dist/client/link";
+import KeyboardArrowLeftIcon from "../icons/KeyboardArrowLeftIcon";
+
+interface Props {
+    data: EnterpriseByAuthenticatedUser
+    currentUser: UserDescriptor
+}
+
+const OfficeItem: React.FC<Props> = ({ data, currentUser }: Props) => {
+    const [clicked, setClicked] = useState<string | undefined>(undefined)
+    if (clicked) {
+        return (
+            <div>
+                <h3
+                    className="text-gray-700 text-md lg:text-xl whitespace-nowrap px-2.5 font-bold cursor-default mb-4">
+                    {clicked}
+                </h3>
+                <div className="flex justify-around">
+                    {
+                        data.authority.authority === Roles.Manager && <Link
+                            className="text-gray-700 text-md underline mb-4"
+                            href={`/enterprises/${data.enterprise?.name}/employees`}>
+                            Manage the enterprise employees.
+                        </Link>
+                    }
+                    <Link
+                        className="text-gray-700 text-md underline mb-4"
+                        href={`/enterprises/${data.enterprise?.name}/employees/activity?id=${currentUser.id}`}>
+                        My enterprise activity.
+                    </Link>
+                </div>
+                <KeyboardArrowLeftIcon
+                    onClick={() => setClicked(undefined)}
+                    className="fill-gray-700 ring ring-gray-700 rounded-full cursor-pointer" />
+            </div>
+        )
+    }
+    return (
+        <div
+            onClick={() => setClicked(data.enterprise?.name)}
+            className={"bg-white hover:bg-gray-50 border border-gray-200 rounded-lg shadow cursor-pointer"}>
+            <div className="flex flex-col py-3 md:p-5">
+                <div className="flex self-start flex-col md:flex-row  md:justify-between w-full px-5">
+                    <h1 className="pb-2 mb-2 text-2xl  text-center  font-bold tracking-tight text-gray-900">
+                        {data.enterprise?.name}
+                    </h1>
+                    <h2 className="pb-2 mb-2 text-md  text-center  font-bold tracking-tight text-gray-700">
+                        {data.authority.authority}
+                    </h2>
+                    <div className="">
+                        <div className="flex mb-3">
+                            <ContactMailIcon fill="#374151" className="w-6 h-6" />
+                            <p className="pl-2 font-normal text-gray-700">{data.enterprise?.email}</p>
+                        </div>
+                        <div className="flex mb-3">
+                            <ContactPhoneIcon fill="#374151" className="w-6 h-6" />
+                            <p className="pl-2 font-normal text-gray-700">
+                                {data.enterprise?.phoneNumber}
+                            </p>
+                        </div>
+                        <div className="flex mb-3">
+                            <ContactWebsiteIcon fill="#374151" className="w-6 h-6" />
+                            <p className="pl-2 font-normal text-gray-700">
+                                {data.enterprise?.website}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex flex-col self-center">
+                    <p className="self-center mb-3 font-normal text-gray-700 underline underline-offset-8">
+                        {data.enterprise?.industry.name}
+                    </p>
+                    <p className="mb-3 font-normal text-gray-700 text-center">
+                        {data.enterprise?.address.country}, {data.enterprise?.address.countryState}, {data.enterprise?.address.city}.
+                    </p>
+                </div>
+            </div>
+        </div>
+    )
+}
+export default OfficeItem;

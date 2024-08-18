@@ -3,17 +3,20 @@
 import getGraphQLClient from "@/graphql/graphQLClient";
 import userDescriptorQuery from "@/graphql/queries/userDescriptorQuery";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import ComplaintsInfo from "./ComplaintsInfo";
+import ComplaintDataCharts from "./ComplaintDataCharts";
+
 
 const ProfileDashboard = () => {
-    const { data: user } = useSuspenseQuery({
+    const { data: { userDescriptor: user } } = useSuspenseQuery({
         queryKey: ['userDescriptor'],
-        queryFn: async () => await getGraphQLClient().request(userDescriptorQuery)
+        queryFn: async () => await getGraphQLClient().request(userDescriptorQuery),
+        staleTime: Infinity,
+        gcTime: Infinity
     })
-    
     return (
-        <section>
-            <ComplaintsInfo id={user.userDescriptor.userName} />
+        <section className="flex flex-col my-5">
+            <h3 className="text-gray-700 font-bold text-center">My Go Complaint Activity</h3>
+            <ComplaintDataCharts currentUser={user} />
         </section>
     )
 }

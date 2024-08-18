@@ -60,7 +60,7 @@ func (c RejectHiringInvitationCommand) Execute(ctx context.Context) error {
 						userId.String(),
 						fmt.Sprintf(`%s rejected your invitation"`, user.SubjectName()),
 						fmt.Sprintf("User %s rejected your invitation to join %s : %s", user.SubjectName(), hiringProccess.Enterprise().SubjectName(), c.RejectionReason),
-						fmt.Sprintf("/%s/hiring-procceses?id=%s", hiringProccess.Enterprise().SubjectName(), hiringProccessId),
+						"/hiring",
 					)
 					return c.Execute(ctx)
 				}

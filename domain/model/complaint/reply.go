@@ -14,14 +14,16 @@ import (
 // It represents the reply of the complaint
 // Its complaintID is the id of the complaint that own this reply
 type Reply struct {
-	id          uuid.UUID
-	complaintId uuid.UUID
-	sender      recipient.Recipient
-	body        string
-	createdAt   common.Date
-	read        bool
-	readAt      common.Date
-	updatedAt   common.Date
+	id           uuid.UUID
+	complaintId  uuid.UUID
+	sender       recipient.Recipient
+	body         string
+	createdAt    common.Date
+	read         bool
+	readAt       common.Date
+	updatedAt    common.Date
+	isEnterprise bool
+	enterpriseId uuid.UUID
 }
 
 func (r *Reply) MarkAsRead() {
@@ -34,17 +36,21 @@ func CreateReply(
 	complaintId uuid.UUID,
 	sender recipient.Recipient,
 	body string,
+	isEnterprise bool,
+	enterpriseId uuid.UUID,
 ) *Reply {
 	newCommonDate := common.NewDate(time.Now())
 	r := &Reply{
-		id:          id,
-		complaintId: complaintId,
-		sender:      sender,
-		body:        body,
-		read:        false,
-		readAt:      newCommonDate,
-		createdAt:   newCommonDate,
-		updatedAt:   newCommonDate,
+		id:           id,
+		complaintId:  complaintId,
+		sender:       sender,
+		body:         body,
+		read:         false,
+		readAt:       newCommonDate,
+		createdAt:    newCommonDate,
+		updatedAt:    newCommonDate,
+		isEnterprise: isEnterprise,
+		enterpriseId: enterpriseId,
 	}
 	return r
 }
@@ -58,8 +64,12 @@ func NewReply(
 	createdAt,
 	readAt,
 	updatedAt common.Date,
+	isEnterprise bool,
+	enterpriseId uuid.UUID,
 ) (*Reply, error) {
 	var reply *Reply = new(Reply)
+	reply.isEnterprise = isEnterprise
+	reply.enterpriseId = enterpriseId
 	reply.sender = sender
 	reply.complaintId = complaintId
 	err := reply.setID(id)
@@ -167,4 +177,12 @@ func (r Reply) ReadAt() common.Date {
 
 func (r Reply) UpdatedAt() common.Date {
 	return r.updatedAt
+}
+
+func (r Reply) IsEnterprise() bool {
+	return r.isEnterprise
+}
+
+func (r Reply) EnterpriseId() uuid.UUID {
+	return r.enterpriseId
 }

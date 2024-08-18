@@ -95,12 +95,12 @@ func TestRemoveFeedbackReplyCommand_Setup(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Greater(t, len(v.Replies), 0)
 		mockBody := v.Replies[0].Body
-		c2 := commands.NewSendComplaintCommand(complaintId.String(), mockBody)
+		c2 := commands.NewSendComplaintCommand(complaintId.String(), author.Id().String(), mockBody)
 		err = c2.Execute(ctx)
 		assert.Nil(t, err)
 		for _, repliesMock := range mock_data.NewReplies {
 			for _, replyMock := range repliesMock {
-				c3 := commands.NewReplyComplaintCommand(author.Id().String(), complaintId.String(), replyMock.Body)
+				c3 := commands.NewReplyComplaintCommand(author.Id().String(), author.Id().String(), complaintId.String(), replyMock.Body)
 				err := c3.Execute(ctx)
 				assert.Nil(t, err)
 				replyId, ok := cache.InMemoryInstance().Get(complaintId.String())
@@ -133,7 +133,8 @@ func TestRemoveFeedbackReplyCommand_Execute(t *testing.T) {
 			v.EnterpriseId.String())
 		err := c.Execute(ctx)
 		assert.Nil(t, err)
-		dbf, err := feedbackRepository.Find(ctx, find_feedback.ByComplaintId(complaintId))
+		enterpriseId = v.EnterpriseId
+		dbf, err := feedbackRepository.Find(ctx, find_feedback.ByComplaintIdAndEnterpriseId(complaintId, v.EnterpriseId))
 		assert.Nil(t, err)
 		assert.NotNil(t, dbf)
 		dbComplaint, err := complaintRepository.Get(ctx, complaintId)
@@ -151,7 +152,7 @@ func TestRemoveFeedbackReplyCommand_Execute(t *testing.T) {
 		)
 		err = c1.Execute(ctx)
 		assert.Nil(t, err)
-		dbf, err = feedbackRepository.Find(ctx, find_feedback.ByComplaintId(complaintId))
+		dbf, err = feedbackRepository.Find(ctx, find_feedback.ByComplaintIdAndEnterpriseId(complaintId, v.EnterpriseId))
 		assert.Nil(t, err)
 		assert.NotNil(t, dbf)
 		dbReplyReview, err := dbf.ReplyReview(replyReviewMock.Color)
@@ -161,7 +162,7 @@ func TestRemoveFeedbackReplyCommand_Execute(t *testing.T) {
 			replyReviewMock.Color, repliesIds)
 		err = c2.Execute(ctx)
 		assert.Nil(t, err)
-		dbf, err = feedbackRepository.Find(ctx, find_feedback.ByComplaintId(complaintId))
+		dbf, err = feedbackRepository.Find(ctx, find_feedback.ByComplaintIdAndEnterpriseId(complaintId, v.EnterpriseId))
 		assert.Nil(t, err)
 		assert.NotNil(t, dbf)
 		dbReplyReview, err = dbf.ReplyReview(replyReviewMock.Color)
@@ -169,7 +170,7 @@ func TestRemoveFeedbackReplyCommand_Execute(t *testing.T) {
 		assert.Nil(t, dbReplyReview)
 	}
 	t.Cleanup(func() {
-		dbf, err := feedbackRepository.Find(ctx, find_feedback.ByComplaintId(complaintId))
+		dbf, err := feedbackRepository.Find(ctx, find_feedback.ByComplaintIdAndEnterpriseId(complaintId, enterpriseId))
 		assert.Nil(t, err)
 		err = feedbackRepository.Remove(ctx, dbf.Id())
 		assert.Nil(t, err)

@@ -3,6 +3,7 @@ import { graphql } from "@/gql";
 const enterpriseByNameQuery = graphql(`
     query enterpriseByNameQuery($name: String!){
         enterpriseByName(name:$name){
+            id
             name
             logoImg
             bannerImg
@@ -14,7 +15,10 @@ const enterpriseByNameQuery = graphql(`
                 countryState
                 city
                 }
-            industry
+            industry {
+                id
+                name
+            }
             foundationDate
             ownerId
             employees {
@@ -22,6 +26,7 @@ const enterpriseByNameQuery = graphql(`
                 enterpriseId
                 userId
                 user{
+                    id
                     userName
                     person{
                         profileImg

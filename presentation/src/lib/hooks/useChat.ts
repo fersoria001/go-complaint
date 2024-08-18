@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 export enum ChatSubProtocols {
   COMPLAINT = "complaint",
+  ENTERPRISE_CHAT = "enterpriseChat",
 }
 export enum ChatMessageType {
   ConnectionInit = "connection_init",
@@ -31,14 +32,19 @@ function useChat(id: string, subProtocol: ChatSubProtocols, jwt: string) {
         type: "connection_init",
         payload: encodeToBinary(jwt),
       };
+      console.log("onOpenSend", msg);
       websocket.send(JSON.stringify(msg));
     };
-
+    websocket.onerror = (e: any) => {
+      console.log("ws error" ,e);
+    };
     websocket.onmessage = (event: any) => {
       const jsonMsg = JSON.parse(event.data);
+      console.log("onMessage", jsonMsg);
       switch (jsonMsg.type) {
         case ChatMessageType.ConnectionAcknowledged: {
           const decodedPayload = decodeFromBinary(jsonMsg.payload);
+          console.log("authResponse", decodedPayload);
           if (decodedPayload === "true") {
             setIsReady(true);
             setWs(websocket);

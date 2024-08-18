@@ -1,6 +1,6 @@
-function complaintsSubscription(id: string) {
+function complaintsSubscription(id: string, userId: string) {
     return `subscription{
-    complaints(id: "${id}"){
+    complaints(id: "${id}", userId:"${userId}"){
               id
               author{
                   id
@@ -34,7 +34,7 @@ function complaintsSubscription(id: string) {
               }
           }
   }`
-  }
-  
+}
+
 
 export default complaintsSubscription;

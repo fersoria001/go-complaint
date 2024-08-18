@@ -58,10 +58,10 @@ func (ar AddressRepository) Remove(
 	id uuid.UUID,
 ) error {
 	conn, err := ar.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	_, err = conn.Exec(ctx, "DELETE FROM ADDRESS WHERE ID=$1", &id)
 	if err != nil {
 		return err

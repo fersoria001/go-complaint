@@ -28,6 +28,8 @@ func TestReply_New(t *testing.T) {
 				v.CreatedAt,
 				v.ReadAt,
 				v.UpdatedAt,
+				author.IsEnterprise(),
+				author.Id(),
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, r)

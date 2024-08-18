@@ -62,7 +62,7 @@ func (c LeaveEnterpriseCommand) Execute(ctx context.Context) error {
 					e.UserId().String(),
 					fmt.Sprintf("%s has leaved %s", user.FullName(), dbEnterprise.Name()),
 					fmt.Sprintf("%s is no longer part of %s", user.FullName(), dbEnterprise.Name()),
-					fmt.Sprintf("/%s/employees", dbEnterprise.Name()),
+					fmt.Sprintf("/enterprises/%s/employees/hiring", dbEnterprise.Name()),
 				)
 				err = c.Execute(ctx)
 				if err != nil {

@@ -192,14 +192,13 @@ func (pr ComplaintRepository) load(
 	if err != nil {
 		return nil, err
 	}
-	rating := complaint.Rating{}
 	ratingRepository, ok := reg.Get("Rating").(RatingRepository)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 	dbR, err := ratingRepository.Get(ctx, id)
-	if err == nil {
-		rating = *dbR
+	if err != nil {
+		return nil, err
 	}
 	return complaint.NewComplaint(
 		id,
@@ -210,17 +209,17 @@ func (pr ComplaintRepository) load(
 		description,
 		commonCreatedAt,
 		commonUpdatedAt,
-		rating,
+		dbR,
 		replies,
 	)
 }
 
 func (pr ComplaintRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	conn, err := pr.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	deleteCommand := string(`DELETE FROM complaint WHERE ID = $1`)
 	_, err = conn.Exec(
 		ctx,
@@ -255,10 +254,10 @@ func (pr ComplaintRepository) Save(
 	complaint *complaint.Complaint,
 ) error {
 	conn, err := pr.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	insertCommand := string(`
 		INSERT INTO complaint
 			(
@@ -287,6 +286,14 @@ func (pr ComplaintRepository) Save(
 		return err
 	}
 	reg := MapperRegistryInstance()
+	ratingRepository, ok := reg.Get("Rating").(RatingRepository)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+	err = ratingRepository.Save(ctx, complaint.Rating())
+	if err != nil {
+		return err
+	}
 	complaintRepliesRepository, ok := reg.Get("Reply").(ComplaintRepliesRepository)
 	if !ok {
 		return ErrWrongTypeAssertion
@@ -323,11 +330,9 @@ func (pr ComplaintRepository) Update(
 	if !ok {
 		return ErrWrongTypeAssertion
 	}
-	if updatedComplaint.Rating() != (complaint.Rating{}) {
-		err = ratingRepository.Save(ctx, updatedComplaint.Rating())
-		if err != nil {
-			return err
-		}
+	err = ratingRepository.Update(ctx, updatedComplaint.Rating())
+	if err != nil {
+		return err
 	}
 	var (
 		id          uuid.UUID = updatedComplaint.Id()

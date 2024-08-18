@@ -73,14 +73,26 @@ func (c FireEmployeeCommmand) Execute(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
+				err = NewLogEnterpriseActivityCommand(
+					e.UpdatedById().String(),
+					e.HiringProccessId().String(),
+					hiringProccess.Enterprise().Id().String(),
+					hiringProccess.Enterprise().SubjectName(),
+					enterprise.EmployeesFired.String(),
+				).Execute(ctx)
+				if err != nil {
+					return err
+				}
+
 				c := NewSendNotificationCommand(
 					hiringProccess.User().Id().String(),
 					hiringProccess.Enterprise().Id().String(),
 					fmt.Sprintf("Your work has end at %s", hiringProccess.Enterprise().SubjectName()),
 					fmt.Sprintf("You no longer hold the position %s at %s ", hiringProccess.Role(), hiringProccess.Enterprise().SubjectName()),
-					"/",
+					"/hiring",
 				)
 				err = c.Execute(ctx)
+
 				if err != nil {
 					return err
 				}

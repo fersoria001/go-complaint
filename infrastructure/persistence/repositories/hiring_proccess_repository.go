@@ -23,10 +23,10 @@ func NewHiringProccessRepository(schema datasource.Schema) HiringProccessReposit
 
 func (r HiringProccessRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	deleteCommand := string(`DELETE FROM HIRING_PROCCESSES WHERE ID = $1`)
 	_, err = conn.Exec(ctx, deleteCommand, &id)
 	if err != nil {
@@ -37,10 +37,10 @@ func (r HiringProccessRepository) Remove(ctx context.Context, id uuid.UUID) erro
 
 func (r HiringProccessRepository) Update(ctx context.Context, hiringProccess enterprise.HiringProccess) error {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	updateCommand := string(`
 	UPDATE HIRING_PROCCESSES 
 	SET
@@ -65,10 +65,10 @@ func (r HiringProccessRepository) Update(ctx context.Context, hiringProccess ent
 
 func (r HiringProccessRepository) Save(ctx context.Context, hiringProccess enterprise.HiringProccess) error {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	insertCommand := string(`
 	INSERT INTO HIRING_PROCCESSES (
 	ID,
@@ -80,7 +80,8 @@ func (r HiringProccessRepository) Save(ctx context.Context, hiringProccess enter
 	EMITED_BY_ID,
 	OCCURRED_ON,
 	LAST_UPDATE,
-	UPDATED_BY_ID) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`)
+	UPDATED_BY_ID,
+	INDUSTRY_ID) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`)
 	var (
 		id           uuid.UUID = hiringProccess.Id()
 		enterpriseId uuid.UUID = hiringProccess.Enterprise().Id()
@@ -92,9 +93,10 @@ func (r HiringProccessRepository) Save(ctx context.Context, hiringProccess enter
 		occurredOn   string    = common.StringDate(hiringProccess.OccurredOn())
 		lastUpdate   string    = common.StringDate(hiringProccess.LastUpdate())
 		updatedById  uuid.UUID = hiringProccess.UpdatedBy().Id()
+		industryId   int       = hiringProccess.Industry().ID()
 	)
 	_, err = conn.Exec(ctx, insertCommand, &id, &enterpriseId, &userId, &role, &status,
-		&reason, &emitedBy, &occurredOn, &lastUpdate, &updatedById)
+		&reason, &emitedBy, &occurredOn, &lastUpdate, &updatedById, &industryId)
 	if err != nil {
 		return err
 	}
@@ -103,10 +105,10 @@ func (r HiringProccessRepository) Save(ctx context.Context, hiringProccess enter
 
 func (r HiringProccessRepository) FindAll(ctx context.Context, src StatementSource) ([]*enterprise.HiringProccess, error) {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	rows, err := conn.Query(ctx, src.Query(), src.Args()...)
 	if err != nil {
 		return nil, err
@@ -135,20 +137,20 @@ func (r HiringProccessRepository) loadAll(ctx context.Context, rows pgx.Rows) ([
 }
 func (r HiringProccessRepository) Find(ctx context.Context, src StatementSource) (*enterprise.HiringProccess, error) {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
 	return r.load(ctx, row)
 }
 
 func (r HiringProccessRepository) Get(ctx context.Context, id uuid.UUID) (*enterprise.HiringProccess, error) {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	selectQuery := string(`SELECT 
 	ID,
 	ENTERPRISE_ID,
@@ -159,7 +161,8 @@ func (r HiringProccessRepository) Get(ctx context.Context, id uuid.UUID) (*enter
 	EMITED_BY_ID,
 	OCCURRED_ON,
 	LAST_UPDATE,
-	UPDATED_BY_ID
+	UPDATED_BY_ID,
+	INDUSTRY_ID
 	FROM HIRING_PROCCESSES WHERE ID = $1 `)
 	row := conn.QueryRow(ctx, selectQuery, &id)
 	return r.load(ctx, row)
@@ -177,6 +180,7 @@ func (r HiringProccessRepository) load(ctx context.Context, row pgx.Row) (*enter
 		occurredOn   string
 		lastUpdate   string
 		updatedById  uuid.UUID
+		industryId   int
 	)
 	err := row.Scan(
 		&id,
@@ -188,7 +192,8 @@ func (r HiringProccessRepository) load(ctx context.Context, row pgx.Row) (*enter
 		&emitedById,
 		&occurredOn,
 		&lastUpdate,
-		&updatedById)
+		&updatedById,
+		&industryId)
 	if err != nil {
 		return nil, err
 	}
@@ -197,11 +202,23 @@ func (r HiringProccessRepository) load(ctx context.Context, row pgx.Row) (*enter
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
+	userRepository, ok := reg.Get("User").(UserRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	industryRepository, ok := reg.Get("Industry").(IndustryRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	industry, err := industryRepository.Get(ctx, industryId)
+	if err != nil {
+		return nil, err
+	}
 	dbEnterprise, err := recipientRepository.Get(ctx, enterpriseId)
 	if err != nil {
 		return nil, err
 	}
-	user, err := recipientRepository.Get(ctx, userId)
+	user, err := userRepository.Get(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -240,5 +257,6 @@ func (r HiringProccessRepository) load(ctx context.Context, row pgx.Row) (*enter
 		occurredOnTime,
 		lastUpdateTime,
 		*updatedBy,
+		industry,
 	), nil
 }

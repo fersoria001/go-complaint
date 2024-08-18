@@ -8,10 +8,106 @@ import (
 	"strconv"
 )
 
+type AcceptHiringInvitation struct {
+	UserID          string `json:"userId"`
+	HiringProcessID string `json:"hiringProcessId"`
+}
+
+type AddFeedbackComment struct {
+	FeedbackID string `json:"feedbackId"`
+	Color      string `json:"color"`
+	Comment    string `json:"comment"`
+}
+
+type AddFeedbackReply struct {
+	FeedbackID string   `json:"feedbackId"`
+	ReviewerID string   `json:"reviewerId"`
+	Color      string   `json:"color"`
+	RepliesIds []string `json:"repliesIds"`
+}
+
 type Address struct {
 	Country      string `json:"country"`
 	CountryState string `json:"countryState"`
 	City         string `json:"city"`
+}
+
+type CancelHiringProcess struct {
+	EnterpriseID      string `json:"enterpriseId"`
+	HiringProcessID   string `json:"hiringProcessId"`
+	CanceledBy        string `json:"canceledBy"`
+	CancelationReason string `json:"cancelationReason"`
+}
+
+type ChangeEnterpriseAddress struct {
+	EnterpriseID string `json:"enterpriseId"`
+	NewCountryID int    `json:"newCountryId"`
+	NewCountyID  int    `json:"newCountyId"`
+	NewCityID    int    `json:"newCityId"`
+}
+
+type ChangeEnterpriseEmail struct {
+	EnterpriseID string `json:"enterpriseId"`
+	NewEmail     string `json:"newEmail"`
+}
+
+type ChangeEnterprisePhone struct {
+	EnterpriseID string `json:"enterpriseId"`
+	NewPhone     string `json:"newPhone"`
+}
+
+type ChangeEnterpriseWebsite struct {
+	EnterpriseID string `json:"enterpriseId"`
+	NewWebsite   string `json:"newWebsite"`
+}
+
+type ChangePassword struct {
+	Username    string `json:"username"`
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
+type ChangeUserFirstName struct {
+	UserID       string `json:"userId"`
+	NewFirstName string `json:"newFirstName"`
+}
+
+type ChangeUserGenre struct {
+	UserID   string `json:"userId"`
+	NewGenre string `json:"newGenre"`
+}
+
+type ChangeUserLastName struct {
+	UserID      string `json:"userId"`
+	NewLastName string `json:"newLastName"`
+}
+
+type ChangeUserPhone struct {
+	UserID   string `json:"userId"`
+	NewPhone string `json:"newPhone"`
+}
+
+type ChangeUserPronoun struct {
+	UserID     string `json:"userId"`
+	NewPronoun string `json:"newPronoun"`
+}
+
+type Chat struct {
+	ID           string       `json:"id"`
+	EnterpriseID string       `json:"enterpriseId"`
+	RecipientOne *Recipient   `json:"recipientOne"`
+	RecipientTwo *Recipient   `json:"recipientTwo"`
+	Replies      []*ChatReply `json:"replies"`
+}
+
+type ChatReply struct {
+	ID        string     `json:"id"`
+	ChatID    string     `json:"chatId"`
+	Sender    *Recipient `json:"sender"`
+	Content   string     `json:"content"`
+	Seen      bool       `json:"seen"`
+	CreatedAt string     `json:"createdAt"`
+	UpdatedAt string     `json:"updatedAt"`
 }
 
 type City struct {
@@ -23,16 +119,16 @@ type City struct {
 }
 
 type Complaint struct {
-	ID          string            `json:"id"`
+	ID          *string           `json:"id,omitempty"`
 	Author      *Recipient        `json:"author,omitempty"`
-	Receiver    *Recipient        `json:"receiver"`
-	Status      ComplaintStatus   `json:"status"`
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
+	Receiver    *Recipient        `json:"receiver,omitempty"`
+	Status      *ComplaintStatus  `json:"status,omitempty"`
+	Title       *string           `json:"title,omitempty"`
+	Description *string           `json:"description,omitempty"`
 	Rating      *Rating           `json:"rating,omitempty"`
-	CreatedAt   string            `json:"createdAt"`
-	UpdatedAt   string            `json:"updatedAt"`
-	Replies     []*ComplaintReply `json:"replies"`
+	CreatedAt   *string           `json:"createdAt,omitempty"`
+	UpdatedAt   *string           `json:"updatedAt,omitempty"`
+	Replies     []*ComplaintReply `json:"replies,omitempty"`
 }
 
 type ComplaintData struct {
@@ -44,21 +140,16 @@ type ComplaintData struct {
 }
 
 type ComplaintReply struct {
-	ID          string     `json:"id"`
-	ComplaintID string     `json:"complaintId"`
-	Sender      *Recipient `json:"sender"`
-	Body        string     `json:"body"`
-	CreatedAt   string     `json:"createdAt"`
-	Read        *bool      `json:"read,omitempty"`
-	ReadAt      string     `json:"readAt"`
-	UpdatedAt   string     `json:"updatedAt"`
-}
-
-type ComplaintsInfo struct {
-	Received []*ComplaintData `json:"received"`
-	Resolved []*ComplaintData `json:"resolved"`
-	Reviewed []*ComplaintData `json:"reviewed"`
-	Sent     []*ComplaintData `json:"sent"`
+	ID           *string    `json:"id,omitempty"`
+	ComplaintID  *string    `json:"complaintId,omitempty"`
+	Sender       *Recipient `json:"sender,omitempty"`
+	Body         *string    `json:"body,omitempty"`
+	CreatedAt    *string    `json:"createdAt,omitempty"`
+	Read         *bool      `json:"read,omitempty"`
+	ReadAt       *string    `json:"readAt,omitempty"`
+	UpdatedAt    *string    `json:"updatedAt,omitempty"`
+	IsEnterprise *bool      `json:"isEnterprise,omitempty"`
+	EnterpriseID *string    `json:"enterpriseId,omitempty"`
 }
 
 type Country struct {
@@ -82,6 +173,17 @@ type CreateEnterprise struct {
 	CityID         int    `json:"cityId"`
 	IndustryID     int    `json:"industryId"`
 	FoundationDate string `json:"foundationDate"`
+}
+
+type CreateEnterpriseChat struct {
+	EnterpriseID string `json:"enterpriseId"`
+	SenderID     string `json:"senderId"`
+	ReceiverID   string `json:"receiverId"`
+}
+
+type CreateFeedback struct {
+	ComplaintID  string `json:"complaintId"`
+	EnterpriseID string `json:"enterpriseId"`
 }
 
 type CreateHiringInvitation struct {
@@ -126,6 +228,11 @@ type Employee struct {
 	EnterprisePosition string `json:"enterprisePosition"`
 }
 
+type EndFeedback struct {
+	FeedbackID string `json:"feedbackId"`
+	ReviewerID string `json:"reviewerId"`
+}
+
 type Enterprise struct {
 	ID             string      `json:"id"`
 	Name           string      `json:"name"`
@@ -135,10 +242,20 @@ type Enterprise struct {
 	Email          string      `json:"email"`
 	PhoneNumber    string      `json:"phoneNumber"`
 	Address        *Address    `json:"address"`
-	Industry       string      `json:"industry"`
+	Industry       *Industry   `json:"industry"`
 	FoundationDate string      `json:"foundationDate"`
 	OwnerID        string      `json:"ownerId"`
 	Employees      []*Employee `json:"employees"`
+}
+
+type EnterpriseActivity struct {
+	ID             string                 `json:"id"`
+	User           *Recipient             `json:"user"`
+	ActivityID     string                 `json:"activityId"`
+	EnterpriseID   string                 `json:"enterpriseId"`
+	EnterpriseName string                 `json:"enterpriseName"`
+	OccurredOn     string                 `json:"occurredOn"`
+	ActivityType   EnterpriseActivityType `json:"activityType"`
 }
 
 type EnterpriseByAuthenticatedUser struct {
@@ -151,25 +268,53 @@ type EnterprisesByAuthenticatedUserResult struct {
 	Offices     []*EnterpriseByAuthenticatedUser `json:"offices"`
 }
 
+type Feedback struct {
+	ID           string         `json:"id"`
+	ComplaintID  string         `json:"complaintId"`
+	EnterpriseID string         `json:"enterpriseId"`
+	ReplyReview  []*ReplyReview `json:"replyReview"`
+	ReviewedAt   string         `json:"reviewedAt"`
+	UpdatedAt    string         `json:"updatedAt"`
+	IsDone       bool           `json:"isDone"`
+}
+
+type FindEnterpriseChat struct {
+	EnterpriseID   string `json:"enterpriseId"`
+	RecipientOneID string `json:"recipientOneId"`
+	RecipientTwoID string `json:"recipientTwoId"`
+}
+
+type FireEmployee struct {
+	EnterpriseName string `json:"enterpriseName"`
+	EmployeeID     string `json:"employeeId"`
+	TriggeredBy    string `json:"triggeredBy"`
+	FireReason     string `json:"fireReason"`
+}
+
 type GrantedAuthority struct {
 	EnterpriseID string `json:"enterpriseId"`
 	Principal    string `json:"principal"`
-	Authority    string `json:"authority"`
+	Authority    Roles  `json:"authority"`
 }
 
-type HiringInvitation struct {
-	EventID           string              `json:"eventId"`
-	EnterpriseID      string              `json:"enterpriseId"`
-	ProposedPosition  string              `json:"proposedPosition"`
-	OwnerID           string              `json:"ownerId"`
-	FullName          string              `json:"fullName"`
-	EnterpriseEmail   string              `json:"enterpriseEmail"`
-	EnterprisePhone   string              `json:"enterprisePhone"`
-	EnterpriseLogoImg string              `json:"enterpriseLogoImg"`
-	OccurredOn        string              `json:"occurredOn"`
-	Seen              bool                `json:"seen"`
-	Status            HiringProccessState `json:"status"`
-	Reason            string              `json:"reason"`
+type HireEmployee struct {
+	EnterpriseID    string `json:"enterpriseId"`
+	HiringProcessID string `json:"hiringProcessId"`
+	HiredByID       string `json:"hiredById"`
+}
+
+type HiringProcess struct {
+	ID         string                `json:"id"`
+	Enterprise *Recipient            `json:"enterprise,omitempty"`
+	User       *User                 `json:"user"`
+	Role       string                `json:"role"`
+	Status     *HiringProccessStatus `json:"status,omitempty"`
+	Reason     *string               `json:"reason,omitempty"`
+	EmitedBy   *Recipient            `json:"emitedBy"`
+	OccurredOn string                `json:"occurredOn"`
+	LastUpdate string                `json:"lastUpdate"`
+	UpdatedBy  *Recipient            `json:"updatedBy,omitempty"`
+	Industry   *Industry             `json:"industry,omitempty"`
 }
 
 type Industry struct {
@@ -177,10 +322,17 @@ type Industry struct {
 	Name string `json:"name"`
 }
 
+type InviteToProject struct {
+	EnterpriseID string `json:"enterpriseId"`
+	Role         string `json:"role"`
+	ProposeTo    string `json:"proposeTo"`
+	ProposedBy   string `json:"proposedBy"`
+}
+
 type Mutation struct {
 }
 
-type Notification struct {
+type NotificationLink struct {
 	ID         string     `json:"id"`
 	Owner      *Recipient `json:"owner"`
 	Sender     *Recipient `json:"sender"`
@@ -203,22 +355,72 @@ type Person struct {
 	Address     *Address `json:"address"`
 }
 
+type PromoteEmployee struct {
+	EnterpriseName string `json:"enterpriseName"`
+	EmployeeID     string `json:"employeeId"`
+	PromoteTo      string `json:"promoteTo"`
+	PromotedByID   string `json:"promotedById"`
+}
+
 type Query struct {
 }
 
+type RateComplaint struct {
+	UserID      string `json:"userId"`
+	ComplaintID string `json:"complaintId"`
+	Rate        int    `json:"rate"`
+	Comment     string `json:"comment"`
+}
+
 type Rating struct {
-	ID      string `json:"id"`
-	Rate    int    `json:"rate"`
-	Comment string `json:"comment"`
+	ID             *string    `json:"id,omitempty"`
+	Rate           *int       `json:"rate,omitempty"`
+	Comment        *string    `json:"comment,omitempty"`
+	SentToReviewBy *Recipient `json:"sentToReviewBy,omitempty"`
+	RatedBy        *Recipient `json:"ratedBy,omitempty"`
+	CreatedAt      *string    `json:"createdAt,omitempty"`
+	LastUpdate     *string    `json:"lastUpdate,omitempty"`
 }
 
 type Recipient struct {
-	ID               string  `json:"id"`
+	ID               *string `json:"id,omitempty"`
 	SubjectName      *string `json:"subjectName,omitempty"`
 	SubjectThumbnail *string `json:"subjectThumbnail,omitempty"`
 	SubjectEmail     *string `json:"subjectEmail,omitempty"`
 	IsEnterprise     *bool   `json:"isEnterprise,omitempty"`
-	IsOnline         bool    `json:"isOnline"`
+	IsOnline         *bool   `json:"isOnline,omitempty"`
+}
+
+type RejectHiringInvitation struct {
+	UserID          string  `json:"userId"`
+	HiringProcessID string  `json:"hiringProcessId"`
+	RejectionReason *string `json:"rejectionReason,omitempty"`
+}
+
+type RemoveFeedbackComment struct {
+	Color      string `json:"color"`
+	FeedbackID string `json:"feedbackId"`
+}
+
+type RemoveFeedbackReply struct {
+	FeedbackID string   `json:"feedbackId"`
+	Color      string   `json:"color"`
+	RepliesIds []string `json:"repliesIds"`
+}
+
+type ReplyReview struct {
+	ID         string            `json:"id"`
+	FeedbackID string            `json:"feedbackId"`
+	Reviewer   *User             `json:"reviewer"`
+	Replies    []*ComplaintReply `json:"replies"`
+	Review     *Review           `json:"review,omitempty"`
+	Color      string            `json:"color"`
+	CreatedAt  string            `json:"createdAt"`
+}
+
+type Review struct {
+	ID      string  `json:"id"`
+	Comment *string `json:"comment,omitempty"`
 }
 
 type SearchWithPagination struct {
@@ -236,7 +438,15 @@ type SendComplaint struct {
 type Subscription struct {
 }
 
+type UpdateUserAddress struct {
+	UserID       string `json:"userId"`
+	NewCountryID int    `json:"newCountryId"`
+	NewCountyID  int    `json:"newCountyId"`
+	NewCityID    int    `json:"newCityId"`
+}
+
 type User struct {
+	ID       string     `json:"id"`
 	UserName string     `json:"userName"`
 	Person   *Person    `json:"person"`
 	Status   UserStatus `json:"status"`
@@ -361,60 +571,156 @@ func (e ComplaintStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-type HiringProccessState string
+type EnterpriseActivityType string
 
 const (
-	HiringProccessStatePending      HiringProccessState = "pending"
-	HiringProccessStateAccepted     HiringProccessState = "accepted"
-	HiringProccessStateRejected     HiringProccessState = "rejected"
-	HiringProccessStateUserAccepted HiringProccessState = "user_accepted"
-	HiringProccessStateCanceled     HiringProccessState = "canceled"
-	HiringProccessStateHired        HiringProccessState = "hired"
-	HiringProccessStateRated        HiringProccessState = "rated"
-	HiringProccessStateWaiting      HiringProccessState = "waiting"
-	HiringProccessStateFired        HiringProccessState = "fired"
-	HiringProccessStateLeaved       HiringProccessState = "leaved"
+	EnterpriseActivityTypeFeedbacksStarted  EnterpriseActivityType = "FEEDBACKS_STARTED"
+	EnterpriseActivityTypeFeedbacksReceived EnterpriseActivityType = "FEEDBACKS_RECEIVED"
+	EnterpriseActivityTypeJobProposalsSent  EnterpriseActivityType = "JOB_PROPOSALS_SENT"
+	EnterpriseActivityTypeEmployeesHired    EnterpriseActivityType = "EMPLOYEES_HIRED"
+	EnterpriseActivityTypeEmployeesFired    EnterpriseActivityType = "EMPLOYEES_FIRED"
+	EnterpriseActivityTypeComplaintSent     EnterpriseActivityType = "COMPLAINT_SENT"
+	EnterpriseActivityTypeComplaintResolved EnterpriseActivityType = "COMPLAINT_RESOLVED"
+	EnterpriseActivityTypeComplaintReviewed EnterpriseActivityType = "COMPLAINT_REVIEWED"
 )
 
-var AllHiringProccessState = []HiringProccessState{
-	HiringProccessStatePending,
-	HiringProccessStateAccepted,
-	HiringProccessStateRejected,
-	HiringProccessStateUserAccepted,
-	HiringProccessStateCanceled,
-	HiringProccessStateHired,
-	HiringProccessStateRated,
-	HiringProccessStateWaiting,
-	HiringProccessStateFired,
-	HiringProccessStateLeaved,
+var AllEnterpriseActivityType = []EnterpriseActivityType{
+	EnterpriseActivityTypeFeedbacksStarted,
+	EnterpriseActivityTypeFeedbacksReceived,
+	EnterpriseActivityTypeJobProposalsSent,
+	EnterpriseActivityTypeEmployeesHired,
+	EnterpriseActivityTypeEmployeesFired,
+	EnterpriseActivityTypeComplaintSent,
+	EnterpriseActivityTypeComplaintResolved,
+	EnterpriseActivityTypeComplaintReviewed,
 }
 
-func (e HiringProccessState) IsValid() bool {
+func (e EnterpriseActivityType) IsValid() bool {
 	switch e {
-	case HiringProccessStatePending, HiringProccessStateAccepted, HiringProccessStateRejected, HiringProccessStateUserAccepted, HiringProccessStateCanceled, HiringProccessStateHired, HiringProccessStateRated, HiringProccessStateWaiting, HiringProccessStateFired, HiringProccessStateLeaved:
+	case EnterpriseActivityTypeFeedbacksStarted, EnterpriseActivityTypeFeedbacksReceived, EnterpriseActivityTypeJobProposalsSent, EnterpriseActivityTypeEmployeesHired, EnterpriseActivityTypeEmployeesFired, EnterpriseActivityTypeComplaintSent, EnterpriseActivityTypeComplaintResolved, EnterpriseActivityTypeComplaintReviewed:
 		return true
 	}
 	return false
 }
 
-func (e HiringProccessState) String() string {
+func (e EnterpriseActivityType) String() string {
 	return string(e)
 }
 
-func (e *HiringProccessState) UnmarshalGQL(v interface{}) error {
+func (e *EnterpriseActivityType) UnmarshalGQL(v interface{}) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = HiringProccessState(str)
+	*e = EnterpriseActivityType(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid HiringProccessState", str)
+		return fmt.Errorf("%s is not a valid EnterpriseActivityType", str)
 	}
 	return nil
 }
 
-func (e HiringProccessState) MarshalGQL(w io.Writer) {
+func (e EnterpriseActivityType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type HiringProccessStatus string
+
+const (
+	HiringProccessStatusPending      HiringProccessStatus = "PENDING"
+	HiringProccessStatusAccepted     HiringProccessStatus = "ACCEPTED"
+	HiringProccessStatusRejected     HiringProccessStatus = "REJECTED"
+	HiringProccessStatusUserAccepted HiringProccessStatus = "USER_ACCEPTED"
+	HiringProccessStatusCanceled     HiringProccessStatus = "CANCELED"
+	HiringProccessStatusHired        HiringProccessStatus = "HIRED"
+	HiringProccessStatusRated        HiringProccessStatus = "RATED"
+	HiringProccessStatusWaiting      HiringProccessStatus = "WAITING"
+	HiringProccessStatusFired        HiringProccessStatus = "FIRED"
+	HiringProccessStatusLeaved       HiringProccessStatus = "LEAVED"
+)
+
+var AllHiringProccessStatus = []HiringProccessStatus{
+	HiringProccessStatusPending,
+	HiringProccessStatusAccepted,
+	HiringProccessStatusRejected,
+	HiringProccessStatusUserAccepted,
+	HiringProccessStatusCanceled,
+	HiringProccessStatusHired,
+	HiringProccessStatusRated,
+	HiringProccessStatusWaiting,
+	HiringProccessStatusFired,
+	HiringProccessStatusLeaved,
+}
+
+func (e HiringProccessStatus) IsValid() bool {
+	switch e {
+	case HiringProccessStatusPending, HiringProccessStatusAccepted, HiringProccessStatusRejected, HiringProccessStatusUserAccepted, HiringProccessStatusCanceled, HiringProccessStatusHired, HiringProccessStatusRated, HiringProccessStatusWaiting, HiringProccessStatusFired, HiringProccessStatusLeaved:
+		return true
+	}
+	return false
+}
+
+func (e HiringProccessStatus) String() string {
+	return string(e)
+}
+
+func (e *HiringProccessStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = HiringProccessStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid HiringProccessStatus", str)
+	}
+	return nil
+}
+
+func (e HiringProccessStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Roles string
+
+const (
+	RolesAssistant Roles = "ASSISTANT"
+	RolesManager   Roles = "MANAGER"
+	RolesOwner     Roles = "OWNER"
+)
+
+var AllRoles = []Roles{
+	RolesAssistant,
+	RolesManager,
+	RolesOwner,
+}
+
+func (e Roles) IsValid() bool {
+	switch e {
+	case RolesAssistant, RolesManager, RolesOwner:
+		return true
+	}
+	return false
+}
+
+func (e Roles) String() string {
+	return string(e)
+}
+
+func (e *Roles) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Roles(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Roles", str)
+	}
+	return nil
+}
+
+func (e Roles) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

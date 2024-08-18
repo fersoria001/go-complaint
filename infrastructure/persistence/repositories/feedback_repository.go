@@ -9,6 +9,7 @@ import (
 	"go-complaint/infrastructure/persistence/finders/find_all_feedback_answer"
 	"go-complaint/infrastructure/persistence/finders/find_all_feedback_reply_review"
 	"go-complaint/infrastructure/persistence/removers/remove_all_feedback_replies"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -92,10 +93,10 @@ func (fr FeedbackRepository) Update(
 
 func (fr FeedbackRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	conn, err := fr.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	feedbackReplyReviewRepository := NewFeedbackReplyReviewRepository(fr.schema)
 	err = feedbackReplyReviewRepository.DeleteAll(ctx, id)
 	if err != nil {
@@ -169,6 +170,9 @@ func (fr FeedbackRepository) Save(
 		&isDone,
 	)
 	if err != nil {
+		if strings.Contains(err.Error(), ErrFeedbackAlreadyExists.Error()) {
+			return ErrFeedbackAlreadyExists
+		}
 		return err
 	}
 	defer conn.Release()
@@ -247,6 +251,7 @@ func (fr FeedbackRepository) FindAll(
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	rows, err := conn.Query(ctx, source.Query(), source.Args()...)
 	if err != nil {
 		return nil, err
@@ -255,10 +260,11 @@ func (fr FeedbackRepository) FindAll(
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		rows.Close()
-		conn.Release()
-	}()
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	rows.Close()
 	return feedbacks, nil
 }
 

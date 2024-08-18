@@ -184,26 +184,13 @@ func (aas AuthorizationApplicationService) ResourceAccess(
 			return credentials, ErrUnauthorized
 		}
 	case "Enterprise":
-		parsedRId, err := uuid.Parse(resourceID)
-		if err != nil {
-			return nil, ErrUnauthorized
-		}
-		enterprise, err := repositories.MapperRegistryInstance().Get("Enterprise").(repositories.EnterpriseRepository).Get(ctx, parsedRId)
-		if err != nil {
-			return credentials, err
-		}
-		if enterprise.OwnerId().String() != credentials.Id {
-			for _, v := range credentials.GrantedAuthorities {
-				if v.EnterpriseID == resourceID && requiredAuthoritiesSet.Contains(v.Authority) {
-					for emp := range enterprise.Employees().Iter() {
-						if emp.Email() == credentials.Email && emp.Position().String() == v.Authority {
-							return credentials, nil
-						}
-					}
-				}
+		for _, v := range credentials.GrantedAuthorities {
+			if v.Principal == resourceID && requiredAuthoritiesSet.Contains(v.Authority) {
+				return credentials, nil
 			}
-		} else {
-			return credentials, nil
+			if v.EnterpriseID == resourceID && requiredAuthoritiesSet.Contains(v.Authority) {
+				return credentials, nil
+			}
 		}
 	default:
 		if resourceID == "" {

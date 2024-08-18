@@ -17,7 +17,8 @@ func TestComplaintDataRepository_Save(t *testing.T) {
 	repository, ok := reg.Get("ComplaintData").(repositories.ComplaintDataRepository)
 	assert.True(t, ok)
 	for _, v := range mock_data.NewComplaintData {
-		cd := complaint.NewComplaintData(v.Id, v.OwnerId, v.ComplaintId, v.OccurredOn, v.DataType)
+		cd := complaint.NewComplaintData(v.Id, v.OwnerId,
+			v.AuthorId, v.ReceiverId, v.ComplaintId, v.OccurredOn, v.DataType)
 		err := repository.Save(ctx, *cd)
 		assert.Nil(t, err)
 	}
@@ -35,7 +36,7 @@ func TestComplaintDataRepository_Get(t *testing.T) {
 	repository, ok := reg.Get("ComplaintData").(repositories.ComplaintDataRepository)
 	assert.True(t, ok)
 	for _, v := range mock_data.NewComplaintData {
-		cd := complaint.NewComplaintData(v.Id, v.OwnerId, v.ComplaintId, v.OccurredOn, v.DataType)
+		cd := complaint.NewComplaintData(v.Id, v.OwnerId, v.AuthorId, v.ReceiverId, v.ComplaintId, v.OccurredOn, v.DataType)
 		err := repository.Save(ctx, *cd)
 		assert.Nil(t, err)
 		dbCd, err := repository.Get(ctx, v.Id)
@@ -60,12 +61,12 @@ func TestComplaintDataRepository_Find(t *testing.T) {
 	repository, ok := reg.Get("ComplaintData").(repositories.ComplaintDataRepository)
 	assert.True(t, ok)
 	for _, v := range mock_data.NewComplaintData {
-		cd := complaint.NewComplaintData(v.Id, v.OwnerId, v.ComplaintId, v.OccurredOn, v.DataType)
+		cd := complaint.NewComplaintData(v.Id, v.OwnerId, v.AuthorId, v.ReceiverId, v.ComplaintId, v.OccurredOn, v.DataType)
 		err := repository.Save(ctx, *cd)
 		assert.Nil(t, err)
 	}
 	ownerId := mock_data.NewUsers["valid"].Id
-	dbCd, err := repository.FindAll(ctx, find_all_complaint_data.ByOwnerId(ownerId))
+	dbCd, err := repository.FindAll(ctx, find_all_complaint_data.ByOwnerIdAndDataOwnership(ownerId))
 	assert.Nil(t, err)
 	assert.NotNil(t, dbCd)
 	assert.Equal(t, len(dbCd), 3)

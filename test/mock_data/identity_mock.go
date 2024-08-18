@@ -57,7 +57,7 @@ var (
 var NewUsers = map[string]*UserMock{
 	"valid": {
 		Id:           uuid.MustParse("0d3baf1e-421c-448b-a784-78b210f42e1b"),
-		UserName:     "bercho001@gmail.com",
+		UserName:     "bercho@gmail.com",
 		Password:     "Password1",
 		RegisterDate: CommonDate,
 		Person: &PersonMock{
@@ -65,7 +65,7 @@ var NewUsers = map[string]*UserMock{
 			Genre:      "male",
 			Pronoun:    "he",
 			ProfileImg: "/default.jpg",
-			Email:      "bercho001@gmail.com",
+			Email:      "bercho@gmail.com",
 			FirstName:  "Fernando Agustin",
 			LastName:   "Soria",
 			BirthDate:  CommonDate,

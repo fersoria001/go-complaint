@@ -93,10 +93,10 @@ func (ur UserRepository) Update(
 
 func (ur UserRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	conn, err := ur.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	_, err = conn.Exec(ctx, "DELETE FROM USERS WHERE ID=$1", &id)
 	if err != nil {
 		return err
@@ -198,10 +198,10 @@ func (ur UserRepository) Find(
 	src StatementSource,
 ) (*identity.User, error) {
 	conn, err := ur.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
 	return ur.load(ctx, row)
 }

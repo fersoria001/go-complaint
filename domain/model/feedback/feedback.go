@@ -269,6 +269,10 @@ func NewFeedback(
 	return feedback, nil
 }
 
+/*
+This command publishes an event for each
+different reviewee
+*/
 func (f *Feedback) EndFeedback(
 	ctx context.Context,
 ) error {
@@ -277,25 +281,31 @@ func (f *Feedback) EndFeedback(
 	}
 	f.updatedAt = time.Now()
 	f.isDone = true
-	ids := mapset.NewSet[uuid.UUID]()
-	for i := range f.replyReview.Iter() {
-		for j := range i.replies.Iter() {
-			ids.Add(j.Sender().Id())
+
+	reviewersIds := make(map[uuid.UUID]mapset.Set[uuid.UUID], 0)
+	for _, v := range f.replyReview.ToSlice() {
+		ids := mapset.NewSet[uuid.UUID]()
+		for _, reply := range v.replies.ToSlice() {
+			ids.Add(reply.Sender().Id())
 		}
+		reviewersIds[v.Reviewer().Id()] = ids
 	}
-	for i := range ids.Iter() {
-		err := domain.DomainEventPublisherInstance().Publish(
-			ctx,
-			NewFeedbackDone(
-				f.id,
-				f.complaintId,
-				f.enterpriseId,
-				i,
-				time.Now(),
-			),
-		)
-		if err != nil {
-			return err
+	for reviewerId, v := range reviewersIds {
+		for _, revieweeId := range v.ToSlice() {
+			err := domain.DomainEventPublisherInstance().Publish(
+				ctx,
+				NewFeedbackDone(
+					f.id,
+					f.complaintId,
+					f.enterpriseId,
+					revieweeId,
+					reviewerId,
+					time.Now(),
+				),
+			)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -359,11 +369,11 @@ func (f *Feedback) DeleteComment(colorKey string) error {
 	if colorKey == "" {
 		return ErrNilValue
 	}
-	for v := range f.replyReview.Iter() {
-		if v.color == colorKey {
-			v.review.comment = ""
-		}
-	}
+	s := f.replyReview.ToSlice()
+	s = slices.DeleteFunc(s, func(e *ReplyReview) bool {
+		return e.color == colorKey
+	})
+	f.replyReview = mapset.NewSet(s...)
 	return nil
 }
 

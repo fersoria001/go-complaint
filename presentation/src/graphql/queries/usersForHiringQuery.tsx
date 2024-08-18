@@ -4,6 +4,7 @@ const usersForHiringQuery = graphql(`
     query usersForHiringQuery($input: SearchWithPagination!) {
         usersForHiring(input:$input){
             users {
+                id
                 userName
                 person {
                     profileImg

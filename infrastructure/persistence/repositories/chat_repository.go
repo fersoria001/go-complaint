@@ -6,6 +6,7 @@ import (
 	"go-complaint/infrastructure/persistence/datasource"
 	"go-complaint/infrastructure/persistence/finders/find_all_chat_replies"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -21,17 +22,25 @@ func (r ChatRepository) Save(
 	ctx context.Context,
 	chat *enterprise.Chat,
 ) error {
-
 	conn, err := r.db.Acquire(ctx)
 	if err != nil {
 		return err
 	}
-	insertCommand := `INSERT INTO chat (ID) VALUES ($1)`
-	var id string = chat.ID().String()
+	defer conn.Release()
+	insertCommand := `INSERT INTO chats (ID, ENTERPRISE_ID, RECIPIENT_ONE_ID, RECIPIENT_TWO_ID) VALUES ($1, $2, $3, $4)`
+	var (
+		id             uuid.UUID = chat.Id()
+		enterpriseId   uuid.UUID = chat.EnterpriseId()
+		recipientOneId uuid.UUID = chat.RecipientOne().Id()
+		recipientTwoId uuid.UUID = chat.RecipientTwo().Id()
+	)
 	_, err = conn.Exec(
 		ctx,
 		insertCommand,
 		&id,
+		&enterpriseId,
+		&recipientOneId,
+		&recipientTwoId,
 	)
 	if err != nil {
 		return err
@@ -43,7 +52,6 @@ func (r ChatRepository) Save(
 	if err != nil {
 		return err
 	}
-	defer conn.Release()
 	return nil
 }
 
@@ -57,7 +65,7 @@ func (r ChatRepository) Update(
 	}
 	err = MapperRegistryInstance().Get("enterprise.Reply").(ChatRepliesRepository).DeleteAll(
 		ctx,
-		chat.ID(),
+		chat.Id(),
 	)
 	if err != nil {
 		return err
@@ -73,27 +81,47 @@ func (r ChatRepository) Update(
 	return nil
 }
 
-func (r ChatRepository) Get(
+func (r ChatRepository) Find(
 	ctx context.Context,
-	chatID enterprise.ChatID,
+	src StatementSource,
 ) (*enterprise.Chat, error) {
 	conn, err := r.db.Acquire(ctx)
 	if err != nil {
 		return nil, err
 	}
-	one := "%" + chatID.String() + "%"
-	two := "%" + chatID.Reverse().String() + "%"
-	selectQuery := `
-		SELECT id
-		FROM chat
-			WHERE id LIKE $1 
- 		OR id LIKE $2
-	`
+	defer conn.Release()
+	row := conn.QueryRow(
+		ctx,
+		src.Query(),
+		src.Args()...,
+	)
+	chat, err := r.load(ctx, row)
+	if err != nil {
+		return nil, err
+	}
+	return chat, nil
+}
+
+func (r ChatRepository) Get(
+	ctx context.Context,
+	chatId uuid.UUID,
+) (*enterprise.Chat, error) {
+	conn, err := r.db.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	selectQuery := string(`
+		SELECT ID,
+		ENTERPRISE_ID,
+		RECIPIENT_ONE_ID,
+		RECIPIENT_TWO_ID
+		FROM chats
+			WHERE id = $1
+	`)
 	row := conn.QueryRow(
 		ctx,
 		selectQuery,
-		&one,
-		&two,
+		&chatId,
 	)
 	chat, err := r.load(ctx, row)
 	if err != nil {
@@ -111,6 +139,7 @@ func (r ChatRepository) FindAll(
 	if err != nil {
 		return nil, err
 	}
+	conn.Release()
 	rows, err := conn.Query(ctx, source.Query(), source.Args()...)
 	if err != nil {
 		return nil, err
@@ -119,10 +148,11 @@ func (r ChatRepository) FindAll(
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		rows.Close()
-		conn.Release()
-	}()
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	rows.Close()
 	return chats, nil
 }
 
@@ -145,24 +175,46 @@ func (r ChatRepository) load(
 	ctx context.Context,
 	row pgx.Row,
 ) (*enterprise.Chat, error) {
-	var id string
-	err := row.Scan(&id)
+	var (
+		id             uuid.UUID
+		enterpriseId   uuid.UUID
+		recipientOneId uuid.UUID
+		recipientTwoId uuid.UUID
+	)
+	err := row.Scan(&id, &enterpriseId, &recipientOneId, &recipientTwoId)
 	if err != nil {
 		return nil, err
 	}
-	chatID, err := enterprise.NewChatID(id)
+	reg := MapperRegistryInstance()
+	recipientRepository, ok := reg.Get("Recipient").(RecipientRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	repliesRepository, ok := reg.Get("enterprise.Reply").(ChatRepliesRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	recipientOne, err := recipientRepository.Get(ctx, recipientOneId)
 	if err != nil {
 		return nil, err
 	}
-	replies, err := MapperRegistryInstance().Get("enterprise.Reply").(ChatRepliesRepository).FindAll(
+	recipientTwo, err := recipientRepository.Get(ctx, recipientTwoId)
+	if err != nil {
+		return nil, err
+	}
+	replies, err := repliesRepository.FindAll(
 		ctx,
-		find_all_chat_replies.ByChatID(*chatID),
+		find_all_chat_replies.ByChatID(id),
 	)
 	if err != nil {
 		return nil, err
 	}
 	return enterprise.NewChat(
-		*chatID,
+		id,
+		enterpriseId,
+		*recipientOne,
+		*recipientTwo,
 		replies,
 	), nil
 }

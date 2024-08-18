@@ -30,13 +30,13 @@ const EnterpriseItem: React.FC<Props> = ({ data }: Props) => {
                     </Link>
                     <Link
                         className="text-gray-700 text-md underline mb-4"
-                        href={`/settings?enterpriseId=${data.enterprise?.name}`}>
+                        href={`/enterprises/${data.enterprise?.name}/settings`}>
                         Change your enterprise settings.
                     </Link>
                 </div>
                 <KeyboardArrowLeftIcon
                     onClick={() => setClicked(undefined)}
-                    className="fill-white bg-blue-300 rounded-full cursor-pointer" />
+                    className="fill-gray-700 ring ring-gray-700 rounded-full cursor-pointer" />
             </div>
         )
     }
@@ -51,17 +51,17 @@ const EnterpriseItem: React.FC<Props> = ({ data }: Props) => {
                     </h5>
                     <div className="">
                         <div className="flex mb-3">
-                            <ContactMailIcon fill="#374151" />
+                            <ContactMailIcon fill="#374151" className="w-6 h-6" />
                             <p className="pl-2 font-normal text-gray-700">{data.enterprise?.email}</p>
                         </div>
                         <div className="flex mb-3">
-                            <ContactPhoneIcon fill="#374151" />
+                            <ContactPhoneIcon fill="#374151" className="w-6 h-6" />
                             <p className="pl-2 font-normal text-gray-700">
                                 {data.enterprise?.phoneNumber}
                             </p>
                         </div>
                         <div className="flex mb-3">
-                            <ContactWebsiteIcon fill="#374151" />
+                            <ContactWebsiteIcon fill="#374151" className="w-6 h-6" />
                             <p className="pl-2 font-normal text-gray-700">
                                 {data.enterprise?.website}
                             </p>
@@ -70,7 +70,7 @@ const EnterpriseItem: React.FC<Props> = ({ data }: Props) => {
                 </div>
                 <div className="flex flex-col self-center">
                     <p className="self-center mb-3 font-normal text-gray-700 underline underline-offset-8">
-                        {data.enterprise?.industry}
+                        {data.enterprise?.industry.name}
                     </p>
                     <p className="mb-3 font-normal text-gray-700 text-center">
                         {data.enterprise?.address.country}, {data.enterprise?.address.countryState}, {data.enterprise?.address.city}.

@@ -56,9 +56,9 @@ const SignUpForm: React.FC = () => {
                     className="block text-gray-700 text-sm lg:text-md font-bold mb-2"
                     htmlFor="userName">Email</label>
                 <input
-                    className="appearance-none border rounded w-full py-2 px-3
+                    className="appearance-none focus:outline-none border rounded w-full py-2 px-3
                 text-md lg:text-lg
-                text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                text-gray-700 leading-tight  focus:shadow-outline"
                     name="userName"
                     type="email"
                     placeholder="Email"

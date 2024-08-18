@@ -38,7 +38,7 @@ const DescribeComplaint: React.FC = () => {
                         name="title"
                         type="text"
                         id="input-group-1"
-                        defaultValue={data?.complaintById.title != "" ? data?.complaintById.title : undefined}
+                        defaultValue={data?.complaintById.title != "" ? data?.complaintById.title! : undefined}
                         minLength={10}
                         maxLength={80}
                         className="bg-gray-50 border border-gray-300 text-gray-700 text-sm md:text-md rounded-lg appearance-none focus:outline-none block w-full ps-8 py-2.5"
@@ -64,7 +64,7 @@ const DescribeComplaint: React.FC = () => {
                     id="description"
                     name="description"
                     rows={5}
-                    defaultValue={data?.complaintById.description != "" ? data?.complaintById.description : undefined}
+                    defaultValue={data?.complaintById.description != "" ? data?.complaintById.description! : undefined}
                     minLength={3}
                     maxLength={120}
                     className="mb-0.5 resize-none block p-2.5 w-full text-sm md:text-md appearance-none focus:outline-none text-gray-700 bg-gray-50 rounded-lg border border-gray-300"

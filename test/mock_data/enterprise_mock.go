@@ -58,6 +58,28 @@ type RegisterEnterpriseCommandMock struct {
 	Employees      mapset.Set[*enterprise.Employee]
 }
 
+type EnterpriseActivityMock struct {
+	Id             uuid.UUID
+	UserId         uuid.UUID
+	ActivityId     uuid.UUID
+	EnterpriseId   uuid.UUID
+	EnterpriseName string
+	OccurredOn     time.Time
+	ActivityType   enterprise.EnterpriseActivityType
+}
+
+var NewEnterpriseActivity = map[string]*EnterpriseActivityMock{
+	"valid": {
+		Id:             uuid.MustParse("b2a3b2c7-f0e0-4d19-b12e-ac7821b4a302"),
+		UserId:         NewRecipients["user"].Id,
+		ActivityId:     NewFeedbacks["valid"].Id,
+		EnterpriseId:   NewEnterprises["valid"].Id,
+		EnterpriseName: NewEnterprises["valid"].Name,
+		OccurredOn:     CommonDate.Date(),
+		ActivityType:   enterprise.FeedbacksStarted,
+	},
+}
+
 var NewEnterprises = map[string]*EnterpriseMock{
 	"valid": {
 		Id:        uuid.MustParse("2ab7c1d3-f0e0-4d19-b12e-ac7821b4a302"),
@@ -144,6 +166,7 @@ type HiringProccessMock struct {
 	OccurredOn time.Time
 	LastUpdate time.Time
 	UpdatedBy  RecipientMock
+	Industry   *IndustryMock
 }
 
 var NewHiringProccesses = map[string]HiringProccessMock{
@@ -158,5 +181,6 @@ var NewHiringProccesses = map[string]HiringProccessMock{
 		OccurredOn: time.Now(),
 		LastUpdate: time.Now(),
 		UpdatedBy:  *NewRecipients["user1"],
+		Industry:   &NewEnterprises["valid"].Industry,
 	},
 }

@@ -25,7 +25,7 @@ const SecondarySection: React.FC = () => {
                 origin-center -rotate-12 skew-x-6 -skew-y-6
                  shadow-sm shadow-gray-700">
                     <Image
-                        src={'/complain.png'}
+                        src={'/main2.png'}
                         alt={'Image of Go complaint profile'}
                         width={1077}
                         height={633}

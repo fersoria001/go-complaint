@@ -113,10 +113,10 @@ func (er EnterpriseRepository) Update(
 
 func (er EnterpriseRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	conn, err := er.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	addressRepository, ok := MapperRegistryInstance().Get("Address").(AddressRepository)
 	if !ok {
 		return ErrWrongTypeAssertion
@@ -145,10 +145,10 @@ func (er EnterpriseRepository) Save(
 	enterprise *enterprise.Enterprise,
 ) error {
 	conn, err := er.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	mapper := MapperRegistryInstance().Get("Address")
 	if mapper == nil {
 		return ErrMapperNotRegistered
@@ -215,10 +215,10 @@ func (er EnterpriseRepository) Save(
 
 func (er EnterpriseRepository) Find(ctx context.Context, src StatementSource) (*enterprise.Enterprise, error) {
 	conn, err := er.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
 	return er.load(ctx, row)
 }

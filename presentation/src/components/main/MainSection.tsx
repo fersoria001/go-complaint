@@ -33,7 +33,7 @@ const MainSection: React.FC = () => {
             xl:translate-x-1/3
             2xl:top-40">
                 <Image
-                    src={'/complain.png'}
+                    src={'/main1.png'}
                     alt={'Image of Go complaint profile'}
                     width={1360}
                     height={620}

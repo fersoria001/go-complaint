@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"go-complaint/application"
 	"go-complaint/application/application_services"
+	"go-complaint/domain"
 	"go-complaint/graph"
 	"go-complaint/http_handlers"
+	projectpath "go-complaint/project_path"
 	"slices"
 	"time"
 
@@ -31,7 +33,7 @@ func main() {
 	os.Setenv("CSRF_KEY", "ultrasecret")
 	os.Setenv("DATABASE_URL", "postgres://postgres:sfdkwtf@localhost:5432/postgres?pool_max_conns=100&search_path=public&connect_timeout=5")
 	os.Setenv("PORT", "5170")
-	os.Setenv("DNS", "http://localhost:3000")
+	os.Setenv("DNS", "http://localhost:5170")
 	os.Setenv("SEND_GRID_API_KEY", "Bearer mlsn.0557f4217143328c73149ad91c7455121924f188c63af0fe093b42feb3fa1de1")
 	r := chi.NewRouter()
 	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
@@ -62,6 +64,18 @@ func main() {
 			h.ServeHTTP(w, r)
 		})
 	})
+	r.Use(func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			pub := domain.DomainEventPublisherInstance()
+			pub.Reset()
+			eventProcessor := application.EventProcessor{}
+			pub.Subscribe(domain.DomainEventSubscriber{
+				HandleEvent:           eventProcessor.HandleEvent,
+				SubscribedToEventType: eventProcessor.SubscribedToEventType,
+			})
+			h.ServeHTTP(w, r)
+		})
+	})
 	publisher := application.ApplicationMessagePublisherInstance()
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Publisher: publisher}}))
 	srv.AddTransport(&transport.Websocket{
@@ -84,13 +98,18 @@ func main() {
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New(100),
 	})
-
+	profileImgHandler := http.StripPrefix("/profile_img/", http.FileServer(http.Dir(projectpath.ProfileImgsPath)))
+	logoImgsHandler := http.StripPrefix("/logo_img/", http.FileServer(http.Dir(projectpath.LogoImgsPath)))
+	bannerImgsHandler := http.StripPrefix("/banner_img/", http.FileServer(http.Dir(projectpath.BannerImgsPath)))
 	r.Handle("/", playground.Handler("GoComplaint GraphQL", "/graphql"))
 	r.Handle("/graphql", srv)
 	r.HandleFunc("/sign-in", http_handlers.SignInHandler)
 	r.HandleFunc("/confirm-sign-in", http_handlers.ConfirmSignInHandler)
 	r.HandleFunc("/chat", http_handlers.ServeWS)
 	r.HandleFunc("/session", http_handlers.SessionHandler)
+	r.Handle("/profile_img/*", profileImgHandler)
+	r.Handle("/logo_img/*", logoImgsHandler)
+	r.Handle("/banner_img/*", bannerImgsHandler)
 	err := http.ListenAndServe(port, r)
 	if err != nil {
 		panic(err)

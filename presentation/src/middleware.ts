@@ -7,7 +7,11 @@ export async function middleware(request: NextRequest) {
   if (!currentUser && request.nextUrl.pathname.startsWith("/profile")) {
     return Response.redirect(new URL("/sign-in", request.url));
   }
-  if (request.nextUrl.pathname.startsWith("/complaint")) {
+  if (
+    request.nextUrl.pathname.startsWith("/complaint") ||
+    request.nextUrl.pathname.startsWith("/reviews") ||
+    request.nextUrl.pathname.startsWith("/profile")
+  ) {
     const strCookie = `jwt=${currentUser}`;
     const session = (await getSession(strCookie)) as UserDescriptor;
     if (!session) {

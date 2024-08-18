@@ -3,10 +3,8 @@ package queries
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"go-complaint/domain/model/feedback"
 	"go-complaint/dto"
-	"go-complaint/infrastructure/cache"
 	"go-complaint/infrastructure/persistence/finders/find_all_events"
 	"go-complaint/infrastructure/persistence/finders/find_all_feedback"
 	"go-complaint/infrastructure/persistence/repositories"
@@ -22,67 +20,26 @@ type FeedbackQuery struct {
 	ReplyID     string
 }
 
-func (query FeedbackQuery) FeedbackLastReply(
-	ctx context.Context,
-) (dto.FeedbackAnswer, error) {
-	if query.ReplyID == "" {
-		return dto.FeedbackAnswer{}, ErrBadRequest
-	}
-	objectID := "feedbackLastReply:" + query.ReplyID
-	v, ok := cache.InMemoryInstance().Get(objectID)
-	if !ok {
-		return dto.FeedbackAnswer{}, fmt.Errorf("complaint not found in cache %v", objectID)
-	}
-	cachedReply, ok := v.(*feedback.Answer)
-	if !ok {
-		return dto.FeedbackAnswer{}, fmt.Errorf("incorrect type of cached object %v", objectID)
-	}
-	return dto.NewFeedbackAnswerDTO(*cachedReply), nil
-}
-
-func (query FeedbackQuery) FindByComplaintID(ctx context.Context) (dto.Feedback, error) {
-	if query.ComplaintID == "" {
-		return dto.Feedback{}, ErrBadRequest
-	}
-	parsedComplaintID, err := uuid.Parse(query.ComplaintID)
-	if err != nil {
-		return dto.Feedback{}, ErrBadRequest
-	}
-	feedbacks, err := repositories.MapperRegistryInstance().Get("Feedback").(repositories.FeedbackRepository).FindAll(
-		ctx,
-		find_all_feedback.ByComplaintID(parsedComplaintID),
-	)
-	if err != nil {
-		return dto.Feedback{}, err
-	}
-	f, ok := feedbacks.Pop()
-	if !ok {
-		return dto.Feedback{}, ErrNotFound
-	}
-	result := dto.NewFeedbackDTO(*f)
-	return result, nil
-}
-
-func (query FeedbackQuery) Feedback(ctx context.Context) (dto.Feedback, error) {
+func (query FeedbackQuery) FeedbackById(ctx context.Context) (*dto.Feedback, error) {
 	if query.FeedbackID == "" {
-		return dto.Feedback{}, ErrBadRequest
+		return nil, ErrBadRequest
 	}
 	id, err := uuid.Parse(query.FeedbackID)
 	if err != nil {
-		return dto.Feedback{}, ErrBadRequest
+		return nil, ErrBadRequest
 	}
 	f, err := repositories.MapperRegistryInstance().Get("Feedback").(repositories.FeedbackRepository).Get(
 		ctx,
 		id,
 	)
 	if err != nil {
-		return dto.Feedback{}, err
+		return nil, err
 	}
 	result := dto.NewFeedbackDTO(*f)
 	return result, nil
 }
 
-func (query FeedbackQuery) FindByRevieweeID(ctx context.Context) ([]dto.Feedback, error) {
+func (query FeedbackQuery) FindByRevieweeID(ctx context.Context) ([]*dto.Feedback, error) {
 	if query.RevieweeID == "" {
 		return nil, ErrBadRequest
 	}
@@ -122,7 +79,7 @@ func (query FeedbackQuery) FindByRevieweeID(ctx context.Context) ([]dto.Feedback
 	if dbFeedbacks.Cardinality() <= 0 {
 		return nil, ErrNotFound
 	}
-	results := make([]dto.Feedback, 0)
+	results := make([]*dto.Feedback, 0)
 	s2 := dbFeedbacks.ToSlice()
 	for _, v := range s2 {
 		feedbackDto := dto.NewFeedbackDTO(*v)

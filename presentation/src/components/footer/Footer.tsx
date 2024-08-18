@@ -1,13 +1,14 @@
-
 import Link from "next/link";
 import Image from "next/image";
+
 const Footer: React.FC = () => {
     const attrelemnt = {
         "xmlns:cc": "http://creativecommons.org/ns#",
         "xmlns:dct": "http://purl.org/dc/terms/"
     }
     return (
-        <footer className={`mt-full bg-white shadow-md border-t p-4`}>
+        <footer id="footer-element"
+         className={`absolute  w-full z-50 mt-full bg-white shadow-md border-t p-4 `}>
             <div className="md:flex md:flex-col w-full lg:flex-row lg:justify-between">
                 <div {...attrelemnt} className="flex flex-col md:flex-row text-sm pl-2 text-gray-700 md:mx-auto lg:mx-0">
                     <p className="mb-0.5 lg:flex lg:items-center">

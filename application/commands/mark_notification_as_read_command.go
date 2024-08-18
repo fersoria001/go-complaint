@@ -2,6 +2,8 @@ package commands
 
 import (
 	"context"
+	"go-complaint/application"
+	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/repositories"
 
 	"github.com/google/uuid"
@@ -36,5 +38,11 @@ func (c MarkNotificationAsReadCommand) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	pub := application.ApplicationMessagePublisherInstance()
+	pub.Publish(application.NewApplicationMessage(
+		n.Owner().Id().String(),
+		"notification",
+		*dto.NewNotification(*n),
+	))
 	return nil
 }

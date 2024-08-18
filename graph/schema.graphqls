@@ -35,6 +35,66 @@ input CreateUser {
   cityId: Int!
 }
 
+input ChangePassword {
+  username: String!
+  oldPassword: String!
+  newPassword: String!
+}
+
+input ChangeUserGenre {
+  userId: String!
+  newGenre: String!
+}
+
+input ChangeUserPronoun {
+  userId: String!
+  newPronoun: String!
+}
+
+input ChangeUserFirstName {
+  userId: String!
+  newFirstName: String!
+}
+
+input ChangeUserLastName {
+  userId: String!
+  newLastName: String!
+}
+
+input ChangeUserPhone {
+  userId: String!
+  newPhone: String!
+}
+
+input UpdateUserAddress {
+  userId: String!
+  newCountryId: Int!
+  newCountyId: Int!
+  newCityId: Int!
+}
+
+input ChangeEnterpriseWebsite {
+  enterpriseId: String!
+  newWebsite: String!
+}
+
+input ChangeEnterpriseEmail {
+  enterpriseId: String!
+  newEmail: String!
+}
+
+input ChangeEnterprisePhone {
+  enterpriseId: String!
+  newPhone: String!
+}
+
+input ChangeEnterpriseAddress {
+  enterpriseId: String!
+  newCountryId: Int!
+  newCountyId: Int!
+  newCityId: Int!
+}
+
 type Address {
   country: String!
   countryState: String!
@@ -59,12 +119,13 @@ type Person {
 }
 
 type User {
+  id: String!
   userName: String!
   person: Person!
   status: UserStatus!
 }
 
-type Notification {
+type NotificationLink {
   id: String!
   owner: Recipient!
   sender: Recipient!
@@ -75,10 +136,16 @@ type Notification {
   occurredOn: String!
 }
 
+enum Roles {
+  ASSISTANT
+  MANAGER
+  OWNER
+}
+
 type GrantedAuthority {
   enterpriseId: String!
   principal: String!
-  authority: String!
+  authority: Roles!
 }
 
 type UserDescriptor {
@@ -96,12 +163,12 @@ type UserDescriptor {
 }
 
 type Recipient {
-  id: String!
+  id: String
   subjectName: String
   subjectThumbnail: String
   subjectEmail: String
   isEnterprise: Boolean
-  isOnline: Boolean!
+  isOnline: Boolean
 }
 
 enum ComplaintStatus {
@@ -115,33 +182,46 @@ enum ComplaintStatus {
 }
 
 type Rating {
-  id: String!
+  id: String
+  rate: Int
+  comment: String
+  sentToReviewBy: Recipient
+  ratedBy: Recipient
+  createdAt: String
+  lastUpdate: String
+}
+
+input RateComplaint {
+  userId: String!
+  complaintId: String!
   rate: Int!
   comment: String!
 }
 
 type ComplaintReply {
-  id: String!
-  complaintId: String!
-  sender: Recipient!
-  body: String!
-  createdAt: String!
+  id: String
+  complaintId: String
+  sender: Recipient
+  body: String
+  createdAt: String
   read: Boolean
-  readAt: String!
-  updatedAt: String!
+  readAt: String
+  updatedAt: String
+  isEnterprise: Boolean
+  enterpriseId: String
 }
 
 type Complaint {
-  id: String!
+  id: String
   author: Recipient
-  receiver: Recipient!
-  status: ComplaintStatus!
-  title: String!
-  description: String!
+  receiver: Recipient
+  status: ComplaintStatus
+  title: String
+  description: String
   rating: Rating
-  createdAt: String!
-  updatedAt: String!
-  replies: [ComplaintReply!]!
+  createdAt: String
+  updatedAt: String
+  replies: [ComplaintReply]
 }
 
 enum ComplaintDataType {
@@ -157,18 +237,6 @@ type ComplaintData {
   complaintId: String!
   occurredOn: String!
   dataType: ComplaintDataType!
-}
-
-type ComplaintsInfo {
-  received: [ComplaintData]!
-  resolved: [ComplaintData]!
-  reviewed: [ComplaintData]!
-  sent: [ComplaintData]!
-}
-
-type Industry {
-  id: Int!
-  name: String!
 }
 
 input CreateEnterprise {
@@ -210,6 +278,11 @@ type Employee {
   enterprisePosition: String!
 }
 
+type Industry {
+  id: Int!
+  name: String!
+}
+
 type Enterprise {
   id: String!
   name: String!
@@ -219,7 +292,7 @@ type Enterprise {
   email: String!
   phoneNumber: String!
   address: Address!
-  industry: String!
+  industry: Industry!
   foundationDate: String!
   ownerId: String!
   employees: [Employee]!
@@ -235,17 +308,45 @@ type EnterprisesByAuthenticatedUserResult {
   offices: [EnterpriseByAuthenticatedUser!]!
 }
 
-enum HiringProccessState {
-  pending
-  accepted
-  rejected
-  user_accepted
-  canceled
-  hired
-  rated
-  waiting
-  fired
-  leaved
+enum EnterpriseActivityType {
+  FEEDBACKS_STARTED
+  FEEDBACKS_RECEIVED
+  JOB_PROPOSALS_SENT
+  EMPLOYEES_HIRED
+  EMPLOYEES_FIRED
+  COMPLAINT_SENT
+  COMPLAINT_RESOLVED
+  COMPLAINT_REVIEWED
+}
+
+type EnterpriseActivity {
+  id: String!
+  user: Recipient!
+  activityId: String!
+  enterpriseId: String!
+  enterpriseName: String!
+  occurredOn: String!
+  activityType: EnterpriseActivityType!
+}
+
+input InviteToProject {
+  enterpriseId: String!
+  role: String!
+  proposeTo: String!
+  proposedBy: String!
+}
+
+enum HiringProccessStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  USER_ACCEPTED
+  CANCELED
+  HIRED
+  RATED
+  WAITING
+  FIRED
+  LEAVED
 }
 
 type UsersForHiringResult {
@@ -270,20 +371,148 @@ input CreateHiringInvitation {
   proposeTo: String!
 }
 
-type HiringInvitation {
-  eventId: String!
-  enterpriseId: String!
-  proposedPosition: String!
-  ownerId: String!
-  fullName: String!
-  enterpriseEmail: String!
-  enterprisePhone: String!
-  enterpriseLogoImg: String!
+type HiringProcess {
+  id: String!
+  enterprise: Recipient
+  user: User!
+  role: String!
+  status: HiringProccessStatus
+  reason: String
+  emitedBy: Recipient!
   occurredOn: String!
-  seen: Boolean!
-  status: HiringProccessState!
-  reason: String!
+  lastUpdate: String!
+  updatedBy: Recipient
+  industry: Industry
 }
+
+input AcceptHiringInvitation {
+  userId: String!
+  hiringProcessId: String!
+}
+
+input RejectHiringInvitation {
+  userId: String!
+  hiringProcessId: String!
+  rejectionReason: String
+}
+
+input HireEmployee {
+  enterpriseId: String!
+  hiringProcessId: String!
+  hiredById: String!
+}
+
+input CancelHiringProcess {
+  enterpriseId: String!
+  hiringProcessId: String!
+  canceledBy: String!
+  cancelationReason: String!
+}
+
+input PromoteEmployee {
+  enterpriseName: String!
+  employeeId: String!
+  promoteTo: String!
+  promotedById: String!
+}
+
+input FireEmployee {
+  enterpriseName: String!
+  employeeId: String!
+  triggeredBy: String!
+  fireReason: String!
+}
+
+type Review {
+  id: String!
+  comment: String
+}
+
+type ReplyReview {
+  id: String!
+  feedbackId: String!
+  reviewer: User!
+  replies: [ComplaintReply]!
+  review: Review
+  color: String!
+  createdAt: String!
+}
+
+type Feedback {
+  id: String!
+  complaintId: String!
+  enterpriseId: String!
+  replyReview: [ReplyReview]!
+  reviewedAt: String!
+  updatedAt: String!
+  isDone: Boolean!
+}
+
+input CreateFeedback {
+  complaintId: String!
+  enterpriseId: String!
+}
+
+input AddFeedbackComment {
+  feedbackId: String!
+  color: String!
+  comment: String!
+}
+
+input AddFeedbackReply {
+  feedbackId: String!
+  reviewerId: String!
+  color: String!
+  repliesIds: [String!]!
+}
+
+input RemoveFeedbackReply {
+  feedbackId: String!
+  color: String!
+  repliesIds: [String!]!
+}
+
+input RemoveFeedbackComment {
+  color: String!
+  feedbackId: String!
+}
+
+input EndFeedback {
+  feedbackId: String!
+  reviewerId: String!
+}
+
+type ChatReply {
+  id: String!
+  chatId: String!
+  sender: Recipient!
+  content: String!
+  seen: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Chat {
+  id: String!
+  enterpriseId: String!
+  recipientOne: Recipient!
+  recipientTwo: Recipient!
+  replies: [ChatReply]!
+}
+
+input CreateEnterpriseChat {
+  enterpriseId: String!
+  senderId: String!
+  receiverId: String!
+}
+
+input FindEnterpriseChat {
+  enterpriseId: String!
+  recipientOneId: String!
+  recipientTwoId: String!
+}
+
+scalar Upload
 
 type Query {
   userDescriptor: UserDescriptor!
@@ -293,24 +522,67 @@ type Query {
   industries: [Industry!]!
   recipientsByNameLike(term: String!): [Recipient!]!
   complaintById(id: String!): Complaint!
-  complaintsInfo(id: String!): ComplaintsInfo!
   complaintsByAuthorOrReceiverId(id: String!): [Complaint]!
+  pendingReviewsByAuthorId(id: String!, term: String): [Complaint]!
+  complaintsSentForReviewByReceiverId(id: String!, term: String): [Complaint]!
+  complaintsRatedByAuthorId(id: String!, term: String): [Complaint]!
+  complaintsRatedByReceiverId(id: String!, term: String): [Complaint]!
   enterpriseByName(name: String!): Enterprise!
   enterprisesByAuthenticatedUser: EnterprisesByAuthenticatedUserResult!
   usersForHiring(input: SearchWithPagination!): UsersForHiringResult!
   userById(id: String!): User!
-  hiringInvitationsByAuthenticatedUser: [HiringInvitation!]!
+  hiringProcessByAuthenticatedUser: [HiringProcess]!
+  hiringProcessByEnterpriseName(name: String!): [HiringProcess]!
+  complaintsForFeedbackByEmployeeId(id: String!): [Complaint]!
+  complaintsOfResolvedFeedbackByEmployeeId(id: String!): [Complaint]!
+  findEnterpriseChat(input: FindEnterpriseChat!): Chat!
 }
 
 type Mutation {
   createUser(input: CreateUser!): User!
+  updateProfileImg(id: String!, file: Upload!): User!
+  changePassword(input: ChangePassword!): User!
+  changeUserGenre(input: ChangeUserGenre!): User!
+  changeUserPronoun(input: ChangeUserPronoun!): User!
+  changeFirstName(input: ChangeUserFirstName!): User!
+  changeLastName(input: ChangeUserLastName!): User!
+  changeUserPhone(input: ChangeUserPhone!): User!
+  updateUserAddress(input: UpdateUserAddress!): User!
   createEnterprise(input: CreateEnterprise!): Enterprise!
-  createNewComplaint(input: CreateNewComplaint!): Complaint!
-  describeComplaint(input: DescribeComplaint!): Complaint!
-  sendComplaint(input: SendComplaint!): Complaint!
+  changeEnterpriseBannerImg(enterpriseId: String!, file: Upload!): Enterprise!
+  changeEnterpriseLogoImg(enterpriseId: String!, file: Upload!): Enterprise!
+  changeEnterpriseWebsite(input: ChangeEnterpriseWebsite!): Enterprise!
+  changeEnterpriseEmail(input: ChangeEnterpriseEmail!): Enterprise!
+  changeEnterprisePhone(input: ChangeEnterprisePhone!): Enterprise!
+  changeEnterpriseAddress(input: ChangeEnterpriseAddress!): Enterprise!
+  inviteToProject(input: InviteToProject!): HiringProcess!
+  markNotificationAsRead(id: String!): NotificationLink!
+  acceptHiringInvitation(input: AcceptHiringInvitation!): HiringProcess!
+  rejectHiringInvitation(input: RejectHiringInvitation!): HiringProcess!
+  hireEmployee(input: HireEmployee!): HiringProcess!
+  promoteEmployee(input: PromoteEmployee!): Employee!
+  fireEmployee(input: FireEmployee!): Enterprise!
+  cancelHiringProcess(input: CancelHiringProcess!): HiringProcess!
+  createFeedback(input: CreateFeedback): Feedback!
+  createNewComplaint(input: CreateNewComplaint!): Complaint
+  describeComplaint(input: DescribeComplaint!): Complaint
+  sendComplaint(input: SendComplaint!): Complaint
+  rateComplaint(input: RateComplaint!): Rating!
+  addFeedbackComment(input: AddFeedbackComment!): Feedback!
+  addFeedbackReply(input: AddFeedbackReply!): Feedback!
+  removeFeedbackReply(input: RemoveFeedbackReply!): Feedback!
+  removeFeedbackCommand(input: RemoveFeedbackComment!): Feedback!
+  endFeedback(input: EndFeedback!): Feedback!
+  createEnterpriseChat(input: CreateEnterpriseChat): Chat!
 }
 
 type Subscription {
-  notifications(id: String!): Notification!
-  complaints(id: String!): Complaint!
+  notifications(id: String!): NotificationLink!
+  complaints(id: String!, userId: String!): Complaint!
+  employeesActivityLog(id: String!): EnterpriseActivity!
+  employeeActivity(id: String!): EnterpriseActivity!
+  employeeComplaintData(id: String!): ComplaintData!
+  complaintDataByOwnership(id: String!): ComplaintData!
+  feedback(feedbackId: String!): Feedback!
+  enterpriseById(id: String!, userId: String!): Enterprise!
 }

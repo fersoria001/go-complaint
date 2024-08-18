@@ -33,6 +33,9 @@ var staticMap = map[string]func() func(schema datasource.Schema) interface{}{
 	"Enterprise": func() func(schema datasource.Schema) interface{} {
 		return func(schema datasource.Schema) interface{} { return NewEnterpriseRepository(schema) }
 	},
+	"EnterpriseActivity": func() func(schema datasource.Schema) interface{} {
+		return func(schema datasource.Schema) interface{} { return NewEnterpriseActivityRepository(schema) }
+	},
 	"HiringProccess": func() func(schema datasource.Schema) interface{} {
 		return func(schema datasource.Schema) interface{} { return NewHiringProccessRepository(schema) }
 	},

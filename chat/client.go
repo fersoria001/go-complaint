@@ -7,6 +7,7 @@ import (
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
 	"go-complaint/application/queries"
+	"go-complaint/dto"
 	"go-complaint/infrastructure/cache"
 	"log"
 	"time"
@@ -25,7 +26,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 4096
+	maxMessageSize = 1024 * 8
 )
 
 var (
@@ -82,9 +83,12 @@ func NewClient(cas *ChatAdapter, conn *websocket.Conn) *Client {
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
 func (c *Client) Read() {
+	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
+		log.Printf("closing connection %v", c)
 		c.cas.unregister <- c
 		c.conn.Close()
+		cancel()
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -95,6 +99,7 @@ func (c *Client) Read() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error at reading message: %v", err)
 			}
+			log.Printf("error at reading message: %v", err)
 			break
 		}
 		var chatMessage ChatMessage
@@ -103,10 +108,11 @@ func (c *Client) Read() {
 			log.Printf("error at unmarshal token: %v", err)
 			break
 		}
+
 		switch chatMessage.Type {
 		case ConnectionInit.String():
 			svc := application_services.AuthorizationApplicationServiceInstance()
-			_, err = svc.Authorize(context.Background(), string(chatMessage.Payload))
+			_, err = svc.Authorize(ctx, string(chatMessage.Payload))
 			response := ChatMessage{Type: ConnectionAcknowledged.String()}
 			if err != nil {
 				response.Payload = []byte("false")
@@ -122,9 +128,10 @@ func (c *Client) Read() {
 			c.send <- m
 		case Data.String():
 			if !c.isAuthenticated {
+				log.Printf("error at sub protocol handler client is not authenticated: %v", err)
 				break
 			}
-			p, err := c.HandleSubProtocol(c.conn.Subprotocol(), chatMessage.Payload)
+			p, err := c.HandleSubProtocol(ctx, c.conn.Subprotocol(), chatMessage.Payload)
 			if err != nil {
 				log.Printf("error at sub protocol handler false: %v", err)
 				break
@@ -185,26 +192,143 @@ func (c *Client) Write() {
 	}
 }
 
-type ComplaintSubProtocolDataType int
-
-func (c *Client) HandleSubProtocol(subProtocol string, payload []byte) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+func (c *Client) HandleSubProtocol(ctx context.Context, subProtocol string, payload []byte) ([]byte, error) {
 	switch subProtocol {
 	case "complaint":
 		return complaintSubProtocol(ctx, payload)
-	case "enterprise":
-		return nil, fmt.Errorf(("not implemented yet"))
+	case "enterpriseChat":
+		return enterpriseChatSubProtocol(ctx, payload)
 	default:
 		return nil, fmt.Errorf(("unsupported subProtocol"))
 	}
 }
+
+type SubProtocolPayload struct {
+	SubProtocolDataType string `json:"subProtocolDataType"`
+	Command             []byte `json:"command"`
+}
+
+type SubProtocolResult struct {
+	SubProtocolDataType string `json:"subProtocolDataType"`
+	Result              []byte `json:"result"`
+}
+
+type MarkAsSeenData struct {
+	Id      string `json:"id"`
+	ReplyId string `json:"replyId"`
+}
+
+type EnterpriseChatSubProtocolDataType int
+
+const (
+	MarkAsSeenCommand EnterpriseChatSubProtocolDataType = iota
+	ReplyCommand
+	ChatReply
+	Chat
+)
+
+func (ecspdt EnterpriseChatSubProtocolDataType) String() string {
+	switch ecspdt {
+	case MarkAsSeenCommand:
+		return "mark_as_seen_command"
+	case ReplyCommand:
+		return "reply_command"
+	case ChatReply:
+		return "chat_reply"
+	case Chat:
+		return "chat"
+	default:
+		return ""
+	}
+}
+
+func enterpriseChatSubProtocol(ctx context.Context, payload []byte) ([]byte, error) {
+	var p SubProtocolPayload
+	err := json.Unmarshal(payload, &p)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshal enterprise chat subprotocol payload: %v", err)
+	}
+	switch p.SubProtocolDataType {
+	case ReplyCommand.String():
+		var c commands.ReplyEnterpriseChatCommand
+		err := json.Unmarshal(p.Command, &c)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshal reply enterprise chat command %v", err)
+		}
+
+		err = c.Execute(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error execute reply chat command: %v", err)
+		}
+		replyMsg, ok := cache.InMemoryInstance().Get(c.ChatId)
+		if !ok {
+			return nil, fmt.Errorf("error receiving replyMsg in replyEnterpriseChat subProtocol")
+		}
+		reply, ok := replyMsg.(dto.ChatReply)
+		if !ok {
+			return nil, fmt.Errorf("error casting replyMsg in replyEnterpriseChat subProtocol")
+		}
+		b, err := json.Marshal(reply)
+		if err != nil {
+			return nil, fmt.Errorf("err marshal reply at replyEnterpriseChat sub protocol, %v", err)
+		}
+		responsePayload, err := json.Marshal(SubProtocolResult{
+			SubProtocolDataType: ChatReply.String(),
+			Result:              b,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling response payload at enterpriseChatReply subProtocol %v", err)
+		}
+		return responsePayload, nil
+	case MarkAsSeenCommand.String():
+		var d []MarkAsSeenData
+		err := json.Unmarshal(p.Command, &d)
+		if err != nil {
+			return nil, fmt.Errorf(" error at unmarshall markAsSeen data in enterpriseChat subProtocol %v", err)
+		}
+		if len(d) <= 0 {
+			return nil, fmt.Errorf(" error at unmarshall markAsSeen data in enterpriseChat subProtocol, the length is zero %v", err)
+		}
+		chatId := d[len(d)-1].Id
+		ids := make([]string, 0, len(d))
+		for i := range d {
+			ids = append(ids, d[i].ReplyId)
+		}
+		c := commands.NewMarkEnterpriseChatReplyAsSeenCommand(chatId, ids)
+		err = c.Execute(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error execute markEnterpriseChatReplyAsSeen in enterpriseChatSubProtocol %v", err)
+		}
+		q := queries.NewEnterpriseChatByIdQuery(chatId)
+		dbC, err := q.Execute(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error execute query after mark replies as seen enterpriseChatSubProtocol %v", err)
+		}
+		b, err := json.Marshal(dbC)
+		if err != nil {
+			return nil, fmt.Errorf("error marshal query result after mark replies as seen enterpriseChatSubProtocol %v", err)
+		}
+		responsePayload, err := json.Marshal(SubProtocolResult{
+			SubProtocolDataType: Chat.String(),
+			Result:              b,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error marshal response payload result enterpriseChatSubProtocol %v", err)
+		}
+		return responsePayload, nil
+	default:
+		return nil, fmt.Errorf("not implemented yet")
+	}
+}
+
+type ComplaintSubProtocolDataType int
 
 const (
 	ReplyComplaint ComplaintSubProtocolDataType = iota
 	MarkAsRead
 	ComplaintReply
 	Complaint
+	SendToReview
 )
 
 func (cspdt ComplaintSubProtocolDataType) String() string {
@@ -217,28 +341,15 @@ func (cspdt ComplaintSubProtocolDataType) String() string {
 		return "complaint_reply"
 	case Complaint:
 		return "complaint"
+	case SendToReview:
+		return "send_to_review"
 	default:
 		return ""
 	}
 }
 
-type ComplaintSubProtocolPayload struct {
-	SubProtocolDataType string `json:"subProtocolDataType"`
-	Command             []byte `json:"command"`
-}
-
-type ComplaintSubProtocolResult struct {
-	SubProtocolDataType string `json:"subProtocolDataType"`
-	Result              []byte `json:"result"`
-}
-
-type markAsSeenData struct {
-	ComplaintId string `json:"complaintId"`
-	ReplyId     string `json:"replyId"`
-}
-
 func complaintSubProtocol(ctx context.Context, payload []byte) ([]byte, error) {
-	var p ComplaintSubProtocolPayload
+	var p SubProtocolPayload
 	err := json.Unmarshal(payload, &p)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshal complaint subprotocol payload: %v", err)
@@ -267,7 +378,7 @@ func complaintSubProtocol(ctx context.Context, payload []byte) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("err marshaling query result: %v", err)
 		}
-		responsePayload, err := json.Marshal(ComplaintSubProtocolResult{
+		responsePayload, err := json.Marshal(SubProtocolResult{
 			SubProtocolDataType: ComplaintReply.String(),
 			Result:              b,
 		})
@@ -276,7 +387,7 @@ func complaintSubProtocol(ctx context.Context, payload []byte) ([]byte, error) {
 		}
 		return responsePayload, nil
 	case MarkAsRead.String():
-		var d []markAsSeenData
+		var d []MarkAsSeenData
 		err = json.Unmarshal(p.Command, &d)
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshalling mark as seen data: %v", err)
@@ -284,7 +395,7 @@ func complaintSubProtocol(ctx context.Context, payload []byte) ([]byte, error) {
 		if len(d) <= 0 {
 			return nil, fmt.Errorf("error unmarshalling mark as seen data the length is zero: %v", err)
 		}
-		complaintId := d[len(d)-1].ComplaintId
+		complaintId := d[len(d)-1].Id
 		ids := make([]string, 0, len(d))
 		for i := range d {
 			ids = append(ids, d[i].ReplyId)
@@ -303,7 +414,34 @@ func complaintSubProtocol(ctx context.Context, payload []byte) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error marshalling query  result after mark replies as read: %v", err)
 		}
-		responsePayload, err := json.Marshal(ComplaintSubProtocolResult{
+		responsePayload, err := json.Marshal(SubProtocolResult{
+			SubProtocolDataType: Complaint.String(),
+			Result:              b,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("err marshaling response payload result: %v", err)
+		}
+		return responsePayload, nil
+	case SendToReview.String():
+		var c commands.SendComplaintToReviewCommand
+		err := json.Unmarshal(p.Command, &c)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling send complaint to review command data: %v", err)
+		}
+		err = c.Execute(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error executing send complaint to review command: %v", err)
+		}
+		q := queries.NewComplaintByIdQuery(c.ComplaintId)
+		dbC, err := q.Execute(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error executing query after send complaint to review: %v", err)
+		}
+		b, err := json.Marshal(dbC)
+		if err != nil {
+			return nil, fmt.Errorf("error marshalling query  result after send complaint to review: %v", err)
+		}
+		responsePayload, err := json.Marshal(SubProtocolResult{
 			SubProtocolDataType: Complaint.String(),
 			Result:              b,
 		})

@@ -61,7 +61,7 @@ func (c CancelHiringProccessCommand) Execute(ctx context.Context) error {
 						fmt.Sprintf("Your hiring process at %s has been canceled", hiringProccess.Enterprise().SubjectName()),
 						fmt.Sprintf("Your hiring process at %s as %s has been canceled by %s",
 							hiringProccess.Enterprise().SubjectName(), hiringProccess.Role(), employeeUserRecipient.SubjectName()),
-						fmt.Sprintf("/hiring-invitations?=id%s", hiringProccessId),
+						"/hiring",
 					)
 					return c.Execute(ctx)
 				}

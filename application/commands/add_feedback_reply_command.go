@@ -3,7 +3,9 @@ package commands
 import (
 	"context"
 	"errors"
+	"go-complaint/application"
 	"go-complaint/domain/model/feedback"
+	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/finders/find_all_complaint_replies"
 	"go-complaint/infrastructure/persistence/repositories"
 	"log"
@@ -99,5 +101,11 @@ func (c AddFeedbackReplyCommand) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	svc := application.ApplicationMessagePublisherInstance()
+	svc.Publish(application.NewApplicationMessage(
+		f.Id().String(),
+		"feedback",
+		*dto.NewFeedbackDTO(*f),
+	))
 	return nil
 }

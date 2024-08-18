@@ -2,9 +2,13 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"go-complaint/application"
 	"go-complaint/domain"
+	"go-complaint/domain/model/enterprise"
 	"go-complaint/domain/model/feedback"
+	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/repositories"
 	"log"
 	"reflect"
@@ -67,7 +71,7 @@ func (c EndFeedbackCommand) Execute(ctx context.Context) error {
 					if !ok {
 						return ErrWrongTypeAssertion
 					}
-					reviewerRecipient, err := recipientRepository.Get(ctx, e.ReviewedId())
+					reviewerRecipient, err := recipientRepository.Get(ctx, e.ReviewerId())
 					if err != nil {
 						log.Println("recipient not found")
 						return err
@@ -77,12 +81,25 @@ func (c EndFeedbackCommand) Execute(ctx context.Context) error {
 						log.Println("complaint not found event")
 						return err
 					}
+
+					err = NewLogEnterpriseActivityCommand(
+						e.ReviewedId().String(),
+						e.FeedbackId().String(),
+						e.EnterpriseId().String(),
+						dbc.Receiver().SubjectName(),
+						enterprise.FeedbacksReceived.String(),
+					).Execute(ctx)
+					if err != nil {
+						if !errors.Is(err, ErrEnterpriseActivityAlreadyExists) {
+							return err
+						}
+					}
 					command := NewSendNotificationCommand(
 						e.ReviewedId().String(),
 						dbc.Receiver().Id().String(),
 						fmt.Sprintf("%s has made a feedback on your attention", reviewerRecipient.SubjectName()),
 						fmt.Sprintf("You have received a feedback from %s on your attention", reviewerRecipient.SubjectName()),
-						fmt.Sprintf("/%s/feedbacks?id=%s", dbc.Receiver().Id(), e.FeedbackId()),
+						fmt.Sprintf("/enterprises/%s/employees/feedback/%s", dbc.Receiver().SubjectName(), e.ComplaintId()),
 					)
 					err = command.Execute(ctx)
 					if err != nil {
@@ -96,6 +113,7 @@ func (c EndFeedbackCommand) Execute(ctx context.Context) error {
 				return reflect.TypeOf(&feedback.FeedbackDone{})
 			},
 		})
+
 	err = f.EndFeedback(ctx)
 	if err != nil {
 		return err
@@ -112,6 +130,26 @@ func (c EndFeedbackCommand) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	for _, v := range f.ReplyReviews().ToSlice() {
+		err = NewLogEnterpriseActivityCommand(
+			v.Reviewer().Id().String(),
+			f.Id().String(),
+			f.EnterpriseId().String(),
+			dbc.Receiver().SubjectName(),
+			enterprise.FeedbacksStarted.String(),
+		).Execute(ctx)
+		if err != nil {
+			if !errors.Is(err, ErrEnterpriseActivityAlreadyExists) {
+				return err
+			}
+		}
+	}
+	svc := application.ApplicationMessagePublisherInstance()
+	svc.Publish(application.NewApplicationMessage(
+		f.Id().String(),
+		"feedback",
+		*dto.NewFeedbackDTO(*f),
+	))
 	return nil
 
 }

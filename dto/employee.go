@@ -2,6 +2,8 @@ package dto
 
 import (
 	"go-complaint/domain/model/enterprise"
+	"slices"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -38,6 +40,8 @@ type Employee struct {
 func NewEmployee(domainObj *enterprise.Employee) *Employee {
 	return &Employee{
 		ID:               domainObj.ID(),
+		EnterpriseID:     domainObj.EnterpriseId().String(),
+		UserID:           domainObj.GetUser().Id().String(),
 		ProfileIMG:       domainObj.ProfileIMG(),
 		FirstName:        domainObj.FirstName(),
 		LastName:         domainObj.LastName(),
@@ -107,5 +111,8 @@ func NewEmployeeList(domainObjs mapset.Set[enterprise.Employee]) []*Employee {
 		employee := NewEmployee(&domainObj)
 		employees = append(employees, employee)
 	}
+	slices.SortStableFunc(employees, func(a, b *Employee) int {
+		return strings.Compare(a.FirstName, b.FirstName)
+	})
 	return employees
 }

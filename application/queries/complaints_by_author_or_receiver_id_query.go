@@ -66,8 +66,12 @@ func (cbaoriq *ComplaintsByAuthorOrReceiverIdQuery) Execute(ctx context.Context)
 		complaintDto := dto.NewComplaint(*v)
 		//log.Printf("query receiver %v=> %s = %v", currentSubscribers, complaintDto.Receiver.Id, slices.Contains(currentSubscribers, complaintDto.Receiver.Id))
 		//log.Printf("query author %v=> %s = %v", currentSubscribers, complaintDto.Author.Id, slices.Contains(currentSubscribers, complaintDto.Author.Id))
-		complaintDto.Receiver.IsOnline = slices.Contains(currentSubscribers, complaintDto.Receiver.Id)
-		complaintDto.Author.IsOnline = slices.Contains(currentSubscribers, complaintDto.Author.Id)
+		complaintDto.Receiver.IsOnline = slices.ContainsFunc(currentSubscribers, func(e *application.Subscriber) bool {
+			return e.UserId == complaintDto.Receiver.Id
+		})
+		complaintDto.Author.IsOnline = slices.ContainsFunc(currentSubscribers, func(e *application.Subscriber) bool {
+			return e.UserId == complaintDto.Author.Id
+		})
 		result = append(result, complaintDto)
 	}
 	return result, nil

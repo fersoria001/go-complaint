@@ -3,6 +3,7 @@ package repositories_test
 import (
 	"context"
 	"go-complaint/domain/model/enterprise"
+	"go-complaint/domain/model/identity"
 	"go-complaint/domain/model/recipient"
 	"go-complaint/infrastructure/persistence/finders/find_all_hiring_proccesses"
 	"go-complaint/infrastructure/persistence/repositories"
@@ -17,15 +18,44 @@ func TestHiringProccessRepository_Setup(t *testing.T) {
 	reg := repositories.MapperRegistryInstance()
 	recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
 	assert.True(t, ok)
+	userRepository, ok := reg.Get("User").(repositories.UserRepository)
+	assert.True(t, ok)
 	for _, v := range mock_data.NewRecipients {
 		recipient := recipient.NewRecipient(
 			v.Id,
 			v.SubjectName,
 			v.SubjectThumbnail,
-			v.SubjectThumbnail,
+			v.SubjectEmail,
 			v.IsEnterprise,
 		)
 		err := recipientRepository.Save(ctx, *recipient)
+		assert.Nil(t, err)
+	}
+	for _, v := range mock_data.NewUsers {
+		person, err := identity.NewPerson(
+			v.Person.Id,
+			v.Person.Email,
+			v.Person.ProfileImg,
+			v.Person.Genre,
+			v.Person.Pronoun,
+			v.Person.FirstName,
+			v.Person.LastName,
+			v.Person.Phone,
+			v.Person.BirthDate,
+			v.Person.Address,
+		)
+		assert.Nil(t, err)
+		user, err := identity.NewUser(
+			v.Id,
+			v.UserName,
+			v.Password,
+			v.RegisterDate,
+			person,
+			v.IsConfirmed,
+			v.UserRoles,
+		)
+		assert.Nil(t, err)
+		err = userRepository.Save(ctx, user)
 		assert.Nil(t, err)
 	}
 }
@@ -38,6 +68,8 @@ func TestHiringProccessRepository_Save(t *testing.T) {
 	assert.True(t, ok)
 	hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
 	assert.True(t, ok)
+	userRepository, ok := reg.Get("User").(repositories.UserRepository)
+	assert.True(t, ok)
 	for _, v := range mock_data.NewHiringProccesses {
 		e := recipient.NewRecipient(
 			v.Enterprise.Id,
@@ -46,13 +78,8 @@ func TestHiringProccessRepository_Save(t *testing.T) {
 			v.Enterprise.SubjectThumbnail,
 			v.Enterprise.IsEnterprise,
 		)
-		user := recipient.NewRecipient(
-			v.User.Id,
-			v.User.SubjectName,
-			v.User.SubjectThumbnail,
-			v.User.SubjectThumbnail,
-			v.User.IsEnterprise,
-		)
+		user, err := userRepository.Get(ctx, v.User.Id)
+		assert.Nil(t, err)
 		emitedBy := recipient.NewRecipient(
 			v.EmitedBy.Id,
 			v.EmitedBy.SubjectName,
@@ -67,6 +94,8 @@ func TestHiringProccessRepository_Save(t *testing.T) {
 			v.UpdatedBy.SubjectThumbnail,
 			v.UpdatedBy.IsEnterprise,
 		)
+		industry, err := enterprise.NewIndustry(v.Industry.Id, v.Industry.Name)
+		assert.Nil(t, err)
 		h := enterprise.NewHiringProccess(
 			v.Id,
 			*e,
@@ -78,8 +107,9 @@ func TestHiringProccessRepository_Save(t *testing.T) {
 			v.OccurredOn,
 			v.LastUpdate,
 			*updatedBy,
+			industry,
 		)
-		err := hiringProccessRepository.Save(ctx, *h)
+		err = hiringProccessRepository.Save(ctx, *h)
 		assert.Nil(t, err)
 	}
 	t.Cleanup(func() {
@@ -89,6 +119,10 @@ func TestHiringProccessRepository_Save(t *testing.T) {
 		}
 		for _, v := range mock_data.NewHiringProccesses {
 			err := hiringProccessRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
+		for _, v := range mock_data.NewUsers {
+			err := userRepository.Remove(ctx, v.Id)
 			assert.Nil(t, err)
 		}
 	})
@@ -102,6 +136,8 @@ func TestHiringProccessRepository_Get(t *testing.T) {
 	assert.True(t, ok)
 	hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
 	assert.True(t, ok)
+	userRepository, ok := reg.Get("User").(repositories.UserRepository)
+	assert.True(t, ok)
 	for _, v := range mock_data.NewHiringProccesses {
 		e := recipient.NewRecipient(
 			v.Enterprise.Id,
@@ -110,13 +146,8 @@ func TestHiringProccessRepository_Get(t *testing.T) {
 			v.Enterprise.SubjectThumbnail,
 			v.Enterprise.IsEnterprise,
 		)
-		user := recipient.NewRecipient(
-			v.User.Id,
-			v.User.SubjectName,
-			v.User.SubjectThumbnail,
-			v.User.SubjectThumbnail,
-			v.User.IsEnterprise,
-		)
+		user, err := userRepository.Get(ctx, v.User.Id)
+		assert.Nil(t, err)
 		emitedBy := recipient.NewRecipient(
 			v.EmitedBy.Id,
 			v.EmitedBy.SubjectName,
@@ -131,6 +162,8 @@ func TestHiringProccessRepository_Get(t *testing.T) {
 			v.UpdatedBy.SubjectThumbnail,
 			v.UpdatedBy.IsEnterprise,
 		)
+		industry, err := enterprise.NewIndustry(v.Industry.Id, v.Industry.Name)
+		assert.Nil(t, err)
 		h := enterprise.NewHiringProccess(
 			v.Id,
 			*e,
@@ -142,8 +175,9 @@ func TestHiringProccessRepository_Get(t *testing.T) {
 			v.OccurredOn,
 			v.LastUpdate,
 			*updatedBy,
+			industry,
 		)
-		err := hiringProccessRepository.Save(ctx, *h)
+		err = hiringProccessRepository.Save(ctx, *h)
 		assert.Nil(t, err)
 		dbH, err := hiringProccessRepository.Get(ctx, h.Id())
 		assert.Nil(t, err)
@@ -166,6 +200,10 @@ func TestHiringProccessRepository_Get(t *testing.T) {
 			err := hiringProccessRepository.Remove(ctx, v.Id)
 			assert.Nil(t, err)
 		}
+		for _, v := range mock_data.NewUsers {
+			err := userRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
 	})
 }
 
@@ -177,6 +215,8 @@ func TestHiringProccessRepository_FindAll_ByUserId(t *testing.T) {
 	assert.True(t, ok)
 	hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
 	assert.True(t, ok)
+	userRepository, ok := reg.Get("User").(repositories.UserRepository)
+	assert.True(t, ok)
 	for _, v := range mock_data.NewHiringProccesses {
 		e := recipient.NewRecipient(
 			v.Enterprise.Id,
@@ -185,13 +225,8 @@ func TestHiringProccessRepository_FindAll_ByUserId(t *testing.T) {
 			v.Enterprise.SubjectThumbnail,
 			v.Enterprise.IsEnterprise,
 		)
-		user := recipient.NewRecipient(
-			v.User.Id,
-			v.User.SubjectName,
-			v.User.SubjectThumbnail,
-			v.User.SubjectThumbnail,
-			v.User.IsEnterprise,
-		)
+		user, err := userRepository.Get(ctx, v.User.Id)
+		assert.Nil(t, err)
 		emitedBy := recipient.NewRecipient(
 			v.EmitedBy.Id,
 			v.EmitedBy.SubjectName,
@@ -206,6 +241,8 @@ func TestHiringProccessRepository_FindAll_ByUserId(t *testing.T) {
 			v.UpdatedBy.SubjectThumbnail,
 			v.UpdatedBy.IsEnterprise,
 		)
+		industry, err := enterprise.NewIndustry(v.Industry.Id, v.Industry.Name)
+		assert.Nil(t, err)
 		h := enterprise.NewHiringProccess(
 			v.Id,
 			*e,
@@ -217,8 +254,9 @@ func TestHiringProccessRepository_FindAll_ByUserId(t *testing.T) {
 			v.OccurredOn,
 			v.LastUpdate,
 			*updatedBy,
+			industry,
 		)
-		err := hiringProccessRepository.Save(ctx, *h)
+		err = hiringProccessRepository.Save(ctx, *h)
 		assert.Nil(t, err)
 		dbH, err := hiringProccessRepository.FindAll(ctx, find_all_hiring_proccesses.ByUserId(user.Id()))
 		assert.Nil(t, err)
@@ -235,6 +273,10 @@ func TestHiringProccessRepository_FindAll_ByUserId(t *testing.T) {
 			err := hiringProccessRepository.Remove(ctx, v.Id)
 			assert.Nil(t, err)
 		}
+		for _, v := range mock_data.NewUsers {
+			err := userRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
 	})
 }
 
@@ -246,6 +288,8 @@ func TestHiringProccessRepository_FindAll_ByEnterpriseId(t *testing.T) {
 	assert.True(t, ok)
 	hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
 	assert.True(t, ok)
+	userRepository, ok := reg.Get("User").(repositories.UserRepository)
+	assert.True(t, ok)
 	for _, v := range mock_data.NewHiringProccesses {
 		e := recipient.NewRecipient(
 			v.Enterprise.Id,
@@ -254,13 +298,8 @@ func TestHiringProccessRepository_FindAll_ByEnterpriseId(t *testing.T) {
 			v.Enterprise.SubjectThumbnail,
 			v.Enterprise.IsEnterprise,
 		)
-		user := recipient.NewRecipient(
-			v.User.Id,
-			v.User.SubjectName,
-			v.User.SubjectThumbnail,
-			v.User.SubjectThumbnail,
-			v.User.IsEnterprise,
-		)
+		user, err := userRepository.Get(ctx, v.User.Id)
+		assert.Nil(t, err)
 		emitedBy := recipient.NewRecipient(
 			v.EmitedBy.Id,
 			v.EmitedBy.SubjectName,
@@ -275,6 +314,8 @@ func TestHiringProccessRepository_FindAll_ByEnterpriseId(t *testing.T) {
 			v.UpdatedBy.SubjectThumbnail,
 			v.UpdatedBy.IsEnterprise,
 		)
+		industry, err := enterprise.NewIndustry(v.Industry.Id, v.Industry.Name)
+		assert.Nil(t, err)
 		h := enterprise.NewHiringProccess(
 			v.Id,
 			*e,
@@ -286,8 +327,9 @@ func TestHiringProccessRepository_FindAll_ByEnterpriseId(t *testing.T) {
 			v.OccurredOn,
 			v.LastUpdate,
 			*updatedBy,
+			industry,
 		)
-		err := hiringProccessRepository.Save(ctx, *h)
+		err = hiringProccessRepository.Save(ctx, *h)
 		assert.Nil(t, err)
 		dbH, err := hiringProccessRepository.FindAll(ctx, find_all_hiring_proccesses.ByEnterpriseId(e.Id()))
 		assert.Nil(t, err)
@@ -304,6 +346,10 @@ func TestHiringProccessRepository_FindAll_ByEnterpriseId(t *testing.T) {
 			err := hiringProccessRepository.Remove(ctx, v.Id)
 			assert.Nil(t, err)
 		}
+		for _, v := range mock_data.NewUsers {
+			err := userRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
 	})
 }
 
@@ -315,6 +361,8 @@ func TestHiringProccessRepository_Update(t *testing.T) {
 	assert.True(t, ok)
 	hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
 	assert.True(t, ok)
+	userRepository, ok := reg.Get("User").(repositories.UserRepository)
+	assert.True(t, ok)
 	for _, v := range mock_data.NewHiringProccesses {
 		e := recipient.NewRecipient(
 			v.Enterprise.Id,
@@ -323,13 +371,8 @@ func TestHiringProccessRepository_Update(t *testing.T) {
 			v.Enterprise.SubjectThumbnail,
 			v.Enterprise.IsEnterprise,
 		)
-		user := recipient.NewRecipient(
-			v.User.Id,
-			v.User.SubjectName,
-			v.User.SubjectThumbnail,
-			v.User.SubjectThumbnail,
-			v.User.IsEnterprise,
-		)
+		user, err := userRepository.Get(ctx, v.User.Id)
+		assert.Nil(t, err)
 		emitedBy := recipient.NewRecipient(
 			v.EmitedBy.Id,
 			v.EmitedBy.SubjectName,
@@ -344,6 +387,8 @@ func TestHiringProccessRepository_Update(t *testing.T) {
 			v.UpdatedBy.SubjectThumbnail,
 			v.UpdatedBy.IsEnterprise,
 		)
+		industry, err := enterprise.NewIndustry(v.Industry.Id, v.Industry.Name)
+		assert.Nil(t, err)
 		h := enterprise.NewHiringProccess(
 			v.Id,
 			*e,
@@ -355,8 +400,9 @@ func TestHiringProccessRepository_Update(t *testing.T) {
 			v.OccurredOn,
 			v.LastUpdate,
 			*updatedBy,
+			industry,
 		)
-		err := hiringProccessRepository.Save(ctx, *h)
+		err = hiringProccessRepository.Save(ctx, *h)
 		assert.Nil(t, err)
 		dbH, err := hiringProccessRepository.Get(ctx, h.Id())
 		assert.Nil(t, err)
@@ -390,6 +436,10 @@ func TestHiringProccessRepository_Update(t *testing.T) {
 		}
 		for _, v := range mock_data.NewHiringProccesses {
 			err := hiringProccessRepository.Remove(ctx, v.Id)
+			assert.Nil(t, err)
+		}
+		for _, v := range mock_data.NewUsers {
+			err := userRepository.Remove(ctx, v.Id)
 			assert.Nil(t, err)
 		}
 	})

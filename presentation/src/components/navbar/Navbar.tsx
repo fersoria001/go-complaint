@@ -6,8 +6,12 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import getGraphQLClient from "@/graphql/graphQLClient";
 import userDescriptorQuery from "@/graphql/queries/userDescriptorQuery";
 import { profileOptions } from "@/lib/profileOptions";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BurguerMenuIcon from "../icons/BurguerMenuIcon";
+import graphQLSubscriptionClient from "@/graphql/graphQLSubscriptionClient";
+import notificationsSubscription from "@/graphql/subscriptions/notificationsSubscriptions";
+import { NotificationLink } from "@/gql/graphql";
+import getGraphQLSubscriptionClient from "@/graphql/graphQLSubscriptionClient";
 
 const Navbar: React.FC = () => {
     const { data: user } = useSuspenseQuery({
@@ -22,12 +26,37 @@ const Navbar: React.FC = () => {
         staleTime: Infinity,
         gcTime: Infinity
     })
-    const notifications: any = []
+    const [notifications, setNotifications] = useState<NotificationLink[]>([])
     const [show, setShow] = useState<boolean>(false)
+
+    useEffect(() => {
+        async function subscribe(id: string) {
+            const subscription = getGraphQLSubscriptionClient().iterate({
+                query: notificationsSubscription(id),
+            });
+            for await (const event of subscription) {
+                const c = event.data?.notifications as NotificationLink
+                setNotifications(prev => {
+                    const copy = prev.map((n) => n.id != c.id ? n : c)
+                    const index = copy.findIndex((m) => m.id === c.id)
+                    if (index < 0) copy.unshift(c)
+                    return copy
+                })
+            }
+        }
+        if (user) {
+            subscribe(user?.userDescriptor.id!)
+            if (user.userDescriptor.authorities) {
+                for (let i = 0; i < user.userDescriptor.authorities.length; i++) {
+                    subscribe(user.userDescriptor.authorities[i]?.enterpriseId!)
+                }
+            }
+        }
+    }, [user])
     return (
         <>
             <header
-                className="flex absolute top-0 z-2 min-h-[82px] w-full bg-white border-b border-gray-200 ">
+                className="flex absolute top-0 min-h-[82px] z-30 w-full bg-white border-b border-gray-200 ">
                 <div className="flex w-full self-center">
                     <Link href="/" className="self-center ps-5 xl:px-5 whitespace-nowrap font-bold text-xl sm:text-2xl md:text-3xl">
                         Go Complaint
@@ -41,6 +70,7 @@ const Navbar: React.FC = () => {
                                             profileOptions(user?.userDescriptor.id, "").map((option) => {
                                                 return (
                                                     <li
+                                                        onClick={() => setShow(false)}
                                                         className="mt-2 text-gray-700 text-md font-bold px-2 hover:text-blue-300"
                                                         key={option.title}>
                                                         <Link href={option.link}>
@@ -89,7 +119,10 @@ const Navbar: React.FC = () => {
                     {
                         profileOptions(user?.userDescriptor.id, "").map((option) => {
                             return (
-                                <li key={option.title} className="py-4 rounded-b-md text-center font-bold text-gray-500 text-md md:text-xl">
+                                <li
+                                    onClick={() => setShow(false)}
+                                    key={option.title}
+                                    className="py-4 rounded-b-md text-center font-bold text-gray-500 text-md md:text-xl">
                                     <Link href={option.link}>
                                         {option.title}
                                     </Link>

@@ -1,7 +1,7 @@
 package enterprise
 
 import (
-	"go-complaint/domain/model/identity"
+	"go-complaint/domain/model/recipient"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,20 +9,20 @@ import (
 
 type Reply struct {
 	id        uuid.UUID
-	chatID    ChatID
-	user      identity.User
+	chatId    uuid.UUID
+	sender    recipient.Recipient
 	content   string
 	seen      bool
 	createdAt time.Time
 	updatedAt time.Time
 }
 
-func NewReply(id uuid.UUID, chatID ChatID, user identity.User, content string,
+func NewReply(id uuid.UUID, chatId uuid.UUID, sender recipient.Recipient, content string,
 	seen bool, createdAt, updatedAt time.Time) *Reply {
 	return &Reply{
 		id:        id,
-		chatID:    chatID,
-		user:      user,
+		chatId:    chatId,
+		sender:    sender,
 		content:   content,
 		seen:      seen,
 		createdAt: createdAt,
@@ -30,11 +30,11 @@ func NewReply(id uuid.UUID, chatID ChatID, user identity.User, content string,
 	}
 }
 
-func NewReplyEntity(id uuid.UUID, chatID ChatID, user identity.User, content string) *Reply {
+func NewReplyEntity(id uuid.UUID, chatId uuid.UUID, sender recipient.Recipient, content string) *Reply {
 	return &Reply{
 		id:        id,
-		chatID:    chatID,
-		user:      user,
+		chatId:    chatId,
+		sender:    sender,
 		content:   content,
 		seen:      false,
 		createdAt: time.Now(),
@@ -42,16 +42,16 @@ func NewReplyEntity(id uuid.UUID, chatID ChatID, user identity.User, content str
 	}
 }
 
-func (r Reply) ID() uuid.UUID {
+func (r Reply) Id() uuid.UUID {
 	return r.id
 }
 
-func (r Reply) ChatID() ChatID {
-	return r.chatID
+func (r Reply) ChatId() uuid.UUID {
+	return r.chatId
 }
 
-func (r Reply) User() identity.User {
-	return r.user
+func (r Reply) Sender() recipient.Recipient {
+	return r.sender
 }
 
 func (r Reply) Content() string {

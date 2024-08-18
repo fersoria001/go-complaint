@@ -19,7 +19,8 @@ func ByUserId(userId uuid.UUID) *UserId {
 	EMITED_BY_ID,
 	OCCURRED_ON,
 	LAST_UPDATE,
-	UPDATED_BY_ID
+	UPDATED_BY_ID,
+	INDUSTRY_ID
 	FROM HIRING_PROCCESSES WHERE USER_ID = $1 `),
 		args: []interface{}{userId},
 	}

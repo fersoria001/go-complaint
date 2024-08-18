@@ -39,7 +39,7 @@ const Complain = () => {
                 maxLength={250}
                 className="resize-none block p-2.5 w-full text-sm md:text-md appearance-none focus:outline-none text-gray-700 bg-gray-50 rounded-lg border border-gray-300"
                 placeholder="Write your complaint here..."
-                value={data?.complaintById.replies[0] ? data?.complaintById.replies[0].body : undefined}
+                value={data?.complaintById.replies![0] ? data?.complaintById.replies[0].body! : undefined}
             >
             </textarea>
             {state?.fieldErrors.body && <InlineAlert errors={state.fieldErrors.body} />}

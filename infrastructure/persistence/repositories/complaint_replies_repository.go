@@ -38,7 +38,9 @@ func (rr ComplaintRepliesRepository) Get(
 	is_read,
 	read_at,
 	created_at,
-	updated_at
+	updated_at,
+	is_enterprise,
+	enterprise_id
 	FROM complaint_replies WHERE id = $1
 	`)
 	row := conn.QueryRow(ctx, selectQuery, replyID)
@@ -92,10 +94,10 @@ func (rr ComplaintRepliesRepository) DeleteAll(
 	id uuid.UUID,
 ) error {
 	conn, err := rr.complaintSchema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	deleteCommand := string(`DELETE FROM complaint_replies WHERE complaint_id = $1;`)
 	_, err = conn.Exec(ctx, deleteCommand, &id)
 	if err != nil {
@@ -109,10 +111,10 @@ func (rr ComplaintRepliesRepository) Remove(
 	id uuid.UUID,
 ) error {
 	conn, err := rr.complaintSchema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	deleteCommand := string(`DELETE FROM complaint_replies WHERE id = $1;`)
 	_, err = conn.Exec(ctx, deleteCommand, id)
 	if err != nil {
@@ -123,10 +125,10 @@ func (rr ComplaintRepliesRepository) Remove(
 
 func (crr ComplaintRepliesRepository) Save(ctx context.Context, reply complaint.Reply) error {
 	conn, err := crr.complaintSchema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	insertCommand := string(`
 	INSERT INTO complaint_replies (
 		id,
@@ -136,17 +138,21 @@ func (crr ComplaintRepliesRepository) Save(ctx context.Context, reply complaint.
 		is_read,
 		read_at,
 		created_at,
-		updated_at
-	) VALUES ($1,$2, $3, $4, $5, $6, $7, $8);`)
+		updated_at,
+		is_enterprise,
+		enterprise_id
+	) VALUES ($1,$2, $3, $4, $5, $6, $7, $8, $9, $10);`)
 	var (
-		id          uuid.UUID = reply.ID()
-		complaintId uuid.UUID = reply.ComplaintId()
-		authorId    uuid.UUID = reply.Sender().Id()
-		body        string    = reply.Body()
-		isRead      bool      = reply.Read()
-		readAt      string    = reply.ReadAt().StringRepresentation()
-		createdAt   string    = reply.CreatedAt().StringRepresentation()
-		updatedAt   string    = reply.UpdatedAt().StringRepresentation()
+		id           uuid.UUID = reply.ID()
+		complaintId  uuid.UUID = reply.ComplaintId()
+		authorId     uuid.UUID = reply.Sender().Id()
+		body         string    = reply.Body()
+		isRead       bool      = reply.Read()
+		readAt       string    = reply.ReadAt().StringRepresentation()
+		createdAt    string    = reply.CreatedAt().StringRepresentation()
+		updatedAt    string    = reply.UpdatedAt().StringRepresentation()
+		isEnterprise bool      = reply.IsEnterprise()
+		enterpriseId uuid.UUID = reply.EnterpriseId()
 	)
 	_, err = conn.Exec(
 		ctx,
@@ -159,6 +165,8 @@ func (crr ComplaintRepliesRepository) Save(ctx context.Context, reply complaint.
 		&readAt,
 		&createdAt,
 		&updatedAt,
+		&isEnterprise,
+		&enterpriseId,
 	)
 	if err != nil {
 		return err
@@ -171,10 +179,10 @@ func (rr ComplaintRepliesRepository) SaveAll(
 	replies mapset.Set[complaint.Reply],
 ) error {
 	conn, err := rr.complaintSchema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	if replies.Cardinality() == 0 {
 		return nil
 	}
@@ -187,22 +195,26 @@ func (rr ComplaintRepliesRepository) SaveAll(
 		is_read,
 		read_at,
 		created_at,
-		updated_at
-	) VALUES ($1,$2, $3, $4, $5, $6, $7, $8);`)
+		updated_at,
+		is_enterprise,
+		enterprise_id
+	) VALUES ($1,$2, $3, $4, $5, $6, $7, $8, $9, $10);`)
 	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	for reply := range replies.Iter() {
 		var (
-			id          uuid.UUID = reply.ID()
-			complaintId uuid.UUID = reply.ComplaintId()
-			authorId    uuid.UUID = reply.Sender().Id()
-			body        string    = reply.Body()
-			isRead      bool      = reply.Read()
-			readAt      string    = reply.ReadAt().StringRepresentation()
-			createdAt   string    = reply.CreatedAt().StringRepresentation()
-			updatedAt   string    = reply.UpdatedAt().StringRepresentation()
+			id           uuid.UUID = reply.ID()
+			complaintId  uuid.UUID = reply.ComplaintId()
+			authorId     uuid.UUID = reply.Sender().Id()
+			body         string    = reply.Body()
+			isRead       bool      = reply.Read()
+			readAt       string    = reply.ReadAt().StringRepresentation()
+			createdAt    string    = reply.CreatedAt().StringRepresentation()
+			updatedAt    string    = reply.UpdatedAt().StringRepresentation()
+			isEnterprise bool      = reply.IsEnterprise()
+			enterpriseId uuid.UUID = reply.EnterpriseId()
 		)
 		_, err = tx.Exec(
 			ctx,
@@ -215,6 +227,8 @@ func (rr ComplaintRepliesRepository) SaveAll(
 			&readAt,
 			&createdAt,
 			&updatedAt,
+			&isEnterprise,
+			&enterpriseId,
 		)
 		if err != nil {
 			return err
@@ -281,14 +295,16 @@ func (rr ComplaintRepliesRepository) UpdateAll(
 
 func (rr ComplaintRepliesRepository) load(ctx context.Context, row pgx.Row) (*complaint.Reply, error) {
 	var (
-		id          uuid.UUID
-		complaintId uuid.UUID
-		authorId    uuid.UUID
-		body        string
-		isRead      bool
-		readAt      string
-		createdAt   string
-		updatedAt   string
+		id           uuid.UUID
+		complaintId  uuid.UUID
+		authorId     uuid.UUID
+		body         string
+		isRead       bool
+		readAt       string
+		createdAt    string
+		updatedAt    string
+		isEnterprise bool
+		enterpriseId uuid.UUID
 	)
 
 	err := row.Scan(
@@ -300,6 +316,8 @@ func (rr ComplaintRepliesRepository) load(ctx context.Context, row pgx.Row) (*co
 		&readAt,
 		&createdAt,
 		&updatedAt,
+		&isEnterprise,
+		&enterpriseId,
 	)
 	if err != nil {
 		return nil, err
@@ -335,6 +353,8 @@ func (rr ComplaintRepliesRepository) load(ctx context.Context, row pgx.Row) (*co
 		commonCreatedAt,
 		commonReadAt,
 		commonUpdatedAt,
+		isEnterprise,
+		enterpriseId,
 	)
 	if err != nil {
 		return nil, err

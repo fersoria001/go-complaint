@@ -2,12 +2,13 @@ package queries
 
 import (
 	"context"
-	"go-complaint/domain/model/complaint"
+	"errors"
 	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/finders/find_all_complaint_data"
 	"go-complaint/infrastructure/persistence/repositories"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type ComplaintDataByOwnerIdQuery struct {
@@ -20,7 +21,7 @@ func NewComplaintDataByOwnerIdQuery(id string) *ComplaintDataByOwnerIdQuery {
 	}
 }
 
-func (q ComplaintDataByOwnerIdQuery) Execute(ctx context.Context) (*dto.ComplaintsInfo, error) {
+func (q ComplaintDataByOwnerIdQuery) Execute(ctx context.Context) ([]*dto.ComplaintData, error) {
 	id, err := uuid.Parse(q.Id)
 	if err != nil {
 		return nil, err
@@ -30,30 +31,16 @@ func (q ComplaintDataByOwnerIdQuery) Execute(ctx context.Context) (*dto.Complain
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
-	c, err := repository.FindAll(ctx, find_all_complaint_data.ByOwnerId(id))
+	results := make([]*dto.ComplaintData, 0)
+	c, err := repository.FindAll(ctx, find_all_complaint_data.ByOwnerIdAndDataOwnership(id))
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return results, nil
+		}
 		return nil, err
 	}
-	received := make([]*dto.ComplaintData, 0)
-	resolved := make([]*dto.ComplaintData, 0)
-	reviewed := make([]*dto.ComplaintData, 0)
-	sent := make([]*dto.ComplaintData, 0)
-	for _, v := range c {
-		switch v.DataType() {
-		case complaint.RECEIVED:
-			received = append(received, dto.NewComplaintData(*v))
-		case complaint.SENT:
-			sent = append(sent, dto.NewComplaintData(*v))
-		case complaint.RESOLVED:
-			resolved = append(resolved, dto.NewComplaintData(*v))
-		case complaint.REVIEWED:
-			reviewed = append(reviewed, dto.NewComplaintData(*v))
-		}
+	for i := range c {
+		results = append(results, dto.NewComplaintData(*c[i]))
 	}
-	return &dto.ComplaintsInfo{
-		Received: received,
-		Resolved: resolved,
-		Reviewed: reviewed,
-		Sent:     sent,
-	}, nil
+	return results, nil
 }

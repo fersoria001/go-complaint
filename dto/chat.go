@@ -6,8 +6,11 @@ import (
 )
 
 type Chat struct {
-	ID      string       `json:"id"`
-	Replies []*ChatReply `json:"replies"`
+	ID           string       `json:"id"`
+	EnterpriseId string       `json:"enterpriseId"`
+	RecipientOne *Recipient   `json:"recipientOne"`
+	RecipientTwo *Recipient   `json:"recipientTwo"`
+	Replies      []*ChatReply `json:"replies"`
 }
 
 func NewChat(domain enterprise.Chat) *Chat {
@@ -16,27 +19,29 @@ func NewChat(domain enterprise.Chat) *Chat {
 		replies = append(replies, NewChatReply(*reply))
 	}
 	return &Chat{
-		ID:      domain.ID().String(),
-		Replies: replies,
+		ID:           domain.Id().String(),
+		EnterpriseId: domain.EnterpriseId().String(),
+		RecipientOne: NewRecipient(domain.RecipientOne()),
+		RecipientTwo: NewRecipient(domain.RecipientTwo()),
+		Replies:      replies,
 	}
 }
 
 type ChatReply struct {
-	ID        string `json:"id"`
-	ChatID    string `json:"chatID"`
-	User      *User  `json:"user"`
-	Content   string `json:"content"`
-	Seen      bool   `json:"seen"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
+	Id        string     `json:"id"`
+	ChatId    string     `json:"chatId"`
+	Sender    *Recipient `json:"sender"`
+	Content   string     `json:"content"`
+	Seen      bool       `json:"seen"`
+	CreatedAt string     `json:"createdAt"`
+	UpdatedAt string     `json:"updatedAt"`
 }
 
 func NewChatReply(domain enterprise.Reply) *ChatReply {
-	user := domain.User()
 	return &ChatReply{
-		ID:        domain.ID().String(),
-		ChatID:    domain.ChatID().String(),
-		User:      NewUser(&user),
+		Id:        domain.Id().String(),
+		ChatId:    domain.ChatId().String(),
+		Sender:    NewRecipient(domain.Sender()),
 		Content:   domain.Content(),
 		Seen:      domain.Seen(),
 		CreatedAt: common.StringDate(domain.CreatedAt()),

@@ -58,7 +58,7 @@ func (c AcceptHiringInvitationCommand) Execute(ctx context.Context) error {
 						user.Id().String(),
 						fmt.Sprintf(`%s accepted your invitation"`, user.SubjectName()),
 						fmt.Sprintf("User %s accepted your invitation to join %s", user.SubjectName(), hiringProccess.Enterprise().SubjectName()),
-						fmt.Sprintf("/%s/hiring-procceses?id=%s", hiringProccess.Enterprise().Id(), hiringProccess.Id()),
+						fmt.Sprintf("/enterprises/%s/employees/hiring", hiringProccess.Enterprise().SubjectName()),
 					)
 					return c.Execute(ctx)
 				}

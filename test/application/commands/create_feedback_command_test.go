@@ -21,14 +21,14 @@ func TestCreateFeedbackCommandTest(t *testing.T) {
 			v.EnterpriseId.String())
 		err := c.Execute(ctx)
 		assert.Nil(t, err)
-		dbf, err := r.Find(ctx, find_feedback.ByComplaintId(v.ComplaintId))
+		dbf, err := r.Find(ctx, find_feedback.ByComplaintIdAndEnterpriseId(v.ComplaintId, v.EnterpriseId))
 		assert.Nil(t, err)
 		assert.NotNil(t, dbf)
 	}
 
 	t.Cleanup(func() {
 		for _, v := range mock_data.NewFeedbacks {
-			dbf, err := r.Find(ctx, find_feedback.ByComplaintId(v.ComplaintId))
+			dbf, err := r.Find(ctx, find_feedback.ByComplaintIdAndEnterpriseId(v.ComplaintId, v.EnterpriseId))
 			assert.Nil(t, err)
 			err = r.Remove(ctx, dbf.Id())
 			assert.Nil(t, err)

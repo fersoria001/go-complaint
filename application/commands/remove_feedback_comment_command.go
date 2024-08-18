@@ -2,6 +2,8 @@ package commands
 
 import (
 	"context"
+	"go-complaint/application"
+	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/repositories"
 
 	"github.com/google/uuid"
@@ -41,5 +43,11 @@ func (c RemoveFeedbackCommentCommand) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	svc := application.ApplicationMessagePublisherInstance()
+	svc.Publish(application.NewApplicationMessage(
+		f.Id().String(),
+		"feedback",
+		*dto.NewFeedbackDTO(*f),
+	))
 	return nil
 }

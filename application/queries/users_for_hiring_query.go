@@ -2,15 +2,14 @@ package queries
 
 import (
 	"context"
-	"encoding/json"
 	"go-complaint/domain/model/enterprise"
 	"go-complaint/domain/model/identity"
 	"go-complaint/dto"
-	"go-complaint/infrastructure/persistence/finders/find_all_events"
+	"go-complaint/infrastructure/persistence/finders/find_all_hiring_proccesses"
 	"go-complaint/infrastructure/persistence/finders/find_all_users"
+	"go-complaint/infrastructure/persistence/finders/find_enterprise"
 	"go-complaint/infrastructure/persistence/repositories"
 	"go-complaint/infrastructure/trie"
-	"log"
 	"math"
 	"slices"
 
@@ -19,31 +18,27 @@ import (
 )
 
 type UsersForHiringQuery struct {
-	EnterpriseId string `json:"enterpriseId"`
-	Term         string `json:"term"`
-	Limit        int    `json:"limit"`
-	Offset       int    `json:"offset"`
+	EnterpriseName string `json:"enterpriseName"`
+	Term           string `json:"term"`
+	Limit          int    `json:"limit"`
+	Offset         int    `json:"offset"`
 }
 
 func NewUsersForHiringQuery(
-	enterpriseId,
+	enterpriseName,
 	term string,
 	limit,
 	offset int,
 ) *UsersForHiringQuery {
 	return &UsersForHiringQuery{
-		EnterpriseId: enterpriseId,
-		Term:         term,
-		Limit:        limit,
-		Offset:       offset,
+		EnterpriseName: enterpriseName,
+		Term:           term,
+		Limit:          limit,
+		Offset:         offset,
 	}
 }
 
 func (q UsersForHiringQuery) Execute(ctx context.Context) (*dto.UserTypeList, error) {
-	id, err := uuid.Parse(q.EnterpriseId)
-	if err != nil {
-		return nil, err
-	}
 	r := repositories.MapperRegistryInstance()
 	enterpriseRepository, ok := r.Get("Enterprise").(repositories.EnterpriseRepository)
 	if !ok {
@@ -53,11 +48,11 @@ func (q UsersForHiringQuery) Execute(ctx context.Context) (*dto.UserTypeList, er
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
-	eventsRepository, ok := r.Get("Event").(repositories.EventRepository)
+	hiringProcessRepository, ok := r.Get("HiringProccess").(repositories.HiringProccessRepository)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
-	dbEnterprise, err := enterpriseRepository.Get(ctx, id)
+	dbEnterprise, err := enterpriseRepository.Find(ctx, find_enterprise.ByName(q.EnterpriseName))
 	if err != nil {
 		return nil, err
 	}
@@ -65,58 +60,42 @@ func (q UsersForHiringQuery) Execute(ctx context.Context) (*dto.UserTypeList, er
 	if err != nil {
 		return nil, err
 	}
-	storedEvents, err := eventsRepository.FindAll(ctx, find_all_events.By())
+	hiringProcesses, err := hiringProcessRepository.FindAll(ctx, find_all_hiring_proccesses.ByEnterpriseId(dbEnterprise.Id()))
 	if err != nil {
 		return nil, err
 	}
 	employeesIds := mapset.NewSet[uuid.UUID]()
-	for emp := range dbEnterprise.Employees().Iter() {
+	for _, emp := range dbEnterprise.Employees().ToSlice() {
 		employeesIds.Add(emp.Id())
 	}
-	idMap := map[uuid.UUID]identity.User{}
-	for user := range users.Iter() {
-		if user.Id() != dbEnterprise.OwnerId() &&
-			!employeesIds.Contains(user.Id()) {
-			idMap[user.Id()] = user
-		}
-	}
-	previousEmployees := mapset.NewSet[uuid.UUID]()
-	for _, storedEvent := range storedEvents {
-		if storedEvent.TypeName == "*enterprise.EmployeeFired" {
-			var e enterprise.EmployeeFired
+	userSlice := users.ToSlice()
+	userSlice = slices.DeleteFunc(userSlice, func(e identity.User) bool {
+		return employeesIds.Contains(e.Id()) || e.Id() == dbEnterprise.OwnerId()
+	})
+	userSlice = slices.DeleteFunc(userSlice, func(e identity.User) bool {
 
-			err := json.Unmarshal(storedEvent.EventBody, &e)
+		return slices.ContainsFunc(hiringProcesses, func(e1 *enterprise.HiringProccess) bool {
+			if e1.User().Id() == e.Id() {
+				if e1.Status() == enterprise.REJECTED {
+					return false
+				}
+				if e1.Status() == enterprise.CANCELED {
+					return false
+				}
+				if e1.Status() == enterprise.FIRED {
+					return false
+				}
+				if e1.Status() == enterprise.LEAVED {
+					return false
+				}
+				return true
+			}
+			return false
+		})
 
-			if err != nil {
-				log.Println(err)
-				return nil, err
-			}
+	})
 
-			if e.EnterpriseId() == id {
-				previousEmployees.Add(e.UserId())
-			}
-		}
-	}
-	for _, storedEvent := range storedEvents {
-		switch storedEvent.TypeName {
-		case "*identity.HiringInvitationAccepted":
-			var e identity.HiringInvitationAccepted
-			err := json.Unmarshal(storedEvent.EventBody, &e)
-			if err != nil {
-				return nil, err
-			}
-			if e.EnterpriseId() == id && !previousEmployees.Contains(e.InvitedUserId()) {
-				delete(idMap, e.InvitedUserId())
-			}
-		}
-	}
-
-	users.Clear()
-	for _, user := range idMap {
-		users.Add(user)
-	}
 	if q.Term != "" {
-
 		tree := trie.NewTrie()
 		for user := range users.Iter() {
 			id := user.Email()
@@ -128,17 +107,12 @@ func (q UsersForHiringQuery) Execute(ctx context.Context) (*dto.UserTypeList, er
 			tree.InsertText(id, user.Genre(), " ")
 			tree.InsertText(id, user.Pronoun(), " ")
 		}
-
 		ids := tree.Search(q.Term)
-		s := users.ToSlice()
-		for i := range s {
-			if !ids.Contains(s[i].Email()) {
-				users.Remove(s[i])
-			}
-		}
+		userSlice = slices.DeleteFunc(userSlice, func(e identity.User) bool {
+			return ids.Contains(e.Email())
+		})
 	}
-	hireables := users.ToSlice()
-	slices.SortStableFunc(hireables, func(i, j identity.User) int {
+	slices.SortStableFunc(userSlice, func(i, j identity.User) int {
 		if i.RegisterDate().Date().Before(j.RegisterDate().Date()) {
 			return -1
 		}
@@ -147,8 +121,8 @@ func (q UsersForHiringQuery) Execute(ctx context.Context) (*dto.UserTypeList, er
 		}
 		return 0
 	})
-	result := make([]*dto.User, 0, len(hireables))
-	for _, user := range hireables {
+	result := make([]*dto.User, 0, len(userSlice))
+	for _, user := range userSlice {
 		result = append(result, dto.NewUser(&user))
 	}
 	offset := q.Offset

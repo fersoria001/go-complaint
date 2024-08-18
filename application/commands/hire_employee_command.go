@@ -29,12 +29,14 @@ func NewHireEmployeeCommand(hiringProccessId, employeeId string) *HireEmployeeCo
 func (c HireEmployeeCommand) Execute(ctx context.Context) error {
 	employeeUserId, err := uuid.Parse(c.EmployeeId)
 	if err != nil {
+
 		return err
 	}
 	hiringProccessId, err := uuid.Parse(c.HiringProccessId)
 	if err != nil {
 		return err
 	}
+
 	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
 		HandleEvent: func(event domain.DomainEvent) error {
 			if e, ok := event.(*enterprise.HiringProccessStatusChanged); ok {
@@ -44,6 +46,16 @@ func (c HireEmployeeCommand) Execute(ctx context.Context) error {
 					return ErrWrongTypeAssertion
 				}
 				hiringProccess, err := hiringProccessRepository.Get(ctx, e.HiringProccessId())
+				if err != nil {
+					return err
+				}
+				err = NewLogEnterpriseActivityCommand(
+					e.UpdatedById().String(),
+					e.HiringProccessId().String(),
+					hiringProccess.Enterprise().Id().String(),
+					hiringProccess.Enterprise().SubjectName(),
+					enterprise.EmployeesHired.String(),
+				).Execute(ctx)
 				if err != nil {
 					return err
 				}
@@ -53,58 +65,9 @@ func (c HireEmployeeCommand) Execute(ctx context.Context) error {
 					fmt.Sprintf("You have been hired  to be part of %s", hiringProccess.Enterprise().SubjectName()),
 					fmt.Sprintf("You have been hired by %s as %s in %s", hiringProccess.UpdatedBy().SubjectName(),
 						hiringProccess.Enterprise().SubjectName(), hiringProccess.Role().String()),
-					fmt.Sprintf("/%s", hiringProccess.Enterprise().SubjectName()),
+					"/enterprises",
 				)
 				err = c.Execute(ctx)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-			return ErrWrongTypeAssertion
-		},
-		SubscribedToEventType: func() reflect.Type {
-			return reflect.TypeOf(&enterprise.HiringProccessStatusChanged{})
-		},
-	})
-	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
-		HandleEvent: func(event domain.DomainEvent) error {
-			if e, ok := event.(*enterprise.HiringProccessStatusChanged); ok {
-				reg := repositories.MapperRegistryInstance()
-				hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
-				if !ok {
-					return ErrWrongTypeAssertion
-				}
-				userRepository, ok := reg.Get("User").(repositories.UserRepository)
-				if !ok {
-					return ErrWrongTypeAssertion
-				}
-				recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
-				if !ok {
-					return ErrWrongTypeAssertion
-				}
-
-				hiringProccess, err := hiringProccessRepository.Get(ctx, e.HiringProccessId())
-				if err != nil {
-					return err
-				}
-				enterpriseRecipient, err := recipientRepository.Get(ctx, hiringProccess.Id())
-				if err != nil {
-					return err
-				}
-				toRole, err := identity.ParseRole(hiringProccess.Role().String())
-				if err != nil {
-					return err
-				}
-				user, err := userRepository.Get(ctx, hiringProccess.User().Id())
-				if err != nil {
-					return err
-				}
-				err = user.AddRole(ctx, toRole, hiringProccess.Enterprise().Id(), enterpriseRecipient.SubjectName())
-				if err != nil {
-					return err
-				}
-				err = userRepository.Update(ctx, user)
 				if err != nil {
 					return err
 				}
@@ -172,6 +135,55 @@ func (c HireEmployeeCommand) Execute(ctx context.Context) error {
 			return reflect.TypeOf(&enterprise.HiringProccessStatusChanged{})
 		},
 	})
+	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
+		HandleEvent: func(event domain.DomainEvent) error {
+			if e, ok := event.(*enterprise.HiringProccessStatusChanged); ok {
+				reg := repositories.MapperRegistryInstance()
+				hiringProccessRepository, ok := reg.Get("HiringProccess").(repositories.HiringProccessRepository)
+				if !ok {
+					return ErrWrongTypeAssertion
+				}
+				userRepository, ok := reg.Get("User").(repositories.UserRepository)
+				if !ok {
+					return ErrWrongTypeAssertion
+				}
+				recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
+				if !ok {
+					return ErrWrongTypeAssertion
+				}
+				hiringProccess, err := hiringProccessRepository.Get(ctx, e.HiringProccessId())
+				if err != nil {
+					return err
+				}
+				enterpriseRecipient, err := recipientRepository.Get(ctx, hiringProccess.Enterprise().Id())
+				if err != nil {
+					return err
+				}
+				toRole, err := identity.ParseRole(hiringProccess.Role().String())
+				if err != nil {
+					return err
+				}
+				user, err := userRepository.Get(ctx, hiringProccess.User().Id())
+				if err != nil {
+					return err
+				}
+				err = user.AddRole(ctx, toRole, hiringProccess.Enterprise().Id(), enterpriseRecipient.SubjectName())
+				if err != nil {
+					return err
+				}
+				err = userRepository.Update(ctx, user)
+				if err != nil {
+					return err
+				}
+				return nil
+			}
+			return ErrWrongTypeAssertion
+		},
+		SubscribedToEventType: func() reflect.Type {
+			return reflect.TypeOf(&enterprise.HiringProccessStatusChanged{})
+		},
+	})
+
 	reg := repositories.MapperRegistryInstance()
 	recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
 	if !ok {

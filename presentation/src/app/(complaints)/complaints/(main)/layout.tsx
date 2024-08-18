@@ -9,7 +9,7 @@ const Layout: React.FC<Props> = async ({ send, children }: Props) => {
         <>
             {children}
             <Link href={"/complaints/send-complaint?step=1"}>
-                <AddIcon className="fill-gray-700 absolute bottom-4 right-4" />
+                <AddIcon className="fill-gray-700 fixed bottom-11 right-8" />
             </Link>
             {send}
         </>

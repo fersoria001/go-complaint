@@ -1,15 +1,21 @@
 package complaint
 
 import (
+	"go-complaint/domain/model/recipient"
 	"go-complaint/erros"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type Rating struct {
-	id      uuid.UUID
-	rate    int
-	comment string
+	id             uuid.UUID
+	sentToReviewBy recipient.Recipient
+	ratedBy        recipient.Recipient
+	rate           int
+	comment        string
+	createdAt      time.Time
+	lastUpdate     time.Time
 }
 
 /*
@@ -17,21 +23,25 @@ type Rating struct {
 Comment is optional and can be empty,
 Rate is required and must be between 0 and 5
 */
-func NewRating(id uuid.UUID, rate int, comment string) (Rating, error) {
-	r := new(Rating)
-	r.id = id
-	err := r.setRate(rate)
-	if err != nil {
-		return *r, err
+func NewRating(
+	id uuid.UUID,
+	sentToReviewBy, ratedBy recipient.Recipient,
+	rate int,
+	comment string,
+	createdAt, lastUpdate time.Time,
+) *Rating {
+	return &Rating{
+		id:             id,
+		sentToReviewBy: sentToReviewBy,
+		ratedBy:        ratedBy,
+		rate:           rate,
+		comment:        comment,
+		createdAt:      createdAt,
+		lastUpdate:     lastUpdate,
 	}
-	err = r.setComment(comment)
-	if err != nil {
-		return *r, err
-	}
-	return *r, nil
 }
 
-func (r *Rating) setRate(rate int) error {
+func (r *Rating) SetRate(rate int) error {
 	if rate < 0 {
 		return &erros.ValidationError{
 			Expected: "more than 0",
@@ -44,10 +54,11 @@ func (r *Rating) setRate(rate int) error {
 		}
 	}
 	r.rate = rate
+	r.lastUpdate = time.Now()
 	return nil
 }
 
-func (r *Rating) setComment(comment string) error {
+func (r *Rating) SetComment(comment string) error {
 	var len = len(comment)
 	if len > 250 {
 		return &erros.InvalidLengthError{
@@ -58,6 +69,7 @@ func (r *Rating) setComment(comment string) error {
 		}
 	}
 	r.comment = comment
+	r.lastUpdate = time.Now()
 	return nil
 }
 
@@ -71,4 +83,20 @@ func (r Rating) Rate() int {
 
 func (r Rating) Comment() string {
 	return r.comment
+}
+
+func (r Rating) SentToReviewBy() recipient.Recipient {
+	return r.sentToReviewBy
+}
+
+func (r Rating) RatedBy() recipient.Recipient {
+	return r.ratedBy
+}
+
+func (r Rating) CreatedAt() time.Time {
+	return r.createdAt
+}
+
+func (r Rating) LastUpdate() time.Time {
+	return r.lastUpdate
 }

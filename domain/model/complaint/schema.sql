@@ -28,10 +28,15 @@ CREATE TABLE complaint_replies(
     created_at VARCHAR(255) NOT NULL,
     updated_at VARCHAR(255) NOT NULL,
 )
+
 CREATE TABLE ratings(
     id UUID PRIMARY KEY,
+    created_at VARCHAR(255) NOT NULL,
+    last_update VARCHAR(255) NOT NULL,
+    sent_to_review_by_id UUID,
     rating INTEGER,
-    comment VARCHAR(250)
+    comment VARCHAR(250),
+    rated_by_id UUID
 )
 
 CREATE TABLE COMPLAINT_DATA(

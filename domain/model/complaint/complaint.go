@@ -34,7 +34,7 @@ type Complaint struct {
 	title       string
 	description string
 	status      Status
-	rating      Rating
+	rating      *Rating
 	createdAt   common.Date
 	updatedAt   common.Date
 	replies     mapset.Set[*Reply]
@@ -72,18 +72,22 @@ func (c *Complaint) SendToHistory(
 
 func (complaintt *Complaint) Rate(
 	ctx context.Context,
-	triggeredBy uuid.UUID,
+	triggeredBy recipient.Recipient,
 	rate int,
 	comment string,
 ) error {
 	if complaintt.Status() != IN_REVIEW {
 		return &ValidationError{Message: "a complaint must be in review or closed to be rated"}
 	}
-	rating, err := NewRating(complaintt.id, rate, comment)
+	err := complaintt.rating.SetComment(comment)
 	if err != nil {
 		return err
 	}
-	complaintt.rating = rating
+	err = complaintt.rating.SetRate(rate)
+	if err != nil {
+		return err
+	}
+	complaintt.rating.ratedBy = triggeredBy
 	err = complaintt.setStatus(CLOSED)
 	if err != nil {
 		return err
@@ -93,7 +97,7 @@ func (complaintt *Complaint) Rate(
 		NewComplaintClosed(
 			complaintt.id,
 			complaintt.author.Id(),
-			triggeredBy,
+			triggeredBy.Id(),
 		),
 	)
 	if !complaintt.receiver.IsEnterprise() {
@@ -105,7 +109,7 @@ func (complaintt *Complaint) Rate(
 			ctx,
 			NewComplaintSentToHistory(
 				complaintt.id,
-				triggeredBy,
+				triggeredBy.Id(),
 			),
 		)
 	}
@@ -114,7 +118,7 @@ func (complaintt *Complaint) Rate(
 		ctx,
 		NewComplaintRated(
 			complaintt.Id(),
-			triggeredBy,
+			triggeredBy.Id(),
 			lastReply.sender.Id(),
 			time.Now(),
 		),
@@ -129,11 +133,13 @@ Publish a new event of type WaitingForReview
 */
 func (complaint *Complaint) MarkAsReviewable(
 	ctx context.Context,
-	triggeredById uuid.UUID,
+	triggeredBy recipient.Recipient,
 ) error {
 	if complaint.status >= IN_REVIEW {
 		return ErrComplaintClosed
 	}
+	complaint.rating.sentToReviewBy = triggeredBy
+	complaint.rating.lastUpdate = time.Now()
 	err := complaint.setStatus(IN_REVIEW)
 	if err != nil {
 		return err
@@ -144,7 +150,7 @@ func (complaint *Complaint) MarkAsReviewable(
 			complaint.id,
 			complaint.receiver.Id(),
 			complaint.author.Id(),
-			triggeredById,
+			triggeredBy.Id(),
 		),
 	)
 }
@@ -154,17 +160,26 @@ func (c *Complaint) Reply(
 	newReplyId uuid.UUID,
 	author recipient.Recipient,
 	body string,
+	alias uuid.UUID,
 ) error {
 	if c.status > IN_DISCUSSION {
 		return ErrComplaintClosed
 	}
 	thisTime := time.Now()
 	publisher := domain.DomainEventPublisherInstance()
+	isEnterprise := false
+	enterpriseId := uuid.Nil
+	if alias != uuid.Nil {
+		isEnterprise = true
+		enterpriseId = alias
+	}
 	newReply := CreateReply(
 		newReplyId,
 		c.id,
 		author,
 		body,
+		isEnterprise,
+		enterpriseId,
 	)
 	switch c.replies.Cardinality() {
 	case 1:
@@ -216,10 +231,13 @@ func (c *Complaint) Send(ctx context.Context) error {
 	if c.Body() == "" {
 		return &ValidationError{Message: "body can't be null"}
 	}
-	c.status = OPEN
+	err := c.setStatus(OPEN)
+	if err != nil {
+		return err
+	}
 	publisher := domain.DomainEventPublisherInstance()
 	event := NewComplaintSent(c.id, c.author.Id(), c.receiver.Id(), c.updatedAt.Date())
-	err := publisher.Publish(ctx, event)
+	err = publisher.Publish(ctx, event)
 	if err != nil {
 		return err
 	}
@@ -253,6 +271,10 @@ func (c *Complaint) setBody(body string) error {
 		return &ValidationError{Message: "body has to be less than 251 characters long"}
 	}
 	createdAt := common.NewDate(time.Now())
+	enterpriseId := uuid.Nil
+	if c.author.IsEnterprise() {
+		enterpriseId = c.author.Id()
+	}
 	firstReply, err := NewReply(
 		c.id,
 		c.id,
@@ -262,6 +284,8 @@ func (c *Complaint) setBody(body string) error {
 		createdAt,
 		createdAt,
 		createdAt,
+		c.author.IsEnterprise(),
+		enterpriseId,
 	)
 	if err != nil {
 		return err
@@ -332,10 +356,15 @@ func CreateNew(
 ) (*Complaint, error) {
 	t := time.Now()
 	c := &Complaint{
-		id:        id,
-		author:    author,
-		receiver:  receiver,
-		status:    WRITING,
+		id:       id,
+		author:   author,
+		receiver: receiver,
+		status:   WRITING,
+		rating: &Rating{
+			id:         id,
+			createdAt:  time.Now(),
+			lastUpdate: time.Now(),
+		},
 		createdAt: common.NewDate(t),
 		updatedAt: common.NewDate(t),
 		replies:   mapset.NewSet[*Reply](),
@@ -372,7 +401,7 @@ func NewComplaint(
 	description string,
 	createdAt,
 	updatedAt common.Date,
-	rating Rating,
+	rating *Rating,
 	replies mapset.Set[*Reply],
 ) (*Complaint, error) {
 	var c *Complaint = new(Complaint)
@@ -388,7 +417,7 @@ func NewComplaint(
 	c.description = description
 	c.author = author
 	c.receiver = receiver
-	c.setRating(rating)
+	c.rating = rating
 	err = c.setCreatedAt(createdAt)
 	if err != nil {
 		return nil, err
@@ -413,15 +442,6 @@ func (c *Complaint) AddReply(reply *Reply) {
 }
 
 // nullable
-func (c *Complaint) setRating(rating Rating) {
-	if rating == (Rating{}) {
-		rating = Rating{
-			rate:    0,
-			comment: "",
-		}
-	}
-	c.rating = rating
-}
 
 func (c *Complaint) setID(id uuid.UUID) error {
 	if id == uuid.Nil {
@@ -490,7 +510,7 @@ func (c Complaint) Description() string {
 }
 
 func (c Complaint) Rating() Rating {
-	return c.rating
+	return *c.rating
 }
 
 func (c Complaint) CreatedAt() common.Date {

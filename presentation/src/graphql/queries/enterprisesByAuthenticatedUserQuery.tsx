@@ -8,6 +8,7 @@ query EnterprisesByAuthenticatedUserQuery{
             authority{
             authority
             enterpriseId
+            principal
         }
         enterprise{
             name
@@ -21,7 +22,10 @@ query EnterprisesByAuthenticatedUserQuery{
                 countryState
                 city
                 }
-            industry
+            industry {
+                id
+                name
+            }
             foundationDate
             ownerId
         }
@@ -30,6 +34,7 @@ query EnterprisesByAuthenticatedUserQuery{
             authority{
             authority
             enterpriseId
+            principal
         }
         enterprise{
             name
@@ -43,7 +48,10 @@ query EnterprisesByAuthenticatedUserQuery{
                 countryState
                 city
                 }
-            industry
+            industry {
+                id
+                name
+            }
             foundationDate
             ownerId
         }

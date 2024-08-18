@@ -11,6 +11,7 @@ import { Complaint } from "@/gql/graphql"
 import graphQLSubscriptionClient from "@/graphql/graphQLSubscriptionClient"
 import complaintsSubscription from "@/graphql/subscriptions/complaintsSubscription"
 import { getCookie, setCookie } from "@/lib/actions/cookies"
+import getGraphQLSubscriptionClient from "@/graphql/graphQLSubscriptionClient"
 
 
 enum ComplaintsFilter {
@@ -64,7 +65,7 @@ const ComplaintsMain: React.FC = () => {
                 break
             case ComplaintsFilter.RECEIVED:
                 setMsgIfEmpty("You have not receiving any complaint yet.")
-                filtered = filtered.filter((c) => c.receiver.id === alias)
+                filtered = filtered.filter((c) => c.receiver!.id === alias)
                 break
             case ComplaintsFilter.SENT:
                 setMsgIfEmpty("You have not send any complaint yet, start by sending one! click the symbol in the bottom right corner.")
@@ -80,8 +81,8 @@ const ComplaintsMain: React.FC = () => {
             if (!alias) {
                 setAlias(id!)
             }
-            const subscription = graphQLSubscriptionClient.iterate({
-                query: complaintsSubscription(id!),
+            const subscription = getGraphQLSubscriptionClient().iterate({
+                query: complaintsSubscription(id!, data.userDescriptor.id),
             });
             for await (const event of subscription) {
                 const c = event.data?.complaints as Complaint
@@ -94,7 +95,7 @@ const ComplaintsMain: React.FC = () => {
             }
         }
         subscribe()
-    }, [alias])
+    }, [alias, data.userDescriptor.id])
     return (
         <>
             <div className="flex flex-col mt-4">

@@ -6,9 +6,6 @@ import { redirect } from "next/navigation"
 import { z } from "zod"
 import querystring from 'node:querystring'
 import { cookies } from "next/headers"
-import getGraphQLClient from "@/graphql/graphQLClient"
-import userDescriptorQuery from "@/graphql/queries/userDescriptorQuery"
-import { UserDescriptor } from "@/gql/graphql"
 
 export type SignInFormState = Partial<z.inferFlattenedErrors<typeof signInSchema>>
 export async function userSignIn(prevState: SignInFormState, fd: FormData): Promise<SignInFormState> {
@@ -91,10 +88,14 @@ export async function confirmSignIn(prevState: ConfirmSignInFormState, fd: FormD
         }
         console.error(e)
     }
-    redirect("/profile")
+    redirect("/")
 }
 
-export async function logout() { }
+export async function logout() {
+    cookies().delete("jwt")
+    cookies().delete("alias")
+    redirect("/")
+}
 
 export async function recoverPassword(prevState: any, fd: FormData) {
     const justTheEmail = signInSchema.pick({ userName: true })

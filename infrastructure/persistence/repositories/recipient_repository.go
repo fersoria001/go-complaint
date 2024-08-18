@@ -19,10 +19,10 @@ func NewRecipientRepository(schema datasource.Schema) RecipientRepository {
 
 func (r RecipientRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	deleteCommand := string(`DELETE FROM RECIPIENTS WHERE ID = $1`)
 	_, err = conn.Exec(ctx, deleteCommand, &id)
 	if err != nil {
@@ -33,10 +33,10 @@ func (r RecipientRepository) Remove(ctx context.Context, id uuid.UUID) error {
 
 func (r RecipientRepository) Update(ctx context.Context, recipient recipient.Recipient) error {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	insertCommand := string(`
 	UPDATE RECIPIENTS 
 	SET SUBJECT_NAME=$2,SUBJECT_THUMBNAIL=$3, SUBJECT_EMAIL=$4
@@ -56,10 +56,10 @@ func (r RecipientRepository) Update(ctx context.Context, recipient recipient.Rec
 
 func (r RecipientRepository) Save(ctx context.Context, recipient recipient.Recipient) error {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	insertCommand := string(`
 	INSERT INTO RECIPIENTS (
 	ID, IS_ENTERPRISE, SUBJECT_NAME, SUBJECT_THUMBNAIL,SUBJECT_EMAIL) 
@@ -80,20 +80,20 @@ func (r RecipientRepository) Save(ctx context.Context, recipient recipient.Recip
 
 func (r RecipientRepository) Find(ctx context.Context, src StatementSource) (*recipient.Recipient, error) {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
 	return r.load(ctx, row)
 }
 
 func (r RecipientRepository) FindAll(ctx context.Context, src StatementSource) ([]*recipient.Recipient, error) {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	rows, err := conn.Query(ctx, src.Query(), src.Args()...)
 	if err != nil {
 		return nil, err
@@ -124,10 +124,10 @@ func (r RecipientRepository) loadAll(ctx context.Context, rows pgx.Rows) ([]*rec
 
 func (r RecipientRepository) Get(ctx context.Context, id uuid.UUID) (*recipient.Recipient, error) {
 	conn, err := r.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	selectQuery := string(`SELECT ID, IS_ENTERPRISE,SUBJECT_NAME,SUBJECT_THUMBNAIL,SUBJECT_EMAIL FROM RECIPIENTS WHERE ID=$1`)
 	row := conn.QueryRow(ctx, selectQuery, &id)
 	return r.load(ctx, row)

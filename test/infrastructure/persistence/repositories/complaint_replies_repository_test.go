@@ -55,6 +55,8 @@ func TestComplaintRepliesRepository_Save(t *testing.T) {
 				v.CreatedAt,
 				v.ReadAt,
 				v.UpdatedAt,
+				author.IsEnterprise(),
+				author.Id(),
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, r)
@@ -104,6 +106,8 @@ func TestComplaintRepliesRepository_Get(t *testing.T) {
 				v.CreatedAt,
 				v.ReadAt,
 				v.UpdatedAt,
+				author.IsEnterprise(),
+				author.Id(),
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, r)
@@ -167,6 +171,8 @@ func TestComplaintRepliesRepository_SaveAll(t *testing.T) {
 				v.CreatedAt,
 				v.ReadAt,
 				v.UpdatedAt,
+				author.IsEnterprise(),
+				author.Id(),
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, r)
@@ -216,6 +222,8 @@ func TestComplaintRepliesRepository_FindAll(t *testing.T) {
 				v.CreatedAt,
 				v.ReadAt,
 				v.UpdatedAt,
+				author.IsEnterprise(),
+				author.Id(),
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, r)

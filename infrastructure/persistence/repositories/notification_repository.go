@@ -20,10 +20,10 @@ func NewNotificationRepository(schema datasource.Schema) NotificationRepository 
 
 func (pr NotificationRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	conn, err := pr.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	deleteCommand := string(`DELETE FROM NOTIFICATIONS WHERE ID=$1`)
 	_, err = conn.Exec(ctx, deleteCommand, &id)
 	if err != nil {
@@ -71,10 +71,10 @@ func (pr NotificationRepository) FindAll(
 	source StatementSource,
 ) ([]*domain.Notification, error) {
 	conn, err := pr.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	rows, err := conn.Query(
 		ctx,
 		source.Query(),
@@ -168,10 +168,10 @@ func (pr NotificationRepository) Save(
 	notification domain.Notification,
 ) error {
 	conn, err := pr.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	insertCommand := string(`
 		INSERT INTO 
 		notifications (
@@ -218,10 +218,10 @@ func (pr NotificationRepository) Update(
 	notification domain.Notification,
 ) error {
 	conn, err := pr.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	insertCommand := string(`
 		UPDATE notifications
 		SET

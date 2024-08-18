@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 	},
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	Subprotocols:    []string{"complaint", "enterprise"},
+	Subprotocols:    []string{"complaint", "enterpriseChat"},
 }
 
 var chats = map[string]*chat.ChatAdapter{}

@@ -100,10 +100,10 @@ func (er EmployeeRepository) UpdateAll(
 
 func (er EmployeeRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	conn, err := er.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	deleteCommand := string(`
 	DELETE FROM employee WHERE employee_id = $1`)
 	_, err = conn.Exec(ctx, deleteCommand, &id)
@@ -112,7 +112,23 @@ func (er EmployeeRepository) Remove(ctx context.Context, id uuid.UUID) error {
 	}
 	return nil
 }
-
+func (er EmployeeRepository) Find(
+	ctx context.Context,
+	src StatementSource,
+) (
+	*enterprise.Employee, error) {
+	conn, err := er.schema.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	row := conn.QueryRow(ctx, src.Query(), src.Args()...)
+	employee, err := er.load(ctx, row)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+	return employee, nil
+}
 func (er EmployeeRepository) Get(
 	ctx context.Context,
 	employeeID uuid.UUID,

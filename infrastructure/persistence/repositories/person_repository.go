@@ -177,10 +177,10 @@ func (pr PersonRepository) Remove(
 	id uuid.UUID,
 ) error {
 	conn, err := pr.schema.Acquire(ctx)
-	defer conn.Release()
 	if err != nil {
 		return err
 	}
+	defer conn.Release()
 	_, err = conn.Exec(ctx, "DELETE FROM PERSON WHERE PERSON.ID=$1", &id)
 	if err != nil {
 		return err

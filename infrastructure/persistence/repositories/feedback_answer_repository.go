@@ -116,6 +116,7 @@ func (fr FeedbackAnswerRepository) FindAll(
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	rows, err := conn.Query(ctx, statementSource.Query(), statementSource.Args()...)
 	if err != nil {
 		return nil, err
@@ -124,10 +125,11 @@ func (fr FeedbackAnswerRepository) FindAll(
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		rows.Close()
-		conn.Release()
-	}()
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	rows.Close()
 	return answers, nil
 }
 

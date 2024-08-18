@@ -82,7 +82,7 @@ func (c PromoteEmployeeCommand) Execute(ctx context.Context) error {
 					e.EnterpriseId().String(),
 					fmt.Sprintf("You have been promoted in %s", enterpriseRecipient.SubjectName()),
 					fmt.Sprintf("You have been promoted to %s at %s", e.NewPosition().String(), enterpriseRecipient.SubjectName()),
-					"/",
+					"/hiring",
 				)
 				err = c.Execute(ctx)
 				if err != nil {

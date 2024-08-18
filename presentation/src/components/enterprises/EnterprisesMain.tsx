@@ -3,18 +3,29 @@
 import Link from "next/dist/client/link"
 import EnterprisesList from "./EnterprisesList"
 import OfficesList from "./OfficesList"
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useSuspenseQueries } from "@tanstack/react-query"
 import getGraphQLClient from "@/graphql/graphQLClient"
 import enterprisesByAuthenticatedUserQuery from "@/graphql/queries/enterprisesByAuthenticatedUserQuery"
 import { EnterpriseByAuthenticatedUser } from "@/gql/graphql"
+import userDescriptorQuery from "@/graphql/queries/userDescriptorQuery"
 
 const EnterprisesMain: React.FC = () => {
-    const { data } = useSuspenseQuery({
-        queryKey: ['enterprisesByAuthenticatedUser'],
-        queryFn: async () => {
-            const r = await getGraphQLClient().request(enterprisesByAuthenticatedUserQuery)
-            return r.enterprisesByAuthenticatedUser.enterprises
-        },
+    const [{ data }, { data: { userDescriptor: user } }] = useSuspenseQueries({
+        queries: [
+            {
+                queryKey: ['enterprisesByAuthenticatedUser'],
+                queryFn: async () => {
+                    const r = await getGraphQLClient().request(enterprisesByAuthenticatedUserQuery)
+                    return r.enterprisesByAuthenticatedUser
+                },
+            },
+            {
+                queryKey: ['userDescriptor'],
+                queryFn: async () => await getGraphQLClient().request(userDescriptorQuery),
+                staleTime: Infinity,
+                gcTime: Infinity
+            }
+        ]
     })
     return (
         <div className="h-screen relative">
@@ -26,8 +37,8 @@ const EnterprisesMain: React.FC = () => {
                     Check your invitations to enterprises.
                 </Link>
             </div>
-            <EnterprisesList enterprises={data as EnterpriseByAuthenticatedUser[]} />
-            <OfficesList />
+            <EnterprisesList enterprises={data.enterprises as EnterpriseByAuthenticatedUser[]} />
+            <OfficesList currentUser={user} offices={data.offices as EnterpriseByAuthenticatedUser[]} />
         </div>
     )
 }

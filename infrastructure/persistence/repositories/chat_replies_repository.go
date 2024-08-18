@@ -26,7 +26,7 @@ func (r ChatRepliesRepository) UpdateAll(
 	if err != nil {
 		return err
 	}
-	updateCommand := string(`UPDATE chat_reply
+	updateCommand := string(`UPDATE chat_replies
 	SET
 		CONTENT = $1,
 		SEEN = $2,
@@ -41,7 +41,7 @@ func (r ChatRepliesRepository) UpdateAll(
 			content   string    = reply.Content()
 			seen      bool      = reply.Seen()
 			updatedAt string    = common.StringDate(reply.UpdatedAt())
-			id        uuid.UUID = reply.ID()
+			id        uuid.UUID = reply.Id()
 		)
 		_, err = tx.Exec(
 			ctx,
@@ -66,16 +66,14 @@ func (r ChatRepliesRepository) UpdateAll(
 
 func (r ChatRepliesRepository) DeleteAll(
 	ctx context.Context,
-	chatID enterprise.ChatID,
+	chatId uuid.UUID,
 ) error {
 	conn, err := r.db.Acquire(ctx)
 	if err != nil {
 		return err
 	}
-	one := "%" + chatID.String() + "%"
-	two := "%" + chatID.Reverse().String() + "%"
-	deleteCommand := string(`DELETE FROM chat_reply WHERE CHAT_ID LIKE $1 OR CHAT_ID LIKE $2`)
-	_, err = conn.Exec(ctx, deleteCommand, &one, &two)
+	deleteCommand := string(`DELETE FROM chat_replies WHERE CHAT_ID = $1`)
+	_, err = conn.Exec(ctx, deleteCommand, &chatId)
 	if err != nil {
 		return err
 	}
@@ -92,8 +90,8 @@ func (r ChatRepliesRepository) SaveAll(
 		return err
 	}
 	insertCommand := string(`
-		INSERT INTO chat_reply
-			(ID, CHAT_ID, USER_ID, CONTENT, SEEN, CREATED_AT, UPDATED_AT)
+		INSERT INTO chat_replies
+			(ID, CHAT_ID, SENDER_ID, CONTENT, SEEN, CREATED_AT, UPDATED_AT)
 			VALUES
 			($1, $2, $3, $4, $5, $6, $7)`)
 	tx, err := conn.Begin(ctx)
@@ -102,9 +100,9 @@ func (r ChatRepliesRepository) SaveAll(
 	}
 	for _, reply := range replies {
 		var (
-			id        uuid.UUID = reply.ID()
-			chatID    string    = reply.ChatID().String()
-			userID    string    = reply.User().Email()
+			id        uuid.UUID = reply.Id()
+			chatID    uuid.UUID = reply.ChatId()
+			userID    uuid.UUID = reply.Sender().Id()
 			content   string    = reply.Content()
 			seen      bool      = reply.Seen()
 			createdAt string    = common.StringDate(reply.CreatedAt())
@@ -142,7 +140,7 @@ func (r ChatRepliesRepository) Update(
 	if err != nil {
 		return err
 	}
-	updateCommand := string(`UPDATE chat_reply
+	updateCommand := string(`UPDATE chat_replies
 	SET
 		CONTENT = $1,
 		SEEN = $2,
@@ -152,7 +150,7 @@ func (r ChatRepliesRepository) Update(
 		content   string    = reply.Content()
 		seen      bool      = reply.Seen()
 		updatedAt string    = common.StringDate(reply.UpdatedAt())
-		id        uuid.UUID = reply.ID()
+		id        uuid.UUID = reply.Id()
 	)
 	_, err = conn.Exec(
 		ctx,
@@ -178,14 +176,14 @@ func (r ChatRepliesRepository) Save(
 		return err
 	}
 	insertCommand := string(`
-	INSERT INTO chat_reply
-		(ID, CHAT_ID, USER_ID, CONTENT, SEEN, CREATED_AT, UPDATED_AT)
+	INSERT INTO chat_replies
+		(ID, CHAT_ID, SENDER_ID, CONTENT, SEEN, CREATED_AT, UPDATED_AT)
 		VALUES
 		($1, $2, $3, $4, $5, $6, $7)`)
 	var (
-		id        uuid.UUID = reply.ID()
-		chatID    string    = reply.ChatID().String()
-		userID    string    = reply.User().Email()
+		id        uuid.UUID = reply.Id()
+		chatID    uuid.UUID = reply.ChatId()
+		userID    uuid.UUID = reply.Sender().Id()
 		content   string    = reply.Content()
 		seen      bool      = reply.Seen()
 		createdAt string    = common.StringDate(reply.CreatedAt())
@@ -222,12 +220,12 @@ func (r ChatRepliesRepository) Get(
 	SELECT 
 		ID,
 		CHAT_ID,
-		USER_ID,
+		SENDER_ID,
 		CONTENT,
 		SEEN,
 		CREATED_AT,
 		UPDATED_AT
-	FROM chat_reply
+	FROM chat_replies
 	WHERE ID = $1
 	`)
 	row := conn.QueryRow(ctx, selectQuery, &id)
@@ -246,15 +244,21 @@ func (r ChatRepliesRepository) FindAll(
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Release()
 	rows, err := conn.Query(ctx, source.Query(), source.Args()...)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		rows.Close()
-		conn.Release()
-	}()
-	return r.loadAll(ctx, rows)
+	result, err := r.loadAll(ctx, rows)
+	if err != nil {
+		return nil, err
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	rows.Close()
+	return result, nil
 }
 
 func (r ChatRepliesRepository) loadAll(
@@ -275,7 +279,7 @@ func (r ChatRepliesRepository) loadAll(
 func (r ChatRepliesRepository) load(ctx context.Context, row pgx.Row) (*enterprise.Reply, error) {
 	var (
 		id        uuid.UUID
-		chatID    string
+		chatID    uuid.UUID
 		userId    uuid.UUID
 		content   string
 		seen      bool
@@ -294,7 +298,12 @@ func (r ChatRepliesRepository) load(ctx context.Context, row pgx.Row) (*enterpri
 	if err != nil {
 		return nil, err
 	}
-	user, err := MapperRegistryInstance().Get("User").(UserRepository).Get(ctx, userId)
+	reg := MapperRegistryInstance()
+	recipientRepository, ok := reg.Get("Recipient").(RecipientRepository)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+	user, err := recipientRepository.Get(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -306,13 +315,9 @@ func (r ChatRepliesRepository) load(ctx context.Context, row pgx.Row) (*enterpri
 	if err != nil {
 		return nil, err
 	}
-	parsedChatID, err := enterprise.NewChatID(chatID)
-	if err != nil {
-		return nil, err
-	}
 	return enterprise.NewReply(
 		id,
-		*parsedChatID,
+		chatID,
 		*user,
 		content,
 		seen,

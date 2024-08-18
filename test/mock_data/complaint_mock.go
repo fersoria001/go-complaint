@@ -50,6 +50,8 @@ type ComplaintMock struct {
 type ComplaintDataMock struct {
 	Id          uuid.UUID
 	OwnerId     uuid.UUID
+	AuthorId    uuid.UUID
+	ReceiverId  uuid.UUID
 	ComplaintId uuid.UUID
 	OccurredOn  time.Time
 	DataType    complaint.ComplaintDataType
@@ -59,6 +61,8 @@ var NewComplaintData = []ComplaintDataMock{
 	{
 		Id:          uuid.MustParse("8c910eaf-b942-430f-b01d-21a38e271d0f"),
 		OwnerId:     NewUsers["valid"].Id,
+		AuthorId:    NewComplaints["valid"].Author.Id,
+		ReceiverId:  NewComplaints["valid"].Receiver.Id,
 		ComplaintId: NewComplaints["valid"].Id,
 		OccurredOn:  time.Now(),
 		DataType:    complaint.RECEIVED,
@@ -66,6 +70,8 @@ var NewComplaintData = []ComplaintDataMock{
 	{
 		Id:          uuid.MustParse("8c910eaf-b942-430f-b01d-21a38e271d1f"),
 		OwnerId:     NewUsers["valid"].Id,
+		AuthorId:    NewComplaints["valid"].Author.Id,
+		ReceiverId:  NewComplaints["valid"].Receiver.Id,
 		ComplaintId: NewComplaints["valid"].Id,
 		OccurredOn:  time.Now(),
 		DataType:    complaint.RESOLVED,
@@ -73,6 +79,8 @@ var NewComplaintData = []ComplaintDataMock{
 	{
 		Id:          uuid.MustParse("8c910eaf-b942-430f-b01d-21a38e271d2f"),
 		OwnerId:     NewUsers["valid"].Id,
+		AuthorId:    NewComplaints["valid"].Author.Id,
+		ReceiverId:  NewComplaints["valid"].Receiver.Id,
 		ComplaintId: NewComplaints["valid"].Id,
 		OccurredOn:  time.Now(),
 		DataType:    complaint.REVIEWED,

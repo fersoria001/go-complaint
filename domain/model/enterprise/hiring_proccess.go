@@ -3,6 +3,7 @@ package enterprise
 import (
 	"context"
 	"go-complaint/domain"
+	"go-complaint/domain/model/identity"
 	"go-complaint/domain/model/recipient"
 	"time"
 
@@ -80,7 +81,7 @@ func ParseHiringProccessStatus(s string) HiringProccessStatus {
 type HiringProccess struct {
 	id         uuid.UUID
 	enterprise recipient.Recipient
-	user       recipient.Recipient
+	user       identity.User
 	role       Position
 	status     HiringProccessStatus
 	reason     string
@@ -88,17 +89,20 @@ type HiringProccess struct {
 	occurredOn time.Time
 	lastUpdate time.Time
 	updatedBy  recipient.Recipient
+	industry   Industry
 }
 
 func NewHiringProccess(
 	id uuid.UUID,
-	enterprise, user recipient.Recipient,
+	enterprise recipient.Recipient,
+	user identity.User,
 	role Position,
 	status HiringProccessStatus,
 	reason string,
 	emitedBy recipient.Recipient,
 	occurredOn, lastUpdate time.Time,
 	updatedBy recipient.Recipient,
+	industry Industry,
 ) *HiringProccess {
 	return &HiringProccess{
 		id:         id,
@@ -111,6 +115,7 @@ func NewHiringProccess(
 		occurredOn: occurredOn,
 		lastUpdate: lastUpdate,
 		updatedBy:  updatedBy,
+		industry:   industry,
 	}
 }
 
@@ -138,7 +143,7 @@ func (h HiringProccess) Id() uuid.UUID {
 func (h HiringProccess) Enterprise() recipient.Recipient {
 	return h.enterprise
 }
-func (h HiringProccess) User() recipient.Recipient {
+func (h HiringProccess) User() identity.User {
 	return h.user
 }
 func (h HiringProccess) Role() Position {
@@ -161,4 +166,8 @@ func (h HiringProccess) LastUpdate() time.Time {
 }
 func (h HiringProccess) UpdatedBy() recipient.Recipient {
 	return h.updatedBy
+}
+
+func (h HiringProccess) Industry() Industry {
+	return h.industry
 }

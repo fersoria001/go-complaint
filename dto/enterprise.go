@@ -13,7 +13,7 @@ type Enterprise struct {
 	Email          string      `json:"email"`
 	Phone          string      `json:"phone"`
 	Address        *Address    `json:"address"`
-	Industry       string      `json:"industry"`
+	Industry       Industry    `json:"industry"`
 	FoundationDate string      `json:"foundation_date"`
 	OwnerID        string      `json:"owner_id"`
 	Employees      []*Employee `json:"employees"`
@@ -34,7 +34,7 @@ func NewEnterprise(obj *enterprise.Enterprise) *Enterprise {
 			County:  obj.Address().CountryState().Name(),
 			City:    obj.Address().City().Name(),
 		},
-		Industry:       obj.Industry().Name(),
+		Industry:       NewIndustry(obj.Industry()),
 		FoundationDate: obj.FoundationDate().StringRepresentation(),
 		OwnerID:        obj.OwnerId().String(),
 		Employees:      list,

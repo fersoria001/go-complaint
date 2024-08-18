@@ -2,6 +2,7 @@ import PageProps from "@/app/pageProps"
 import EmployeesMain from "@/components/enterprises/employees/EmployeesMain"
 import getGraphQLClient from "@/graphql/graphQLClient"
 import enterpriseByNameQuery from "@/graphql/queries/enterpriseByNameQuery"
+import userDescriptorQuery from "@/graphql/queries/userDescriptorQuery"
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
@@ -29,6 +30,19 @@ const Employees: React.FC<PageProps> = async ({ params }: PageProps) => {
             }
         }
     })
+    await queryClient.prefetchQuery({
+        queryKey: ['userDescriptor'],
+        queryFn: async () => {
+          try {
+            return await gqlClient.request(userDescriptorQuery)
+          } catch (e: any) {
+            console.log("error: ",e)
+            return null
+          }
+        },
+        staleTime: Infinity,
+        gcTime: Infinity
+      })
     return (
         <HydrationBoundary state={dehydrate(queryClient)} >
             <EmployeesMain />
