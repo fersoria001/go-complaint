@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 const MainSection: React.FC = () => {
     return (
@@ -17,12 +18,13 @@ const MainSection: React.FC = () => {
                     being an individual or an enterprise, guide clients trough the proccess
                     and analyze it later.
                 </p>
-                <button
+                <Link
+                    href={"/sign-up"}
                     type="button"
                     className="mx-auto mb-4 2xl:mb-8 py-3 px-5 text-white text-lg lg:text-xl xl:py-5 xl:px-7 2xl:text-3xl
                      rounded-md bg-blue-500 hover:bg-blue-600">
                     Register now
-                </button>
+                </Link>
             </article>
             <div className="w-full
             skew-y-6 

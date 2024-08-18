@@ -1,10 +1,15 @@
 package chat
 
+import (
+	"sync"
+)
+
 type ChatAdapter struct {
 	clients    map[*Client]bool
 	broadcast  chan []byte
 	register   chan *Client
 	unregister chan *Client
+	mu         sync.Mutex
 }
 
 func NewChatAdapter() *ChatAdapter {
@@ -20,33 +25,27 @@ func (cas *ChatAdapter) Register(client *Client) {
 	cas.register <- client
 }
 
-func (cas *ChatAdapter) registerClient(client *Client) {
-	if _, ok := cas.clients[client]; !ok {
-		cas.clients[client] = true
-	}
-}
-
-func (cas *ChatAdapter) unregisterClient(client *Client) {
-	if _, ok := cas.clients[client]; !ok {
-		delete(cas.clients, client)
-		close(client.send)
-	}
-}
-
 func (cas *ChatAdapter) Run() {
 	for {
 		select {
 		case client := <-cas.register:
-			cas.registerClient(client)
+			cas.mu.Lock()
+			if _, ok := cas.clients[client]; !ok {
+				cas.clients[client] = true
+			}
+			cas.mu.Unlock()
 		case client := <-cas.unregister:
-			cas.unregisterClient(client)
+			cas.mu.Lock()
+			if _, ok := cas.clients[client]; ok {
+				delete(cas.clients, client)
+				close(client.send)
+			}
+			cas.mu.Unlock()
 		case message := <-cas.broadcast:
 			for client := range cas.clients {
 				select {
 				case client.send <- message:
 				default:
-					close(client.send)
-					delete(cas.clients, client)
 				}
 			}
 		}

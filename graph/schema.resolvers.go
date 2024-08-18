@@ -11,6 +11,7 @@ import (
 	"go-complaint/application/application_services"
 	"go-complaint/application/commands"
 	"go-complaint/application/queries"
+	"go-complaint/chat"
 	"go-complaint/dto"
 	"go-complaint/graph/model"
 	"log"
@@ -2136,9 +2137,16 @@ func (r *queryResolver) ComplaintByID(ctx context.Context, id string) (*model.Co
 	if err != nil {
 		return nil, err
 	}
+	r.mu.Lock()
+	online := chat.ChatServiceInstance().GetChatOnlineClientsIds(dbc.Id)
+	r.mu.Unlock()
+	log.Print("online", online)
+	dbc.Author.IsOnline = slices.Contains(online, dbc.Author.Id)
+	dbc.Receiver.IsOnline = slices.Contains(online, dbc.Receiver.Id)
 	replies := make([]*model.ComplaintReply, 0, len(dbc.Replies))
-	for _, v := range dbc.Replies {
-		replies = append(replies, &model.ComplaintReply{
+	repliesSlice := slices.Clone(dbc.Replies)
+	for _, v := range repliesSlice {
+		reply := &model.ComplaintReply{
 			ID:          &v.Id,
 			ComplaintID: &v.ComplaintId,
 			Sender: &model.Recipient{
@@ -2155,8 +2163,19 @@ func (r *queryResolver) ComplaintByID(ctx context.Context, id string) (*model.Co
 			UpdatedAt:    &v.UpdatedAt,
 			IsEnterprise: &v.IsEnterprise,
 			EnterpriseID: &v.EnterpriseId,
-		})
+		}
+		isOnline := slices.Contains(online, *reply.Sender.ID)
+		reply.Sender.IsOnline = &isOnline
+		if &dbc.Author.Id == reply.EnterpriseID && isOnline {
+			dbc.Author.IsOnline = isOnline
+		}
+		if &dbc.Receiver.Id == reply.EnterpriseID && isOnline {
+			dbc.Receiver.IsOnline = isOnline
+		}
+
+		replies = append(replies, reply)
 	}
+
 	status := model.ComplaintStatus(dbc.Status)
 	return &model.Complaint{
 		ID: &dbc.Id,
@@ -2166,6 +2185,7 @@ func (r *queryResolver) ComplaintByID(ctx context.Context, id string) (*model.Co
 			SubjectThumbnail: &dbc.Author.SubjectThumbnail,
 			SubjectEmail:     &dbc.Author.SubjectEmail,
 			IsEnterprise:     &dbc.Author.IsEnterprise,
+			IsOnline:         &dbc.Author.IsOnline,
 		},
 		Receiver: &model.Recipient{
 			ID:               &dbc.Receiver.Id,
@@ -2173,6 +2193,7 @@ func (r *queryResolver) ComplaintByID(ctx context.Context, id string) (*model.Co
 			SubjectThumbnail: &dbc.Receiver.SubjectThumbnail,
 			SubjectEmail:     &dbc.Receiver.SubjectEmail,
 			IsEnterprise:     &dbc.Receiver.IsEnterprise,
+			IsOnline:         &dbc.Receiver.IsOnline,
 		},
 		Status:      &status,
 		Title:       &dbc.Title,

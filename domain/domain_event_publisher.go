@@ -11,9 +11,11 @@ import (
 type DomainEventPublisher struct {
 	subscribers []DomainEventSubscriber
 	publishing  bool
+	mu          sync.Mutex
 }
 
 func (dep *DomainEventPublisher) Subscribe(subscriber DomainEventSubscriber) {
+	dep.mu.Lock()
 	if dep.publishing {
 		return
 	}
@@ -22,7 +24,7 @@ func (dep *DomainEventPublisher) Subscribe(subscriber DomainEventSubscriber) {
 		dep.subscribers = subscribers
 	}
 	dep.subscribers = append(dep.subscribers, subscriber)
-
+	dep.mu.Unlock()
 }
 
 func (dep *DomainEventPublisher) Publish(ctx context.Context, event DomainEvent) error {
@@ -57,9 +59,11 @@ func (dep *DomainEventPublisher) Publish(ctx context.Context, event DomainEvent)
 
 // Reset resets the domain event publisher.
 func (dep *DomainEventPublisher) Reset() *DomainEventPublisher {
+	dep.mu.Lock()
 	if !dep.publishing {
 		dep.subscribers = nil
 	}
+	dep.mu.Unlock()
 	return dep
 }
 

@@ -8,6 +8,7 @@ import complaintDataByOwnershipSubscription from "@/graphql/subscriptions/compla
 import { getCookie, setCookie } from "@/lib/actions/cookies";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
+import getGraphQLSubscriptionClient from "@/graphql/graphQLSubscriptionClient";
 
 interface Props {
     currentUser: UserDescriptor
@@ -48,7 +49,7 @@ const ComplaintDataCharts: React.FC<Props> = ({ currentUser }: Props) => {
                 }
                 localAlias = ok
             }
-            const subscription = graphQLSubscriptionClient.iterate({
+            const subscription = getGraphQLSubscriptionClient().iterate({
                 query: complaintDataByOwnershipSubscription(localAlias),
             });
             for await (const event of subscription) {

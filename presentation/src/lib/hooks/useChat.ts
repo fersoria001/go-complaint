@@ -9,6 +9,8 @@ export enum ChatMessageType {
   ConnectionAcknowledged = "connection_ack",
   Data = "data",
   Complete = "complete",
+  UserOnline = "user_online",
+  UserOffline = "user_offline",
 }
 export type ChatMessage = {
   type: string;
@@ -36,10 +38,10 @@ function useChat(id: string, subProtocol: ChatSubProtocols, jwt: string) {
       websocket.send(JSON.stringify(msg));
     };
     websocket.onerror = (e: any) => {
-      console.log("ws error" ,e);
+      console.log("ws error", e);
     };
     websocket.onmessage = (event: any) => {
-      const jsonMsg = JSON.parse(event.data);
+      const jsonMsg = JSON.parse(event.data) as ChatMessage;
       console.log("onMessage", jsonMsg);
       switch (jsonMsg.type) {
         case ChatMessageType.ConnectionAcknowledged: {
@@ -60,14 +62,35 @@ function useChat(id: string, subProtocol: ChatSubProtocols, jwt: string) {
           console.log("type complete not implemented");
           break;
         }
+        case ChatMessageType.UserOffline: {
+          const newMsg = {
+            subProtocolDataType: ChatMessageType.UserOffline,
+            result: decodeFromBinary(jsonMsg.payload)
+          }
+          setIncomingMsg(newMsg)
+          break;
+        }
+        case ChatMessageType.UserOnline: {
+          const newMsg = {
+            subProtocolDataType: ChatMessageType.UserOnline,
+            result: decodeFromBinary(jsonMsg.payload)
+          }
+          setIncomingMsg(newMsg)
+          break;
+        }
         default: {
-          console.log("default case not implemented");
+          console.log(
+            "type",
+            jsonMsg.type,
+            "default case not implemented",
+            decodeFromBinary(jsonMsg.payload)
+          );
           break;
         }
       }
     };
     return () => {
-      websocket.close();
+      websocket.close(1000);
     };
   }, [id, jwt, subProtocol]);
   function send(payload: Object) {

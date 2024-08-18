@@ -10,6 +10,7 @@ import (
 	"go-complaint/dto"
 	"go-complaint/infrastructure/cache"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -40,6 +41,8 @@ const (
 	ConnectionAcknowledged
 	Data
 	Complete
+	UserOnline
+	UserOffline
 )
 
 func (cmt ChatMessageType) String() string {
@@ -52,6 +55,10 @@ func (cmt ChatMessageType) String() string {
 		return "data"
 	case Complete:
 		return "complete"
+	case UserOnline:
+		return "user_online"
+	case UserOffline:
+		return "user_offline"
 	default:
 		return ""
 	}
@@ -67,6 +74,8 @@ type Client struct {
 	conn            *websocket.Conn
 	send            chan []byte
 	isAuthenticated bool
+	id              string
+	mu              sync.Mutex
 }
 
 func NewClient(cas *ChatAdapter, conn *websocket.Conn) *Client {
@@ -85,7 +94,12 @@ func NewClient(cas *ChatAdapter, conn *websocket.Conn) *Client {
 func (c *Client) Read() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
-		log.Printf("closing connection %v", c)
+		//log.Printf("closing connection %v", c)
+		offlineMsg, err := json.Marshal(&ChatMessage{Type: UserOffline.String(), Payload: []byte(c.id)})
+		if err != nil {
+			log.Printf("error marshaling offline user msg connection init %v", err)
+		}
+		c.cas.broadcast <- offlineMsg
 		c.cas.unregister <- c
 		c.conn.Close()
 		cancel()
@@ -112,13 +126,27 @@ func (c *Client) Read() {
 		switch chatMessage.Type {
 		case ConnectionInit.String():
 			svc := application_services.AuthorizationApplicationServiceInstance()
-			_, err = svc.Authorize(ctx, string(chatMessage.Payload))
+			authCtx, err := svc.Authorize(ctx, string(chatMessage.Payload))
 			response := ChatMessage{Type: ConnectionAcknowledged.String()}
 			if err != nil {
 				response.Payload = []byte("false")
 			} else {
-				response.Payload = []byte("true")
+				credentials, err := svc.Credentials(authCtx)
+				if err != nil {
+					log.Printf("error obtaining credentials connection init %v", err)
+					break
+				}
+				c.mu.Lock()
+				c.id = credentials.Id
 				c.isAuthenticated = true
+				c.mu.Unlock()
+				onlineMsg, err := json.Marshal(&ChatMessage{Type: UserOnline.String(), Payload: []byte(c.id)})
+				if err != nil {
+					log.Printf("error marshaling online user msg connection init %v", err)
+					break
+				}
+				c.cas.broadcast <- onlineMsg
+				response.Payload = []byte("true")
 			}
 			m, err := json.Marshal(response)
 			if err != nil {

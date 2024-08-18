@@ -20,12 +20,16 @@ enum complaintSubProtocolDataType {
     MarkAsRead = "mark_as_read",
     ComplaintReply = "complaint_reply",
     Complaint = "complaint",
-    SendToReview = "send_to_review"
+    SendToReview = "send_to_review",
+    UserOnline = "user_online",
+    UserOffline = "user_offline"
 }
+
 type complaintSubProtocolResult = {
     subProtocolDataType: complaintSubProtocolDataType;
     result: any;
 }
+
 type complaintSubProtocolPayload = {
     subProtocolDataType: complaintSubProtocolDataType;
     command: any;
@@ -76,7 +80,6 @@ const ComplaintChat: React.FC = () => {
     })
     const [item, setItem] = useState<Complaint>(complaintById as Complaint)
     const { isReady, send, incomingMsg } = useChat(complaintId as string, ChatSubProtocols.COMPLAINT, jwt!)
-    const subject = alias != item.author!.id ? item.author! : item.receiver!
     const windowRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -122,11 +125,82 @@ const ComplaintChat: React.FC = () => {
                     })
                     break;
                 }
+                case complaintSubProtocolDataType.UserOffline: {
+                    const id = msg.result as string
+                    setItem(prev => {
+                        if (id != prev.author!.id && id != prev.receiver?.id) {
+                            const newReplies = prev.replies?.map((v) => {
+                                return v?.sender?.id === id ? { ...v, sender: { ...v.sender, isOnline: false } } : v
+                            })
+                            const index = prev.replies?.findIndex((v) => {
+                                return v?.enterpriseId == prev.author?.id
+                            })
+                            if (index! >= 0) {
+                                prev.author!.isOnline = newReplies![index!]!.sender!.isOnline!
+                            }
+                            const index1 = prev.replies?.findIndex((v) => {
+                                return v?.enterpriseId == prev.receiver?.id
+                            })
+                            if (index1! >= 0) {
+                                prev.receiver!.isOnline = newReplies![index1!]!.sender!.isOnline!
+                            }
+                            const newItem = { ...prev, replies: newReplies }
+                            return newItem
+                        } else {
+                            if (id == prev.author!.id) {
+                                prev.author!.isOnline = true
+                            }
+                            if (id == prev.receiver!.id) {
+                                prev.receiver!.isOnline = true
+                            }
+                            const newItem = { ...prev }
+                            return newItem
+                        }
+                    })
+                    break;
+                }
+                case complaintSubProtocolDataType.UserOnline: {
+                    const id = msg.result as string
+                    setItem(prev => {
+                        if (id != prev.author!.id && id != prev.receiver?.id) {
+                            const newReplies = prev.replies?.map((v) => {
+                                return v?.sender?.id === id ? { ...v, sender: { ...v.sender, isOnline: true } } : v
+                            })
+                            const index = prev.replies?.findIndex((v) => {
+                                return v?.enterpriseId == prev.author?.id
+                            })
+                            if (index! >= 0) {
+                                prev.author!.isOnline = newReplies![index!]!.sender!.isOnline!
+                            }
+                            const index1 = prev.replies?.findIndex((v) => {
+                                return v?.enterpriseId == prev.receiver?.id
+                            })
+                            if (index1! >= 0) {
+                                prev.receiver!.isOnline = newReplies![index1!]!.sender!.isOnline!
+                            }
+                            const newItem = { ...prev, replies: newReplies }
+                            return newItem
+                        } else {
+                            if (id == prev.author!.id) {
+                                prev.author!.isOnline = true
+                            }
+                            if (id == prev.receiver!.id) {
+                                prev.receiver!.isOnline = true
+                            }
+                            const newItem = { ...prev }
+                            return newItem
+                        }
+                    })
+                    break;
+                }
             }
 
         }
     }, [alias, incomingMsg, complaintId])
-
+    const [subject, setSubject] = useState(alias != item.author!.id ? item.author! : item.receiver!)
+    useEffect(() => {
+        setSubject(alias != item.author!.id ? item.author! : item.receiver!)
+    }, [alias, item])
     useEffect(() => {
         if (windowRef.current) {
             windowRef.current.scrollIntoView({
@@ -170,15 +244,15 @@ const ComplaintChat: React.FC = () => {
             <div className="flex w-full my-2 py-2.5">
                 <div className='relative mx-2 rounded-full h-8 w-8 sm:h-10 sm:w-10 bg-gray-300 self-center'>
                     <Image
-                        src={subject.subjectThumbnail!}
-                        alt={subject.subjectName!}
+                        src={alias != item.author!.id ? item.author?.subjectThumbnail! : item.receiver?.subjectThumbnail!}
+                        alt={alias != item.author!.id ? item.author?.subjectName! : item.receiver?.subjectName!}
                         className="rounded-full"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         fill
                     />
                 </div>
                 <div className="px-2 self-center">
-                    <h3 className="text-gray-700 font-bold text-sm lg:text-md xl:text-lg">{subject.subjectName}</h3>
+                    <h3 className="text-gray-700 font-bold text-sm lg:text-md xl:text-lg">{alias != item.author!.id ? item.author?.subjectName! : item.receiver?.subjectName!}</h3>
                 </div>
                 <div className="ml-auto mr-4 my-auto flex items-center gap-2.5">
                     {item.receiver?.id === alias && validStatus.findIndex((s) => s === item.status) > 0 && <button
@@ -188,8 +262,8 @@ const ComplaintChat: React.FC = () => {
                         Mark for review
                     </button>}
                     <div className={clsx("rounded-full h-2 w-2 ml-auto mr-4 my-auto shrink-0", {
-                        "bg-red-300": subject!.isOnline! == false,
-                        "bg-blue-300": subject!.isOnline! != true,
+                        "bg-red-300": !subject.isOnline,
+                        "bg-blue-300": subject.isOnline,
                     })}></div>
                 </div>
             </div>

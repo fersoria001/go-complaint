@@ -112,5 +112,8 @@ func (p *ApplicationMessagePublisher) Subscribe(subscriber *Subscriber) {
 }
 
 func (p *ApplicationMessagePublisher) ApplicationSubscribers() []*Subscriber {
-	return p.subscribers
+	p.mu.Lock()
+	subs := p.subscribers
+	p.mu.Unlock()
+	return subs
 }

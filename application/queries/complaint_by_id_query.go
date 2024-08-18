@@ -32,5 +32,7 @@ func (c ComplaintByIdQuery) Execute(ctx context.Context) (*dto.Complaint, error)
 	if err != nil {
 		return nil, err
 	}
-	return dto.NewComplaint(*dbc), nil
+	result := dto.NewComplaint(*dbc)
+
+	return result, nil
 }

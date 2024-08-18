@@ -31,6 +31,7 @@ const complaintByIdQuery = graphql(`
                     subjectName
                     subjectThumbnail
                     isEnterprise
+                    isOnline
                 }
                 body
                 read
