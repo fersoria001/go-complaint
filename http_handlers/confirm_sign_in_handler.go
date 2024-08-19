@@ -6,6 +6,7 @@ import (
 	"go-complaint/application/application_services"
 	"go-complaint/application/queries"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -45,16 +46,26 @@ func ConfirmSignInHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	value := sessionToken.Token
 	raw := fmt.Sprintf("jwt=%s", value)
+	environment := os.Getenv("ENVIRONMENT")
+	secure := false
+	httpOnly := true
+	domain := ""
+	if environment == "PROD" {
+		domain = "go-complaint.com"
+		secure = true
+		httpOnly = false
+	}
+	maxAge := time.Second * 60 * 60 * 24 * 7
 	cookie := &http.Cookie{
 		Name:       "jwt",
 		Value:      value,
 		Path:       "/",
-		Domain:     "",
+		Domain:     domain,
 		Expires:    time.Now().Add(time.Hour * 24 * 7),
 		RawExpires: "",
-		MaxAge:     0,
-		Secure:     false,
-		HttpOnly:   true,
+		MaxAge:     int(maxAge.Seconds()),
+		Secure:     secure,
+		HttpOnly:   httpOnly,
 		SameSite:   http.SameSiteLaxMode,
 		Raw:        raw,
 		Unparsed:   []string{raw},

@@ -43,9 +43,11 @@ export async function userSignIn(prevState: SignInFormState, fd: FormData): Prom
         cookies().set({
             name: 'jwt',
             value: cookie.jwt,
-            httpOnly: cookie.HttpOnly ? true : false,
+            domain: cookie.domain,
+            maxAge: cookie.maxAge,
+            secure: cookie.secure,
+            httpOnly: cookie.HttpOnly,
             path: cookie.Path,
-            expires: cookie.Expires ? new Date(cookie.Expires) : new Date()
         })
     } catch (e: any) {
         if (e.response.data) {
@@ -87,9 +89,11 @@ export async function confirmSignIn(prevState: ConfirmSignInFormState, fd: FormD
         cookies().set({
             name: 'jwt',
             value: cookie.jwt,
-            httpOnly: cookie.HttpOnly ? true : false,
+            domain: cookie.domain,
+            maxAge: cookie.maxAge,
+            secure: cookie.secure,
+            httpOnly: cookie.HttpOnly,
             path: cookie.Path,
-            expires: cookie.Expires ? Date.parse(cookie.Expires) : new Date()
         })
     } catch (e: any) {
         if (e.response?.data) {

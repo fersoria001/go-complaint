@@ -30,13 +30,12 @@ import (
 func main() {
 	os.Setenv("HOST", "localhost")
 	os.Setenv("PORT", "5170")
-	os.Setenv("ALLOWED_ORIGINS", "http://localhost:5170,http://localhost:3000,localhost:3000,localhost")
-	os.Setenv("CSRF_KEY", "")
-	os.Setenv("JWT_SECRET", "")
-	os.Setenv("DATABASE_URL", "")
-	os.Setenv("PORT", "5170")
+	os.Setenv("ALLOWED_ORIGINS", "http://localhost:3000,localhost:3000,localhost")
+	os.Setenv("CSRF_KEY", "asfdsf2")
+	os.Setenv("JWT_SECRET", "dfhgc")
+	os.Setenv("DATABASE_URL", "postgres://postgres:sfdkwtf@localhost:5432/postgres?pool_max_conns=100&search_path=public&connect_timeout=5")
 	os.Setenv("DNS", "http://localhost:5170")
-	os.Setenv("SEND_GRID_API_KEY", "")
+	os.Setenv("SEND_GRID_API_KEY", "Bearer mlsn.0557f4217143328c73149ad91c7455121924f188c63af0fe093b42feb3fa1de1")
 	os.Setenv("ENVIRONMENT", "DEV")
 	r := chi.NewRouter()
 	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
@@ -133,28 +132,35 @@ func main() {
 	r.Handle("/logo_img/*", logoImgsHandler)
 	r.Handle("/banner_img/*", bannerImgsHandler)
 
-	cfg := &tls.Config{
-		MinVersion:               tls.VersionTLS12,
-		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-		PreferServerCipherSuites: true,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-		},
-	}
-	mainserver := &http.Server{
-		Addr:         port,
-		Handler:      r,
-		TLSConfig:    cfg,
-		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
-	}
-	err := mainserver.ListenAndServeTLS(projectpath.CertPath, projectpath.KeyPath)
-
-	//err := http.ListenAndServe(port, r)
-	if err != nil {
-		log.Printf("error at ListenAndServeTLS %v", err)
-		panic(err)
+	environment := os.Getenv("ENVIRONMENT")
+	if environment == "PROD" {
+		cfg := &tls.Config{
+			MinVersion:               tls.VersionTLS12,
+			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			PreferServerCipherSuites: true,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			},
+		}
+		mainserver := &http.Server{
+			Addr:         port,
+			Handler:      r,
+			TLSConfig:    cfg,
+			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+		}
+		err := mainserver.ListenAndServeTLS(projectpath.CertPath, projectpath.KeyPath)
+		if err != nil {
+			log.Printf("error at ListenAndServeTLS %v", err)
+			panic(err)
+		}
+	} else {
+		err := http.ListenAndServe(port, r)
+		if err != nil {
+			log.Printf("error at ListenAndServeTLS %v", err)
+			panic(err)
+		}
 	}
 }

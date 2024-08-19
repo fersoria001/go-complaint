@@ -12,7 +12,7 @@ export async function setCookie(name: string, value: string): Promise<string | u
     const res = cookies().set({
         name: name,
         value: value,
-        httpOnly: process.env.ENV_MODE == "prod",
+        httpOnly: process.env.ENV_MODE != "prod",
         path: "/",
         maxAge: oneHour
     })
