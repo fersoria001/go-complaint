@@ -27,11 +27,7 @@ function useChat(id: string, subProtocol: ChatSubProtocols, jwt: string) {
       console.error("ws url is undefined");
       return;
     }
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
-    if (!apiKey) {
-      throw new Error("api key axios instance not defined in process env");
-    }
-    const websocket = new WebSocket(url + `?id=${id}&api_key=${apiKey}`, subProtocol);
+    const websocket = new WebSocket(url + `?id=${id}`, subProtocol);
 
     websocket.onopen = () => {
       const msg: ChatMessage = {

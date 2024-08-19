@@ -14,11 +14,6 @@ function getAxiosInstance() {
     const instance = axios.create({
         withCredentials: true
     });
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY
-    if (!apiKey) {
-        throw new Error("api key axios instance not defined in process env")
-    }
-    instance.defaults.headers.common['api_key'] = apiKey;
     return instance
 }
 
@@ -40,6 +35,7 @@ export async function userSignIn(prevState: SignInFormState, fd: FormData): Prom
         const strCookie = response.headers["set-cookie"][0]
         const parsed = querystring.parse(strCookie, "; ")
         const cookie: any = { ...parsed }
+        console.log(cookie)
         cookies().set({
             name: 'jwt',
             value: cookie.jwt,
@@ -83,16 +79,18 @@ export async function confirmSignIn(prevState: ConfirmSignInFormState, fd: FormD
         if (!response.headers["set-cookie"] || !response.headers["set-cookie"][0]) {
             throw new Error("response to confirm sign-in: cookie is not present in the set-cookie header")
         }
+        
         const responseCookie = response.headers["set-cookie"][0]
         const parsed = querystring.parse(responseCookie, "; ")
         const cookie: any = { ...parsed }
+        const environment = process.env.NEXT_PUBLIC_END_MODE
         cookies().set({
             name: 'jwt',
             value: cookie.jwt,
             domain: cookie.domain,
             maxAge: cookie.maxAge,
-            secure: cookie.secure,
-            httpOnly: cookie.HttpOnly,
+            secure: environment == "PROD" ? true : false,
+            httpOnly: environment == "PROD" ? false : true,
             path: cookie.Path,
         })
     } catch (e: any) {
