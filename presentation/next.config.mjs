@@ -17,6 +17,12 @@ const nextConfig = {
             port: '5170',
             pathname: '/**/**',
           },
+          {
+            protocol: 'https',
+            hostname: 'api.go-complaint.com',
+            port: '',
+            pathname: '/**/**',
+          },
         ],
       },
 };
