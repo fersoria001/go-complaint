@@ -11,6 +11,8 @@ import (
 	"slices"
 	"time"
 
+	"crypto/tls"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -19,7 +21,6 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
-	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/websocket"
@@ -122,7 +123,7 @@ func main() {
 	profileImgHandler := http.StripPrefix("/profile_img/", http.FileServer(http.Dir(projectpath.ProfileImgsPath)))
 	logoImgsHandler := http.StripPrefix("/logo_img/", http.FileServer(http.Dir(projectpath.LogoImgsPath)))
 	bannerImgsHandler := http.StripPrefix("/banner_img/", http.FileServer(http.Dir(projectpath.BannerImgsPath)))
-	r.Handle("/", playground.Handler("GoComplaint GraphQL", "/graphql"))
+	//r.Handle("/", playground.Handler("GoComplaint GraphQL", "/graphql"))
 	r.Handle("/graphql", srv)
 	r.HandleFunc("/sign-in", http_handlers.SignInHandler)
 	r.HandleFunc("/confirm-sign-in", http_handlers.ConfirmSignInHandler)
@@ -131,8 +132,29 @@ func main() {
 	r.Handle("/profile_img/*", profileImgHandler)
 	r.Handle("/logo_img/*", logoImgsHandler)
 	r.Handle("/banner_img/*", bannerImgsHandler)
-	err := http.ListenAndServe(port, r)
+
+	cfg := &tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+	}
+	mainserver := &http.Server{
+		Addr:         port,
+		Handler:      r,
+		TLSConfig:    cfg,
+		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+	}
+	err := mainserver.ListenAndServeTLS(projectpath.CertPath, projectpath.KeyPath)
+
+	//err := http.ListenAndServe(port, r)
 	if err != nil {
+		log.Printf("error at ListenAndServeTLS %v", err)
 		panic(err)
 	}
 }
