@@ -14,4 +14,6 @@ var (
 	PresenterPath   = filepath.Join(Root, "presenter", "dist")
 	IndexPath       = filepath.Join(Root, "presenter", "dist")
 	EmailsPath      = filepath.Join(Root, "presentation", "email")
+	CertPath = filepath.Join(Root, "server.crt")
+	KeyPath = filepath.Join(Root, "server.key")
 )
