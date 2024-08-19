@@ -4,9 +4,12 @@ import (
 	"context"
 	"go-complaint/application"
 	"go-complaint/application/application_services"
+	"go-complaint/application/commands"
 	"go-complaint/dto"
 	"go-complaint/infrastructure"
 	"go-complaint/infrastructure/cache"
+	"go-complaint/infrastructure/persistence/finders/find_user"
+	"go-complaint/infrastructure/persistence/repositories"
 	"os"
 )
 
@@ -45,11 +48,20 @@ func (siq *SignInQuery) Execute(ctx context.Context) (*dto.JWTToken, error) {
 	confirmation := application.NewLoginConfirmation(siq.Username, t, false)
 	switch env {
 	case "PROD":
-		// 	commands.SendEmailCommand{
-		// 		ToEmail:          user.Email(),
-		// 		ToName:           user.FullName(),
-		// 		ConfirmationCode: userSignedIn.ConfirmationCode(),
-		// 	}.VerifySignIn(ctx)
+		reg := repositories.MapperRegistryInstance()
+		r, ok := reg.Get("User").(repositories.UserRepository)
+		if !ok {
+			return nil, ErrWrongTypeAssertion
+		}
+		user, err := r.Find(ctx, find_user.ByUsername(siq.Username))
+		if err != nil {
+			return nil, err
+		}
+		commands.SendEmailCommand{
+			ToEmail:          user.Email(),
+			ToName:           user.FullName(),
+			ConfirmationCode: confirmationCode.Code,
+		}.VerifySignIn(ctx)
 	case "DEV":
 	}
 	cache.InMemoryInstance().Set(t.Token(), confirmation)

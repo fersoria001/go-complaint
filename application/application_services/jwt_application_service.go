@@ -38,6 +38,20 @@ func (jwts *JWTApplicationService) GenerateJWTToken(claims jwt.Claims) (
 	return application.NewJWTToken(tokenString), nil
 }
 
+func (jwts *JWTApplicationService) ParseApiKey(jwtToken string) error {
+	var claims application.ApiKey
+	token, err := jwt.ParseWithClaims(jwtToken, &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+	if err != nil {
+		return err
+	}
+	if !token.Valid {
+		return err
+	}
+	return nil
+}
+
 func (jwts *JWTApplicationService) ParseUserDescriptor(jwtToken string) (dto.UserDescriptor, error) {
 	var claims dto.UserDescriptor
 	token, err := jwt.ParseWithClaims(jwtToken, &claims, func(token *jwt.Token) (interface{}, error) {

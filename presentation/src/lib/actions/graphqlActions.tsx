@@ -47,7 +47,12 @@ function gqlClientWithCookie() {
     const jwtCookie = cookies().get("jwt")
     const strCookie = `${jwtCookie?.name}=${jwtCookie?.value}`
     const gqlClient = getGraphQLClient()
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY
+    if (!apiKey) {
+        throw new Error("api key axios instance not defined in process env")
+    }
     gqlClient.setHeader("Cookie", strCookie)
+    gqlClient.setHeader("api_key", apiKey)
     return gqlClient
 }
 

@@ -1,3 +1,6 @@
 Dockerfile
 compose.yaml
 /presenter
+.env
+presentation/.env
+files

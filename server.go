@@ -27,14 +27,16 @@ import (
 )
 
 func main() {
-	// os.Setenv("HOST", "localhost")
-	// os.Setenv("PORT", "5170")
-	// os.Setenv("ALLOWED_ORIGINS", "http://localhost:5170,http://localhost:3000,localhost:3000,localhost")
-	// os.Setenv("CSRF_KEY", "ultrasecret")
-	// os.Setenv("DATABASE_URL", "postgres://postgres:sfdkwtf@localhost:5432/postgres?pool_max_conns=100&search_path=public&connect_timeout=5")
-	// os.Setenv("PORT", "5170")
-	// os.Setenv("DNS", "http://localhost:5170")
-	// os.Setenv("SEND_GRID_API_KEY", "Bearer mlsn.0557f4217143328c73149ad91c7455121924f188c63af0fe093b42feb3fa1de1")
+	os.Setenv("HOST", "localhost")
+	os.Setenv("PORT", "5170")
+	os.Setenv("ALLOWED_ORIGINS", "http://localhost:5170,http://localhost:3000,localhost:3000,localhost")
+	os.Setenv("CSRF_KEY", "")
+	os.Setenv("JWT_SECRET", "")
+	os.Setenv("DATABASE_URL", "")
+	os.Setenv("PORT", "5170")
+	os.Setenv("DNS", "http://localhost:5170")
+	os.Setenv("SEND_GRID_API_KEY", "")
+	os.Setenv("ENVIRONMENT", "DEV")
 	r := chi.NewRouter()
 	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 	port := fmt.Sprintf(":%s", os.Getenv("PORT"))
@@ -46,6 +48,25 @@ func main() {
 		AllowedHeaders:   []string{"cookie", "content-type", "upgrade", "connection", "sec-websocket-key"},
 		ExposedHeaders:   []string{"set-cookie", "upgrade", "connection", "sec-websocket-accept"},
 	}).Handler)
+	r.Use(func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			apiKey := r.Header.Get("api_key")
+			if apiKey == "" {
+				apiKey := r.URL.Query().Get("api_key")
+				if apiKey == "" {
+					http.Error(w, fmt.Errorf("api not found in request").Error(), http.StatusForbidden)
+					return
+				}
+			}
+			svc := application_services.JWTApplicationServiceInstance()
+			err := svc.ParseApiKey(apiKey)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			h.ServeHTTP(w, r)
+		})
+	})
 	r.Use(func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie("jwt")
