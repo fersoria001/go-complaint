@@ -7,7 +7,11 @@ const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 if (!apiKey) {
   throw new Error("api key axios instance not defined in process env");
 }
-url = url.replace("http://", "ws://");
+if (process.env.NEXT_PUBLIC_ENV_MODE != "PROD") {
+  url = url.replace("http://", "ws://");
+} else {
+  url = url.replace("https://", "wss://");
+}
 url += `?api_key=${apiKey}`;
 const graphQLSubscriptionClient: Client | undefined = undefined;
 const getGraphQLSubscriptionClient = () =>
