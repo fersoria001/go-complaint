@@ -11,7 +11,7 @@ import InlineAlert from "../error/InlineAlert"
 
 const DescribeComplaint: React.FC = () => {
     const params = useSearchParams()
-    const id = params.get("id")
+    const id = params.get("id") as string
     const [state, formAction] = useFormState(describeComplaint, undefined)
     const { data } = useSuspenseQuery({
         queryKey: ['complaintById', id as string],
@@ -32,7 +32,7 @@ const DescribeComplaint: React.FC = () => {
                     className="block text-gray-700 text-sm lg:text-md font-bold mb-2">
                     Reason
                 </label>
-                <input className="hidden" value={id!} name="complaintId" readOnly />
+                <input className="hidden" value={id} name="complaintId" readOnly />
                 <div className="relative mb-0.5">
                     <input
                         name="title"

@@ -2,6 +2,11 @@
 #
 # https://gqlgen.com/getting-started/
 
+input ContactEmail {
+  from: String!
+  message: String
+}
+
 type Country {
   id: Int!
   name: String!
@@ -222,6 +227,11 @@ type Complaint {
   createdAt: String
   updatedAt: String
   replies: [ComplaintReply]
+}
+
+input FindComplaintWriting {
+  authorId: String!
+  receiverId: String!
 }
 
 enum ComplaintDataType {
@@ -522,6 +532,7 @@ type Query {
   industries: [Industry!]!
   recipientsByNameLike(term: String!): [Recipient!]!
   complaintById(id: String!): Complaint!
+  complaintWritingByAuthorIdAndReceiverId(input: FindComplaintWriting!): Complaint!
   complaintsByAuthorOrReceiverId(id: String!): [Complaint]!
   pendingReviewsByAuthorId(id: String!, term: String): [Complaint]!
   complaintsSentForReviewByReceiverId(id: String!, term: String): [Complaint]!
@@ -539,7 +550,9 @@ type Query {
 }
 
 type Mutation {
+  contactEmail(input: ContactEmail!): Boolean!
   createUser(input: CreateUser!): User!
+  recoverPassword(userName: String!): Boolean!
   updateProfileImg(id: String!, file: Upload!): User!
   changePassword(input: ChangePassword!): User!
   changeUserGenre(input: ChangeUserGenre!): User!

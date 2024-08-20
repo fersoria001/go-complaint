@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"go-complaint/application/application_services"
 	"go-complaint/domain"
 	"go-complaint/domain/model/common"
@@ -10,6 +11,7 @@ import (
 	"go-complaint/infrastructure"
 	"go-complaint/infrastructure/cache"
 	"go-complaint/infrastructure/persistence/repositories"
+	"os"
 	"reflect"
 	"time"
 
@@ -68,15 +70,21 @@ func (c RegisterUserCommand) Execute(ctx context.Context) error {
 		return ErrWrongTypeAssertion
 	}
 	newId := uuid.New()
+	environment := os.Getenv("ENVIRONMENT")
 	domain.DomainEventPublisherInstance().Subscribe(
 		domain.DomainEventSubscriber{
 			HandleEvent: func(event domain.DomainEvent) error {
-				if _, ok := event.(*identity.UserCreated); ok {
-					// SendEmailCommand{
-					// 	ToEmail:           userCommand.Email,
-					// 	ToName:            userCommand.FirstName + " " + userCommand.LastName,
-					// 	ConfirmationToken: castedEvent.ConfirmationToken(),
-					// }.Welcome(ctx)
+				if e, ok := event.(*identity.UserCreated); ok {
+					if environment == "PROD" {
+						err := NewSendEmailValidationCommand(
+							c.Username,
+							fmt.Sprintf("%s %s", c.FirstName, c.LastName),
+							e.ConfirmationToken(),
+						).Execute(ctx)
+						if err != nil {
+							return err
+						}
+					}
 					recipientRepository, ok := reg.Get("Recipient").(repositories.RecipientRepository)
 					if !ok {
 						return ErrWrongTypeAssertion
@@ -157,6 +165,13 @@ func (c RegisterUserCommand) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if environment != "PROD" {
+		err := newUser.VerifyEmail(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	cache.InMemoryInstance().Set(token.Token(), false)
 	err = userRepository.Save(ctx, newUser)
 	if err != nil {

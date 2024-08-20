@@ -53,7 +53,7 @@ type sendComplaintToReviewData = {
     currentUserId: string;
 }
 
-const validStatus = ["OPEN", "STARTED", "IN_DISCUSSION"]
+const validStatus = ["WRITING", "OPEN", "STARTED", "IN_DISCUSSION"]
 const ComplaintChat: React.FC = () => {
     const params = useParams()
     const complaintId = params.complaintId as string
@@ -148,10 +148,10 @@ const ComplaintChat: React.FC = () => {
                             return newItem
                         } else {
                             if (id == prev.author!.id) {
-                                prev.author!.isOnline = true
+                                prev.author!.isOnline = false
                             }
                             if (id == prev.receiver!.id) {
-                                prev.receiver!.isOnline = true
+                                prev.receiver!.isOnline = false
                             }
                             const newItem = { ...prev }
                             return newItem

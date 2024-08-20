@@ -8,7 +8,6 @@ import Image from "next/image";
 import { useState } from "react";
 import { Recipient } from "@/gql/graphql";
 import { createNewComplaint } from "@/lib/actions/graphqlActions";
-import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import InlineAlert from "../error/InlineAlert";
 
@@ -16,7 +15,6 @@ const FindReceiver: React.FC = () => {
     const [term, setTerm] = useState<string>("")
     const [receiver, setReceiver] = useState<Recipient | null>(null)
     const [errors, setErrors] = useState<{ [key: string]: string }>({})
-    const router = useRouter()
     const { data: recipients, isLoading } = useSuspenseQuery({
         queryKey: ['recipientsByNameLike', term],
         queryFn: async ({ queryKey }) => {
@@ -36,11 +34,7 @@ const FindReceiver: React.FC = () => {
             setErrors({ "receiver": "pick a receiver before the next step" })
             return
         }
-        const res = await createNewComplaint(receiver.id)
-        if (!res) {
-            return
-        }
-        router.push(`/complaints/send-complaint?step=2&id=${res.id}`)
+        const id = await createNewComplaint(receiver.id)
     }
     return (
         <div className="h-full relative flex flex-col py-0.5">
@@ -96,7 +90,7 @@ const FindReceiver: React.FC = () => {
             errors={[errors.receiver]} />}
             <button
                 type="button"
-                onClick={() => createComplaint()}
+                onClick={createComplaint}
                 className="px-7 py-3 bg-blue-500 hover:bg-blue-600 rounded-md text-white font-bold self-center absolute bottom-36 md:bottom-[0rem]">
                 Next
             </button>

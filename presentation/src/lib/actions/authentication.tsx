@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { z } from "zod"
 import querystring from 'node:querystring'
 import { cookies } from "next/headers"
+
 const axiosInstance: AxiosInstance | undefined = undefined
 function getAxiosInstance() {
     if (axiosInstance) {
@@ -49,6 +50,7 @@ export async function userSignIn(prevState: SignInFormState, fd: FormData): Prom
         if (e.response.data) {
             let message = e.response.data
             if (e.response.data.includes("crypto/bcrypt: hashedPassword is not the hash of the given password")) { message = "password did not match" }
+            if (e.response.data.includes("no rows")) { message = "the account doesn't exist"}
             return {
                 formErrors: [message],
                 fieldErrors: {}
@@ -79,7 +81,7 @@ export async function confirmSignIn(prevState: ConfirmSignInFormState, fd: FormD
         if (!response.headers["set-cookie"] || !response.headers["set-cookie"][0]) {
             throw new Error("response to confirm sign-in: cookie is not present in the set-cookie header")
         }
-        
+
         const responseCookie = response.headers["set-cookie"][0]
         const parsed = querystring.parse(responseCookie, "; ")
         const cookie: any = { ...parsed }
@@ -112,15 +114,4 @@ export async function logout() {
     redirect("/")
 }
 
-export async function recoverPassword(prevState: any, fd: FormData) {
-    const justTheEmail = signInSchema.pick({ userName: true })
-    const { data, success, error } = justTheEmail.safeParse(Object.fromEntries(fd))
-    if (!success) {
-        return error.flatten()
-    }
-    return {
-        formErrors: ["the provided email is not registered"],
-        fieldErrors: {}
-    }
-}
 

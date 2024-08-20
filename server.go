@@ -37,9 +37,10 @@ func main() {
 	// os.Setenv("DNS", "http://localhost:5170")
 	// os.Setenv("SEND_GRID_API_KEY", "Bearer mlsn.0557f4217143328c73149ad91c7455121924f188c63af0fe093b42feb3fa1de1")
 	// os.Setenv("ENVIRONMENT", "DEV")
+	// os.Setenv("FRONT_END_URL", "https://www.go-complaint.com")
 	r := chi.NewRouter()
 	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
-	log.Printf("allowedOrigins %v", allowedOrigins)
+	//log.Printf("allowedOrigins %v", allowedOrigins)
 	port := fmt.Sprintf(":%s", os.Getenv("PORT"))
 	r.Use(middleware.Logger)
 	r.Use(cors.New(cors.Options{
@@ -106,6 +107,7 @@ func main() {
 	bannerImgsHandler := http.StripPrefix("/banner_img/", http.FileServer(http.Dir(projectpath.BannerImgsPath)))
 	//r.Handle("/", playground.Handler("GoComplaint GraphQL", "/graphql"))
 	r.Handle("/graphql", srv)
+	r.HandleFunc("/validation-link", http_handlers.EmailValidationHandler)
 	r.HandleFunc("/sign-in", http_handlers.SignInHandler)
 	r.HandleFunc("/confirm-sign-in", http_handlers.ConfirmSignInHandler)
 	r.HandleFunc("/chat", http_handlers.ServeWS)
@@ -134,14 +136,16 @@ func main() {
 			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 		}
 		err := mainserver.ListenAndServeTLS(projectpath.CertPath, projectpath.KeyPath)
+		log.Printf("HTTPS server started at port %v", port)
 		if err != nil {
 			log.Printf("error at ListenAndServeTLS %v", err)
 			panic(err)
 		}
 	} else {
 		err := http.ListenAndServe(port, r)
+		log.Printf("HTTP server started at port %v", port)
 		if err != nil {
-			log.Printf("error at ListenAndServeTLS %v", err)
+			log.Printf("error at ListenAndServe %v", err)
 			panic(err)
 		}
 	}

@@ -138,7 +138,7 @@ func CreateUser(
 		password,
 		registerDate,
 		person,
-		true,
+		false,
 		emptyUserRoles,
 	)
 	if err != nil {

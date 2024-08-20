@@ -26,7 +26,7 @@ const ScrollUpButton: React.FC = () => {
         <button
             type="button"
             onClick={scrollToTop}
-            className={clsx('fixed bg-blue-500 rounded-full h-12 w-12 z-10 bottom-44 lg:bottom-36 right-4 lg:right-6 cursor-pointer border 2xl:h-24 2xl:w-24 ',
+            className={clsx('fixed bg-blue-500 rounded-full h-12 w-12 z-10 bottom-44 lg:bottom-36 right-4 lg:right-6 cursor-pointer border 2xl:h-24 2xl:w-24',
                 {
                     'hidden': !show,
                     '': show

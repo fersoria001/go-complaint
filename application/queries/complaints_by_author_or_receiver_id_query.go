@@ -3,12 +3,10 @@ package queries
 import (
 	"context"
 	"errors"
-	"go-complaint/application"
 	"go-complaint/domain/model/complaint"
 	"go-complaint/dto"
 	"go-complaint/infrastructure/persistence/finders/find_all_complaints"
 	"go-complaint/infrastructure/persistence/repositories"
-	"slices"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -60,18 +58,8 @@ func (cbaoriq *ComplaintsByAuthorOrReceiverIdQuery) Execute(ctx context.Context)
 	// if prevCursor < 0 {
 	// 	prevCursor = -1
 	// }
-	svc := application.ApplicationMessagePublisherInstance()
-	currentSubscribers := svc.ApplicationSubscribers()
 	for _, v := range dbCs {
 		complaintDto := dto.NewComplaint(*v)
-		//log.Printf("query receiver %v=> %s = %v", currentSubscribers, complaintDto.Receiver.Id, slices.Contains(currentSubscribers, complaintDto.Receiver.Id))
-		//log.Printf("query author %v=> %s = %v", currentSubscribers, complaintDto.Author.Id, slices.Contains(currentSubscribers, complaintDto.Author.Id))
-		complaintDto.Receiver.IsOnline = slices.ContainsFunc(currentSubscribers, func(e *application.Subscriber) bool {
-			return e.UserId == complaintDto.Receiver.Id
-		})
-		complaintDto.Author.IsOnline = slices.ContainsFunc(currentSubscribers, func(e *application.Subscriber) bool {
-			return e.UserId == complaintDto.Author.Id
-		})
 		result = append(result, complaintDto)
 	}
 	return result, nil

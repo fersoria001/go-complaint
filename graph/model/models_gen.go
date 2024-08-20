@@ -152,6 +152,11 @@ type ComplaintReply struct {
 	EnterpriseID *string    `json:"enterpriseId,omitempty"`
 }
 
+type ContactEmail struct {
+	From    string  `json:"from"`
+	Message *string `json:"message,omitempty"`
+}
+
 type Country struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
@@ -276,6 +281,11 @@ type Feedback struct {
 	ReviewedAt   string         `json:"reviewedAt"`
 	UpdatedAt    string         `json:"updatedAt"`
 	IsDone       bool           `json:"isDone"`
+}
+
+type FindComplaintWriting struct {
+	AuthorID   string `json:"authorId"`
+	ReceiverID string `json:"receiverId"`
 }
 
 type FindEnterpriseChat struct {

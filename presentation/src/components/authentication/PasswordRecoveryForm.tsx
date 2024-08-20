@@ -1,9 +1,9 @@
 'use client'
-import { recoverPassword } from "@/lib/actions/authentication";
 import signInSchema from "@/lib/validation/signInSchema";
 import { useFormState } from "react-dom";
 import { z } from "zod";
 import InlineAlert from "../error/InlineAlert";
+import { recoverPassword } from "@/lib/actions/graphqlActions";
 const justTheEmail = signInSchema.pick({ userName: true })
 type formState = z.inferFlattenedErrors<typeof justTheEmail>
 const initialState: Partial<formState> = {}

@@ -2,9 +2,12 @@ package commands
 
 import (
 	"context"
+	"go-complaint/domain"
+	"go-complaint/domain/model/identity"
 	"go-complaint/infrastructure"
 	"go-complaint/infrastructure/persistence/finders/find_user"
 	"go-complaint/infrastructure/persistence/repositories"
+	"reflect"
 	"strings"
 
 	"github.com/google/uuid"
@@ -36,20 +39,20 @@ func (c RecoverPasswordCommand) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// 	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
-	// 		HandleEvent: func(event domain.DomainEvent) error {
-	// 			if _, ok := event.(*identity.PasswordReset); ok {
-	// 				SendEmailCommand{
-	// 					ToEmail:        userCommand.Email,
-	// 					RandomPassword: newRandomGeneratedPassword,
-	// 				}.PasswordRecovery(ctx)
-	// 			}
-	// 			return nil
-	// 		},
-	// 		SubscribedToEventType: func() reflect.Type {
-	// 			return reflect.TypeOf(&identity.PasswordReset{})
-	// 		},
-	// 	})
+	domain.DomainEventPublisherInstance().Subscribe(domain.DomainEventSubscriber{
+		HandleEvent: func(event domain.DomainEvent) error {
+			if _, ok := event.(*identity.PasswordReset); ok {
+				return NewSendPasswordRecoveryEmail(
+					user.Email(),
+					newRandomGeneratedPassword,
+				).Execute(ctx)
+			}
+			return nil
+		},
+		SubscribedToEventType: func() reflect.Type {
+			return reflect.TypeOf(&identity.PasswordReset{})
+		},
+	})
 	err = user.ResetPassword(ctx, newRandomGeneratedPassword, string(encryptedPassword))
 	if err != nil {
 		return err

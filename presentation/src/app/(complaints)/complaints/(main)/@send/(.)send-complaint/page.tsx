@@ -50,7 +50,6 @@ const SendComplaintPage: React.FC<PageProps> = async ({ searchParams }: PageProp
                 try {
                     return await gqlClient.request(complaintByIdQuery, { id: queryKey[1] })
                 } catch (e: any) {
-                    console.log("error: ", e)
                     return null
                 }
             },

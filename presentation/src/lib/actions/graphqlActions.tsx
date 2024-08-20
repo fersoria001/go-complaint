@@ -1,6 +1,5 @@
 'use server'
-
-import { SendComplaint, DescribeComplaint, Complaint, CreateNewComplaint, CreateEnterprise, RateComplaint, InviteToProject, AcceptHiringInvitation, RejectHiringInvitation, HireEmployee, CancelHiringProcess, PromoteEmployee, FireEmployee, AddFeedbackComment, AddFeedbackReply, RemoveFeedbackReply, RemoveFeedbackComment, EndFeedback, FindEnterpriseChat, CreateEnterpriseChat, UserDescriptor, ChangePassword, ChangeUserGenre, ChangeUserPronoun, ChangeUserFirstName, ChangeUserLastName, ChangeUserPhone, UpdateUserAddress, ChangeEnterpriseAddress, ChangeEnterprisePhone, ChangeEnterpriseEmail, ChangeEnterpriseWebsite } from "@/gql/graphql"
+import { SendComplaint, DescribeComplaint, Complaint, CreateNewComplaint, CreateEnterprise, RateComplaint, InviteToProject, AcceptHiringInvitation, RejectHiringInvitation, HireEmployee, CancelHiringProcess, PromoteEmployee, FireEmployee, AddFeedbackComment, AddFeedbackReply, RemoveFeedbackReply, RemoveFeedbackComment, EndFeedback, FindEnterpriseChat, CreateEnterpriseChat, UserDescriptor, ChangePassword, ChangeUserGenre, ChangeUserPronoun, ChangeUserFirstName, ChangeUserLastName, ChangeUserPhone, UpdateUserAddress, ChangeEnterpriseAddress, ChangeEnterprisePhone, ChangeEnterpriseEmail, ChangeEnterpriseWebsite, ContactEmail } from "@/gql/graphql"
 import getGraphQLClient from "@/graphql/graphQLClient"
 import createEnterpriseMutation from "@/graphql/mutations/createEnterpriseMutation"
 import createNewComplaintMutation from "@/graphql/mutations/createNewComplaintMutation"
@@ -40,6 +39,11 @@ import changeEnterpriseAddressMutation from "@/graphql/mutations/changeEnterpris
 import changeEnterprisePhoneMutation from "@/graphql/mutations/changeEnterprisePhoneMutation"
 import changeEnterpriseEmailMutation from "@/graphql/mutations/changeEnterpriseEmailMutation"
 import changeEnterpriseWebsiteMutation from "@/graphql/mutations/changeEnterpriseWebsiteMutation"
+import contactSchema from "../validation/contactSchema"
+import sendContactEmailMutation from "@/graphql/mutations/sendContactEmailMutation"
+import recoverPasswordMutation from "@/graphql/mutations/recoverPasswordMutation"
+import signInSchema from "../validation/signInSchema"
+import complaintWritingByAuthorIdAndReceiverIdQuery from "@/graphql/queries/complaintWritingByAuthorIdAndReceiverIdQuery"
 
 
 
@@ -47,14 +51,31 @@ function gqlClientWithCookie() {
     const jwtCookie = cookies().get("jwt")
     const strCookie = `${jwtCookie?.name}=${jwtCookie?.value}`
     const gqlClient = getGraphQLClient()
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY
-    if (!apiKey) {
-        throw new Error("api key axios instance not defined in process env")
-    }
     gqlClient.setHeader("Cookie", strCookie)
-    gqlClient.setHeader("api_key", apiKey)
     return gqlClient
 }
+
+export default async function contact(prevState: any, fd: FormData) {
+    const { data, error, success } = contactSchema.safeParse(Object.fromEntries(fd))
+    if (!success) {
+        return error.flatten()
+    }
+    try {
+        const ok = gqlClientWithCookie().request(sendContactEmailMutation, {
+            input: {
+                from: data.email,
+                message: data.text
+            }
+        })
+    } catch (e) {
+        return {
+            formErrors: ["error at sending contact message"],
+            fieldErrors: {}
+        }
+    }
+    redirect('/contact?success=1')
+}
+
 
 export async function changeEnterpriseWebsite(input: ChangeEnterpriseWebsite) {
     await gqlClientWithCookie().request(changeEnterpriseWebsiteMutation, { input })
@@ -215,17 +236,45 @@ export async function describeComplaint(state: DescribeComplaintFormState | unde
         await gqlClientWithCookie().request(describeComplaintMutation, { input: data as DescribeComplaint })
     } catch (e: any) {
         let msg: string = e.message
+        console.log("error at describe complaint action", msg)
         return {
-            formErrors: [msg],
+            formErrors: [],
             fieldErrors: {}
         }
     }
     redirect(`/complaints/send-complaint?step=3&id=${data.complaintId}`)
 }
-export async function createNewComplaint(receiverId: string): Promise<Complaint> {
+
+export async function createNewComplaint(receiverId: string) {
     const authorId = cookies().get("alias")?.value as string
-    const result = await gqlClientWithCookie().request(createNewComplaintMutation, { input: { authorId, receiverId } as CreateNewComplaint })
-    return result.createNewComplaint as Complaint
+    let id = ""
+    try {
+        const result = await gqlClientWithCookie().request(createNewComplaintMutation, { input: { authorId, receiverId } as CreateNewComplaint })
+        if (!result.createNewComplaint) {
+            throw new Error(`error at createNewComplaint: data is empty`)
+        }
+        id = result.createNewComplaint.id as string
+    } catch (e: any) {
+        let msg: string = e.message;
+        if (e.message.includes("there's already a complaint in the db with status writing that match the author and receiver id")) {
+            try {
+                const result = await gqlClientWithCookie().request(complaintWritingByAuthorIdAndReceiverIdQuery, {
+                    input: {
+                        authorId,
+                        receiverId
+                    }
+                })
+                id = result.complaintWritingByAuthorIdAndReceiverId.id as string
+            } catch (error: any) {
+                console.log("error at catch error from createNewComplaint", error.message)
+                return
+            }
+        } else {
+            console.log("error at catch error from createNewComplaint", e.message)
+            return
+        }
+    }
+    redirect(`/complaints/send-complaint?step=2&id=${id}`)
 }
 
 
@@ -252,3 +301,22 @@ export async function registerEnterprise(state: RegisterEnterpriseFormState | un
     redirect("/enterprises")
 }
 
+
+export async function recoverPassword(prevState: any, fd: FormData) {
+    const justTheEmail = signInSchema.pick({ userName: true })
+    const { data, success, error } = justTheEmail.safeParse(Object.fromEntries(fd))
+    if (!success) {
+        return error.flatten()
+    }
+    try {
+        const ok = await gqlClientWithCookie().request(recoverPasswordMutation, {
+            userName: data.userName
+        })
+    } catch (e) {
+        return {
+            formErrors: ["the provided email is not registered"],
+            fieldErrors: {}
+        }
+    }
+    redirect('password-recovery?success=1')
+}

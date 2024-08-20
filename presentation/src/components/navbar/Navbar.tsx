@@ -8,7 +8,6 @@ import userDescriptorQuery from "@/graphql/queries/userDescriptorQuery";
 import { profileOptions } from "@/lib/profileOptions";
 import { useEffect, useState } from "react";
 import BurguerMenuIcon from "../icons/BurguerMenuIcon";
-import graphQLSubscriptionClient from "@/graphql/graphQLSubscriptionClient";
 import notificationsSubscription from "@/graphql/subscriptions/notificationsSubscriptions";
 import { NotificationLink } from "@/gql/graphql";
 import getGraphQLSubscriptionClient from "@/graphql/graphQLSubscriptionClient";

@@ -40,14 +40,13 @@ func (c CreateNewComplaintCommand) Execute(ctx context.Context) error {
 	if !ok {
 		return ErrWrongTypeAssertion
 	}
-	_, err = complaintRepository.Find(ctx, find_complaint.ByAuthorAndReceiverAndWritingTrue(
+	prev, _ := complaintRepository.Find(ctx, find_complaint.ByAuthorAndReceiverAndWritingTrue(
 		authorId,
 		receiverId,
 	))
-	if err == nil {
+	if prev != nil {
 		return ErrComplaintAlreadyExists
 	}
-
 	author, err := recipientRepository.Get(ctx, authorId)
 	if err != nil {
 		return err

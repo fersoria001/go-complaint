@@ -21,6 +21,19 @@ import (
 	pgx "github.com/jackc/pgx/v5"
 )
 
+// ContactEmail is the resolver for the contactEmail field.
+func (r *mutationResolver) ContactEmail(ctx context.Context, input model.ContactEmail) (bool, error) {
+	c := commands.SendContactEmailCommand{
+		From:    input.From,
+		Message: *input.Message,
+	}
+	err := c.Execute(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUser) (*model.User, error) {
 	c := commands.NewRegisterUserCommand(
@@ -66,6 +79,16 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUse
 		},
 		Status: model.UserStatusOffline,
 	}, nil
+}
+
+// RecoverPassword is the resolver for the recoverPassword field.
+func (r *mutationResolver) RecoverPassword(ctx context.Context, userName string) (bool, error) {
+	c := commands.NewRecoverPasswordCommand(userName)
+	err := c.Execute(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // UpdateProfileImg is the resolver for the updateProfileImg field.
@@ -1347,10 +1370,9 @@ func (r *mutationResolver) CreateFeedback(ctx context.Context, input *model.Crea
 func (r *mutationResolver) CreateNewComplaint(ctx context.Context, input model.CreateNewComplaint) (*model.Complaint, error) {
 	c := commands.NewCreateNewComplaintCommand(input.AuthorID, input.ReceiverID)
 	err := c.Execute(ctx)
-	if !errors.Is(err, commands.ErrComplaintAlreadyExists) {
+	if err != nil {
 		return nil, err
 	}
-
 	q := queries.NewComplaintInWritingStatusQuery(input.AuthorID, input.ReceiverID)
 	dbc, err := q.Execute(ctx)
 	if err != nil {
@@ -1376,7 +1398,7 @@ func (r *mutationResolver) CreateNewComplaint(ctx context.Context, input model.C
 		})
 	}
 	status := model.ComplaintStatus(dbc.Status)
-	result := &model.Complaint{
+	return &model.Complaint{
 		ID: &dbc.Id,
 		Author: &model.Recipient{
 			ID:               &dbc.Author.Id,
@@ -1403,8 +1425,7 @@ func (r *mutationResolver) CreateNewComplaint(ctx context.Context, input model.C
 		CreatedAt: &dbc.CreatedAt,
 		UpdatedAt: &dbc.UpdatedAt,
 		Replies:   replies,
-	}
-	return result, nil
+	}, nil
 }
 
 // DescribeComplaint is the resolver for the describeComplaint field.
@@ -2176,6 +2197,69 @@ func (r *queryResolver) ComplaintByID(ctx context.Context, id string) (*model.Co
 		replies = append(replies, reply)
 	}
 
+	status := model.ComplaintStatus(dbc.Status)
+	return &model.Complaint{
+		ID: &dbc.Id,
+		Author: &model.Recipient{
+			ID:               &dbc.Author.Id,
+			SubjectName:      &dbc.Author.SubjectName,
+			SubjectThumbnail: &dbc.Author.SubjectThumbnail,
+			SubjectEmail:     &dbc.Author.SubjectEmail,
+			IsEnterprise:     &dbc.Author.IsEnterprise,
+			IsOnline:         &dbc.Author.IsOnline,
+		},
+		Receiver: &model.Recipient{
+			ID:               &dbc.Receiver.Id,
+			SubjectName:      &dbc.Receiver.SubjectName,
+			SubjectThumbnail: &dbc.Receiver.SubjectThumbnail,
+			SubjectEmail:     &dbc.Receiver.SubjectEmail,
+			IsEnterprise:     &dbc.Receiver.IsEnterprise,
+			IsOnline:         &dbc.Receiver.IsOnline,
+		},
+		Status:      &status,
+		Title:       &dbc.Title,
+		Description: &dbc.Description,
+		Rating: &model.Rating{
+			ID:      &dbc.Rating.Id,
+			Rate:    &dbc.Rating.Rate,
+			Comment: &dbc.Rating.Comment,
+		},
+		CreatedAt: &dbc.CreatedAt,
+		UpdatedAt: &dbc.UpdatedAt,
+		Replies:   replies,
+	}, nil
+}
+
+// ComplaintWritingByAuthorIDAndReceiverID is the resolver for the complaintWritingByAuthorIdAndReceiverId field.
+func (r *queryResolver) ComplaintWritingByAuthorIDAndReceiverID(ctx context.Context, input model.FindComplaintWriting) (*model.Complaint, error) {
+	q := queries.NewComplaintInWritingStatusQuery(input.AuthorID, input.ReceiverID)
+	dbc, err := q.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	replies := make([]*model.ComplaintReply, 0, len(dbc.Replies))
+	repliesSlice := slices.Clone(dbc.Replies)
+	for _, v := range repliesSlice {
+		reply := &model.ComplaintReply{
+			ID:          &v.Id,
+			ComplaintID: &v.ComplaintId,
+			Sender: &model.Recipient{
+				ID:               &v.Sender.Id,
+				SubjectName:      &v.Sender.SubjectName,
+				SubjectThumbnail: &v.Sender.SubjectThumbnail,
+				SubjectEmail:     &v.Sender.SubjectEmail,
+				IsEnterprise:     &v.Sender.IsEnterprise,
+			},
+			Body:         &v.Body,
+			CreatedAt:    &v.CreatedAt,
+			Read:         &v.Read,
+			ReadAt:       &v.ReadAt,
+			UpdatedAt:    &v.UpdatedAt,
+			IsEnterprise: &v.IsEnterprise,
+			EnterpriseID: &v.EnterpriseId,
+		}
+		replies = append(replies, reply)
+	}
 	status := model.ComplaintStatus(dbc.Status)
 	return &model.Complaint{
 		ID: &dbc.Id,
@@ -3346,46 +3430,83 @@ func (r *subscriptionResolver) Complaints(ctx context.Context, id string, userID
 			case m := <-in:
 				if m.DataType() == "subscriber_connected" {
 					//log.Printf("sub conn subs: %v", r.Publisher.ApplicationSubscribers())
-
 					isOnline := true
-					disConnSub, ok := m.Value().(*application.Subscriber)
+					connSub, ok := m.Value().(*application.Subscriber)
 					if ok {
+						log.Printf("sub connected %v", connSub)
 						for _, v := range toModel {
-							if v.Author.ID == &disConnSub.UserId {
-								//log.Printf("conn author %s match %s prev %v", v.Author.ID, m.Value(), v.Author.IsOnline)
+							switch connSub.Id {
+							case *v.Author.ID:
+								log.Printf("connected sub.id == author.id")
 								r.mu.Lock()
 								v.Author.IsOnline = &isOnline
 								r.mu.Unlock()
 								ch <- v
-							}
-							if v.Receiver.ID == &disConnSub.UserId {
-								//log.Printf("conn receiver %s match %s prev %v", v.Receiver.ID, m.Value(), v.Receiver.IsOnline)
+							case *v.Receiver.ID:
+								log.Printf("connected sub.id == receiver.id")
 								r.mu.Lock()
 								v.Receiver.IsOnline = &isOnline
 								r.mu.Unlock()
 								ch <- v
+							default:
+								log.Printf("sub.id does not match any authors %s", sub.Id)
+							}
+							switch connSub.UserId {
+							case *v.Author.ID:
+								log.Printf("connected sub.userid == author.id")
+								r.mu.Lock()
+								v.Author.IsOnline = &isOnline
+								r.mu.Unlock()
+								ch <- v
+							case *v.Receiver.ID:
+								log.Printf("connected sub.userid == receiver.id")
+								r.mu.Lock()
+								v.Receiver.IsOnline = &isOnline
+								r.mu.Unlock()
+								ch <- v
+							default:
+								log.Printf("sub.userid does not match any authors %s", sub.Id)
 							}
 						}
 					}
 				}
 				if m.DataType() == "subscriber_disconnected" {
-					log.Printf("sub disconn subs: %v", r.Publisher.ApplicationSubscribers())
+					isOnline := false
 					disConnSub, ok := m.Value().(*application.Subscriber)
 					if ok {
+						log.Printf("sub disconnected %v", disConnSub)
 						for _, v := range toModel {
-							if v.Author.ID == &disConnSub.UserId {
+							switch disConnSub.Id {
+							case *v.Author.ID:
+								log.Printf("disconnected sub.id == author.id")
 								r.mu.Lock()
-								isOnline := false
 								v.Author.IsOnline = &isOnline
 								r.mu.Unlock()
 								ch <- v
-							}
-							if v.Receiver.ID == &disConnSub.UserId {
+							case *v.Receiver.ID:
+								log.Printf("disconnected sub.id == receiver.id")
 								r.mu.Lock()
-								isOnline := false
 								v.Receiver.IsOnline = &isOnline
 								r.mu.Unlock()
 								ch <- v
+							default:
+								log.Printf("dissub.id does not match any authors %s", sub.Id)
+							}
+							switch disConnSub.UserId {
+							case *v.Author.ID:
+								log.Printf("disconnected sub.userid == author.id")
+								r.mu.Lock()
+								v.Author.IsOnline = &isOnline
+								r.mu.Unlock()
+								ch <- v
+							case *v.Receiver.ID:
+								log.Printf("disconnected sub.userid == receiver.id")
+								r.mu.Lock()
+								v.Receiver.IsOnline = &isOnline
+								r.mu.Unlock()
+								ch <- v
+							default:
+								log.Printf("sub.userid doesnot match any authors %s", sub.Id)
 							}
 						}
 					}
@@ -3845,20 +3966,11 @@ func (r *subscriptionResolver) EnterpriseByID(ctx context.Context, id string, us
 	})
 
 	pub := application.ApplicationMessagePublisherInstance()
-	subs := pub.ApplicationSubscribers()
-
 	sub := &application.Subscriber{Id: id, UserId: userID, Send: make(chan application.ApplicationMessage)}
 	pub.Subscribe(sub)
 
 	employees := make([]*model.Employee, 0, len(dbE.Employees))
 	for _, v := range dbE.Employees {
-		isOnline := slices.ContainsFunc(subs, func(e *application.Subscriber) bool {
-			return e.UserId == v.UserID
-		})
-		status := model.UserStatusOffline
-		if isOnline {
-			status = model.UserStatusOnline
-		}
 		emp := &model.Employee{
 			ID:           v.ID.String(),
 			EnterpriseID: v.EnterpriseID,
@@ -3877,7 +3989,7 @@ func (r *subscriptionResolver) EnterpriseByID(ctx context.Context, id string, us
 					PhoneNumber: v.Phone,
 					Address:     &model.Address{},
 				},
-				Status: status,
+				Status: model.UserStatusOffline,
 			},
 			HiringDate:         v.HiringDate,
 			ApprovedHiring:     v.ApprovedHiring,
@@ -3887,13 +3999,6 @@ func (r *subscriptionResolver) EnterpriseByID(ctx context.Context, id string, us
 		employees = append(employees, emp)
 	}
 	if dbE.OwnerID != userID {
-		isOnline := slices.ContainsFunc(subs, func(e *application.Subscriber) bool {
-			return e.UserId == dbE.OwnerID
-		})
-		status := model.UserStatusOffline
-		if isOnline {
-			status = model.UserStatusOnline
-		}
 		userQuery := queries.NewUserByIdQuery(dbE.OwnerID)
 		dbOwner, err := userQuery.Execute(ctx)
 		if err != nil {
@@ -3917,7 +4022,7 @@ func (r *subscriptionResolver) EnterpriseByID(ctx context.Context, id string, us
 					PhoneNumber: dbOwner.Person.Phone,
 					Address:     &model.Address{},
 				},
-				Status: status,
+				Status: model.UserStatusOffline,
 			},
 			HiringDate:         dbE.FoundationDate,
 			ApprovedHiring:     true,
@@ -3959,47 +4064,93 @@ func (r *subscriptionResolver) EnterpriseByID(ctx context.Context, id string, us
 			case <-ctx.Done():
 				return
 			case m := <-sub.Send:
-
 				switch m.DataType() {
 				case "subscriber_connected":
-					//log.Printf("employee connected %v", userID)
+					isOnline := model.UserStatusOnline
 					connSub, ok := m.Value().(*application.Subscriber)
-					//log.Printf("ok %v", ok)
 					if ok {
-						if j, found := slices.BinarySearchFunc(enterpriseModel.Employees, connSub.UserId,
-							func(e *model.Employee, userId string) int {
-								//log.Printf("e.Id %v , userId %v", e.User.ID, userId)
-								if e.User.ID == userId {
-									return 0
-								}
-								return -1
-							}); found {
-							enterpriseModel.Employees[j].User.Status = model.UserStatusOnline
+						log.Printf("sub connected %v", connSub)
+						s := enterpriseModel.Employees
+						for _, v := range s {
+							switch connSub.Id {
+							case v.UserID:
+								log.Printf("connected sub.id == employee.userID")
+								r.mu.Lock()
+								v.User.Status = isOnline
+								r.mu.Unlock()
+								out <- enterpriseModel
+							case v.UserID:
+								log.Printf("connected sub.id == employee.userID")
+								r.mu.Lock()
+								v.User.Status = isOnline
+								r.mu.Unlock()
+								out <- enterpriseModel
+							default:
+								log.Printf("sub.id does not match any employee.userID %s", sub.Id)
+							}
+							switch connSub.UserId {
+							case v.UserID:
+								log.Printf("connected sub.userid == employee.userID")
+								r.mu.Lock()
+								v.User.Status = isOnline
+								r.mu.Unlock()
+								out <- enterpriseModel
+							case v.UserID:
+								log.Printf("connected sub.userid == employee.userID")
+								r.mu.Lock()
+								v.User.Status = isOnline
+								r.mu.Unlock()
+								out <- enterpriseModel
+							default:
+								log.Printf("sub.userid does not match any employee.userID %s", sub.Id)
+							}
 						}
-						out <- enterpriseModel
 					}
 				case "subscriber_disconnected":
-					//log.Printf("employee disconnected %v", m)
+					isOnline := model.UserStatusOffline
 					disConnSub, ok := m.Value().(*application.Subscriber)
-					//log.Printf("ok %v", ok)
 					if ok {
-						if j, found := slices.BinarySearchFunc(enterpriseModel.Employees, disConnSub.UserId,
-							func(e *model.Employee, userId string) int {
-								if e.User.ID == userId {
-									return 0
-								}
-								return -1
-							}); found {
-							enterpriseModel.Employees[j].User.Status = model.UserStatusOffline
+						log.Printf("sub disconnected %v", disConnSub)
+						s := enterpriseModel.Employees
+						for _, v := range s {
+							switch disConnSub.Id {
+							case v.UserID:
+								log.Printf("disconnected sub.id == employee.userID")
+								r.mu.Lock()
+								v.User.Status = isOnline
+								r.mu.Unlock()
+								out <- enterpriseModel
+							case v.UserID:
+								log.Printf("disconnected sub.id == employee.userID")
+								r.mu.Lock()
+								v.User.Status = isOnline
+								r.mu.Unlock()
+								out <- enterpriseModel
+							default:
+								log.Printf("disconnected sub.id does not match any employee.userID %s", sub.Id)
+							}
+							switch disConnSub.UserId {
+							case v.UserID:
+								log.Printf("disconnected sub.userid == employee.userID")
+								r.mu.Lock()
+								v.User.Status = isOnline
+								r.mu.Unlock()
+								out <- enterpriseModel
+							case v.UserID:
+								log.Printf("disconnected sub.userid == employee.userID")
+								r.mu.Lock()
+								v.User.Status = isOnline
+								r.mu.Unlock()
+								out <- enterpriseModel
+							default:
+								log.Printf("sub.userid doesnot match any employee.userID %s", sub.Id)
+							}
 						}
-						out <- enterpriseModel
 					}
 				}
-
 			}
 		}
 	}()
-
 	return out, nil
 }
 

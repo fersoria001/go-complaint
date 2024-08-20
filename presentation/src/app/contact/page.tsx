@@ -1,7 +1,11 @@
 import ContactForm from "@/components/contact/ContactForm";
 import Image from "next/image";
 import "@/components/wave.css"
-const Contact: React.FC = () => {
+import PageProps from "../pageProps";
+import ContactSuccess from "@/components/contact/ContactSuccess";
+
+const Contact: React.FC<PageProps> = ({ searchParams }: PageProps) => {
+
     return (
         <div className="flex flex-col py-5 mt-2.5 max-w-lg grow shrink-0 mx-auto lg:mx-0">
             <div className="flex flex-col px-3">
@@ -19,13 +23,13 @@ const Contact: React.FC = () => {
                             }}
                         />
                     </div>
-                    <p className="text-gray-700 text-md md:text-xl mb-2 md:mb-4 font-medium">Fernando Agustín Soria </p>
+                    <p className="text-gray-700 text-md md:text-xl mb-2 md:mb-4 font-medium">Fernando Agustín Soria</p>
                 </div>
                 <div>
-                    <p className="text-gray-700 text-md md:text-xl mb-2 md:mb-4 font-medium"> Web developer </p>
+                    <p className="text-gray-700 text-md md:text-xl mb-2 md:mb-4 font-medium">Web developer</p>
                     <div className="flex">
                         <p className="text-gray-700 text-md md:text-xl mb-2 md:mb-4 font-medium"> Number:</p>
-                        <p className="pl-1 text-gray-700 text-md md:text-xl mb-2 md:mb-4 "> +54 2944 7818 23</p>
+                        <p className="pl-1 text-gray-700 text-md md:text-xl mb-2 md:mb-4 ">+54 2944 7818 23</p>
                     </div>
                     <div className="flex">
                         <p className="text-gray-700 text-md md:text-xl mb-2 md:mb-4 font-medium"> Email:</p>
@@ -33,7 +37,9 @@ const Contact: React.FC = () => {
                     </div>
                 </div>
             </div>
-            <ContactForm />
+            {
+                searchParams?.success == "1" ? <ContactSuccess /> : <ContactForm />
+            }
         </div>
     )
 }

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"log"
 	"slices"
 	"sync"
 )
@@ -68,9 +69,10 @@ func (p *ApplicationMessagePublisher) Start() {
 			p.mu.Lock()
 			p.subscribers = append(p.subscribers, sub)
 			for _, v := range p.subscribers {
-				if sub.Id == v.Id {
-					v.Send <- NewApplicationMessage(v.Id, "subscriber_connected", sub)
-				}
+				log.Printf("send %s connection status to all subscriber", sub.UserId)
+				v.Send <- NewApplicationMessage(v.Id, "subscriber_connected", sub)
+				log.Printf("send all connected users connection status to %s", sub.UserId)
+				sub.Send <- NewApplicationMessage(v.Id, "subscriber_connected", v)
 			}
 			p.mu.Unlock()
 		case sub := <-p.unsubscribeCh:
@@ -82,9 +84,8 @@ func (p *ApplicationMessagePublisher) Start() {
 				return e.Id == sub.Id
 			})
 			for _, v := range p.subscribers {
-				if v.Id == sub.Id {
-					v.Send <- NewApplicationMessage(v.Id, "subscriber_disconnected", sub)
-				}
+				log.Printf("sending %s disconnected status to all remaining subscribers", sub.UserId)
+				v.Send <- NewApplicationMessage(v.Id, "subscriber_disconnected", sub)
 			}
 			p.mu.Unlock()
 		case m := <-p.publishCh:
@@ -109,11 +110,4 @@ func (p *ApplicationMessagePublisher) Unsubscribe(sub *Subscriber) {
 
 func (p *ApplicationMessagePublisher) Subscribe(subscriber *Subscriber) {
 	p.subscribeCh <- subscriber
-}
-
-func (p *ApplicationMessagePublisher) ApplicationSubscribers() []*Subscriber {
-	p.mu.Lock()
-	subs := p.subscribers
-	p.mu.Unlock()
-	return subs
 }
