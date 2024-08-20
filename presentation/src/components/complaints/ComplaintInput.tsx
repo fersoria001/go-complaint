@@ -1,16 +1,22 @@
 'use client'
 
-import { useState } from "react"
+import useClickOutside from "@/lib/hooks/useClickOutside";
+import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
+import { PreviewConfig } from "emoji-picker-react/dist/config/config";
+import { useRef, useState } from "react";
 
 interface Props {
     sendCallback?: (body: string) => void
 }
 const ComplaintInput: React.FC<Props> = ({ sendCallback = (b: string) => { } }) => {
+    const [input, setInput] = useState<string>("")
+    const [showEmoji, setShowEmoji] = useState<boolean>(false)
+    const emojiRef = useRef<HTMLDivElement>(null)
+    useClickOutside(emojiRef, () => { setShowEmoji(false) })
     const handleClick = () => {
-        const chatInput = document.getElementById("chat") as HTMLTextAreaElement;
-        const message = chatInput.value.trim();
+        const message = input.trim();
         if (message === "") return;
-        chatInput.value = "";
+        setInput("")
         sendCallback(message);
     }
     const handlePress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -44,7 +50,7 @@ const ComplaintInput: React.FC<Props> = ({ sendCallback = (b: string) => { } }) 
                 <span className="sr-only">Upload image</span>
             </button> */}
                     <button
-                        onMouseUp={() => { }}
+                        onMouseUp={() => { setShowEmoji(true) }}
                         type="button" className="p-2 text-gray-700 rounded-lg cursor-pointer hover:text-gray-900 hover:bg-gray-100">
                         <svg className="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                             <path
@@ -56,30 +62,32 @@ const ComplaintInput: React.FC<Props> = ({ sendCallback = (b: string) => { } }) 
                         </svg>
                         <span className="sr-only">Add emoji</span>
                     </button>
-                    {/* {showEmoji && <div
-                    ref={emojiRef}
-                    className="absolute -top-[251px] left-0 z-50">
-                    <EmojiPicker
-                        onEmojiClick={(emojiData, _: MouseEvent) => { setInput(input + emojiData.emoji); return; }}
-                        theme={Theme.LIGHT}
-                        emojiStyle={EmojiStyle.GOOGLE}
-                        searchDisabled={true}
-                        skinTonesDisabled={true}
-                        previewConfig={{ showPreview: false } as PreviewConfig}
-                        width={270}
-                        height={250} />
-                </div>} */}
+                    {showEmoji && <div
+                        ref={emojiRef}
+                        className="absolute -top-[251px] left-0 z-50">
+                        <EmojiPicker
+                            onEmojiClick={(emojiData, _: MouseEvent) => { setInput(input + emojiData.emoji); return; }}
+                            theme={Theme.LIGHT}
+                            emojiStyle={EmojiStyle.GOOGLE}
+                            searchDisabled={true}
+                            skinTonesDisabled={true}
+                            previewConfig={{ showPreview: false } as PreviewConfig}
+                            width={270}
+                            height={250} />
+                    </div>}
                 </div>
                 <div className="flex w-full">
                     <textarea
                         id="chat"
+                        value={input}
+                        onChange={(e) => setInput(e.currentTarget.value)}
                         onKeyUpCapture={handlePress}
                         rows={2}
                         maxLength={120}
                         className="block md:mx-4 p-2.5 w-full text-sm md:text-xl text-gray-900 bg-white rounded-lg border border-gray-300
      focus:ring-blue-500 focus:border-blue-500 resize-none" placeholder="Your message...">
                     </textarea>
-                    <button onMouseUp={() => { handleClick() }}
+                    <button onMouseUp={handleClick}
                         id="submit-btn"
                         type="button"
                         className="my-auto inline-flex justify-center p-2 text-blue-600 rounded-full cursor-pointer hover:bg-blue-100">
