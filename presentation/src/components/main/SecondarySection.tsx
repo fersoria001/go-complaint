@@ -11,7 +11,7 @@ const SecondarySection: React.FC = () => {
                 <p className="px-5 lg:text-start mb-4 text-md lg:text-lg xl:text-xl 2xl:text-3xl text-gray-700">
                     At Go Complaint our features are aware about this and
                     the attention can be corrected while is being served and after.
-                    Also every single complaint generates a review.
+                    Also every single complaint generates review and tracking data.
                 </p>
             </article>
             <div className="p-2.5

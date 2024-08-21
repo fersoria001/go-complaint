@@ -9,7 +9,7 @@ const MainBanner: React.FC = () => {
                 <VisualizeComplaints className="h-36 w-36 shrink-0 md:self-center lg:h-48 lg:w-48 xl:h-52 xl:w-52 2xl:h-72 2xl:w-72" />
                 <p className="pt-6 ps-3 text-sm text-gray-700 md:text-center  md:text-md lg:text-lg xl:text-xl 2xl:text-3xl">
                     At Go Complaint you can visualize your complaints with ease,
-                    we have an integrated search with native
+                    we have a native integrated search with 
                     full-text search capabilities.
                 </p>
             </div>
@@ -25,7 +25,7 @@ const MainBanner: React.FC = () => {
                 <TeamCommunication className="h-36 w-36 shrink-0 md:self-center lg:h-48 lg:w-48 xl:h-52 xl:w-52 2xl:h-72 2xl:w-72" />
                 <p className="pt-6 ps-3 text-sm text-gray-700 md:text-center md:text-md lg:text-lg xl:text-xl 2xl:text-3xl">
                     Complaint assistance communication
-                    succeed in real time to quickly answer the customer
+                    occurs in real time to quickly answer the customer
                     needs.
                 </p>
             </div>

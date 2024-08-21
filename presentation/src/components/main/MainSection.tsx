@@ -15,7 +15,7 @@ const MainSection: React.FC = () => {
                 <p className="px-5 lg:text-start mb-4 2xl:mb-8 text-md lg:text-lg xl:text-xl 2xl:text-3xl text-gray-700">
                     Get ready to receive complaints, here it&apos;s the place
                     to keep track of them. From the open complaint to the history,
-                    being an individual or an enterprise, guide clients trough the proccess
+                    being an individual or an enterprise. Guide clients trough the proccess
                     and analyze it later.
                 </p>
                 <Link
